@@ -74,6 +74,22 @@ return function(Window, WindUI)
     })
 
     actionSection:Button({
+        Title = "俄罗斯舞蹈",
+        Callback = function() 
+            clik()
+            playAnimation(97148848007002, 1, 0)
+        end,
+    })
+
+    actionSection:Button({
+        Title = "俯卧撑",
+        Callback = function() 
+            clik()
+            playAnimation(108313130500811, 1, 0)
+        end,
+    })
+
+    actionSection:Button({
         Title = "停止当前动作",
         Desc = "打断并停止所有正在播放的动作",
         Callback = function()
