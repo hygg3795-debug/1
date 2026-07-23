@@ -1,6 +1,7 @@
 return function(Window, WindUI)
     local tab = Window:Tab({Title = "通用", Icon = "settings"})
 
+    -- ================= 基础通用功能 =================
     tab:Toggle({
         Title = "防踢",
         Value = false,
@@ -178,6 +179,113 @@ return function(Window, WindUI)
                     _G.InfJumpCon = nil
                 end
                 WindUI:Notify({Title = "无限跳", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
+    -- ================= 隐身与加速区 =================
+    local specialSection = tab:Section({
+        Title = "隐身与加速",
+        Box = true,
+    })
+
+    local function playActionSound()
+        local player = game.Players.LocalPlayer
+        local sound = Instance.new("Sound", player:WaitForChild("PlayerGui"))
+        sound.SoundId = "rbxassetid://942127495"
+        sound.Volume = 1
+        sound:Play()
+        game.Debris:AddItem(sound, 2)
+    end
+
+    local function setTransparency(character, transparency)
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") or part:IsA("Decal") then
+                part.Transparency = transparency
+            end
+        end
+    end
+
+    local invis_on = false
+    specialSection:Toggle({
+        Title = "隐身 (Seat Bug)",
+        Value = false,
+        Callback = function(val)
+            invis_on = val
+            playActionSound()
+            local player = game.Players.LocalPlayer
+
+            if invis_on then
+                local char = player.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local savedpos = char.HumanoidRootPart.CFrame
+                    task.wait()
+                    char:MoveTo(Vector3.new(-25.95, 84, 3537.55))
+                    task.wait(0.15)
+                    
+                    local Seat = Instance.new('Seat', workspace)
+                    Seat.Anchored = false
+                    Seat.CanCollide = false
+                    Seat.Name = 'invischair'
+                    Seat.Transparency = 1
+                    Seat.Position = Vector3.new(-25.95, 84, 3537.55)
+                    
+                    local Weld = Instance.new("Weld", Seat)
+                    Weld.Part0 = Seat
+                    Weld.Part1 = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+                    
+                    task.wait()
+                    Seat.CFrame = savedpos
+                    setTransparency(char, 0.5)
+                    WindUI:Notify({Title = "隐身", Content = "已开启", Duration = 2, Icon = "check"})
+                end
+            else
+                local invisChair = workspace:FindFirstChild('invischair')
+                if invisChair then
+                    invisChair:Destroy()
+                end
+                if player.Character then
+                    setTransparency(player.Character, 0)
+                end
+                WindUI:Notify({Title = "隐身", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
+    local defaultSpeed = 16
+    local boostedSpeed = 48
+    local isSpeedBoosted = false
+    local speedCon = nil
+
+    specialSection:Toggle({
+        Title = "加速 (WalkSpeed 48)",
+        Value = false,
+        Callback = function(val)
+            isSpeedBoosted = val
+            playActionSound()
+            local player = game.Players.LocalPlayer
+            local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+            
+            if isSpeedBoosted then
+                if humanoid then
+                    humanoid.WalkSpeed = boostedSpeed
+                end
+                if not speedCon then
+                    speedCon = player.CharacterAdded:Connect(function(character)
+                        local hum = character:WaitForChild("Humanoid")
+                        hum.WalkSpeed = isSpeedBoosted and boostedSpeed or defaultSpeed
+                    end)
+                end
+                WindUI:Notify({Title = "加速", Content = "速度提升至: " .. boostedSpeed, Duration = 2, Icon = "check"})
+            else
+                if humanoid then
+                    humanoid.WalkSpeed = defaultSpeed
+                end
+                if speedCon then
+                    speedCon:Disconnect()
+                    speedCon = nil
+                end
+                WindUI:Notify({Title = "加速", Content = "速度恢复至: " .. defaultSpeed, Duration = 2, Icon = "x"})
             end
         end,
     })
