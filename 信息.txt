@@ -1,0 +1,118 @@
+return function(Window, WindUI)
+    local tab = Window:Tab({Title = "信息", Icon = "info"})
+
+    local function safeGet(func, fallback)
+        local ok, res = pcall(func)
+        return (ok and res) and tostring(res) or (fallback or "未知")
+    end
+
+    local plr = game.Players.LocalPlayer
+
+    local country = safeGet(function()
+        return game:GetService("LocalizationService"):GetCountryRegionForPlayerAsync(plr)
+    end, "无法获取")
+
+    local executor = safeGet(function()
+        if identifyexecutor then return identifyexecutor() end
+        if getexecutorname then return getexecutorname() end
+        return "未知/通用"
+    end, "无法获取")
+
+    local gameName = safeGet(function()
+        return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
+    end, "无法获取")
+
+    local resolution = safeGet(function()
+        local res = game:GetService("GuiService"):GetScreenResolution()
+        return res.X .. "x" .. res.Y
+    end, "无法获取")
+
+    local char = plr.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local maxHealth = hum and tostring(hum.MaxHealth) or (char and "无法获取" or "角色未加载")
+    local jumpPower = hum and tostring(hum.JumpPower) or (char and "无法获取" or "角色未加载")
+    local walkSpeed = hum and tostring(hum.WalkSpeed) or (char and "无法获取" or "角色未加载")
+
+    local userSection = tab:Section({
+        Title = "玩家与账号",
+        Box = true,
+    })
+    userSection:Paragraph({Title = "用户名", Content = plr.Name})
+    userSection:Paragraph({Title = "显示名称", Content = plr.DisplayName})
+    userSection:Paragraph({Title = "用户 ID", Content = tostring(plr.UserId)})
+    userSection:Paragraph({Title = "语言", Content = tostring(plr.LocaleId)})
+    userSection:Paragraph({Title = "国家/地区", Content = country})
+    userSection:Paragraph({Title = "账号年龄", Content = plr.AccountAge .. " 天 (" .. string.format("%.2f", plr.AccountAge / 365) .. " 年)"})
+
+    local envSection = tab:Section({
+        Title = "游戏与环境",
+        Box = true,
+    })
+    envSection:Paragraph({Title = "游戏名称", Content = gameName})
+    envSection:Paragraph({Title = "游戏 ID (PlaceId)", Content = tostring(game.PlaceId)})
+    envSection:Paragraph({Title = "游戏版本", Content = tostring(game.PlaceVersion)})
+    envSection:Paragraph({Title = "服务器 ID (JobId)", Content = (game.JobId ~= "" and game.JobId or "单人/本地服务器")})
+    envSection:Paragraph({Title = "最大玩家数", Content = tostring(game.Players.MaxPlayers)})
+    envSection:Paragraph({Title = "注入器", Content = executor})
+    envSection:Paragraph({Title = "Roblox 版本", Content = version()})
+    envSection:Paragraph({Title = "设备类型", Content = (game:GetService("UserInputService").TouchEnabled and "移动设备" or "电脑")})
+    envSection:Paragraph({Title = "屏幕分辨率", Content = resolution})
+
+    local statsSection = tab:Section({
+        Title = "角色数据",
+        Box = true,
+    })
+    statsSection:Paragraph({Title = "最大生命值", Content = maxHealth})
+    statsSection:Paragraph({Title = "最大跳跃力", Content = jumpPower})
+    statsSection:Paragraph({Title = "最大移动速度", Content = walkSpeed})
+
+    local actionSection = tab:Section({
+        Title = "快捷操作",
+        Box = true,
+    })
+    actionSection:Button({
+        Title = "复制所有信息",
+        Desc = "将上述所有玩家、环境和角色数据复制到剪贴板",
+        Callback = function()
+            local infoList = {
+                "=== 黑洞中心 - 信息 ===",
+                "用户名: " .. plr.Name,
+                "显示名称: " .. plr.DisplayName,
+                "用户ID: " .. plr.UserId,
+                "语言: " .. tostring(plr.LocaleId),
+                "国家: " .. country,
+                "账户年龄(天): " .. plr.AccountAge,
+                "账户年龄(年): " .. string.format("%.2f", plr.AccountAge / 365),
+                "注入器: " .. executor,
+                "游戏名称: " .. gameName,
+                "游戏ID: " .. game.PlaceId,
+                "游戏版本: " .. game.PlaceVersion,
+                "服务器ID: " .. game.JobId,
+                "最大玩家数: " .. game.Players.MaxPlayers,
+                "Roblox版本: " .. version(),
+                "设备类型: " .. (game:GetService("UserInputService").TouchEnabled and "移动设备" or "电脑"),
+                "屏幕分辨率: " .. resolution,
+                "最大生命值: " .. maxHealth,
+                "最大跳跃力: " .. jumpPower,
+                "最大速度: " .. walkSpeed,
+                "=== 复制时间: " .. os.date("%Y-%m-%d %H:%M:%S") .. " ==="
+            }
+            local allInfo = table.concat(infoList, "\n")
+
+            local copied = false
+            if setclipboard then
+                pcall(function() setclipboard(allInfo) copied = true end)
+            elseif toclipboard then
+                pcall(function() toclipboard(allInfo) copied = true end)
+            end
+
+            if copied then
+                WindUI:Notify({Title = "复制成功", Content = "所有信息已复制到剪贴板", Duration = 3, Icon = "check"})
+            else
+                WindUI:Notify({Title = "复制失败", Content = "当前执行器不支持剪贴板写入", Duration = 3, Icon = "alert"})
+            end
+        end,
+    })
+
+    return tab
+end
