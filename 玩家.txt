@@ -1,8 +1,6 @@
 return function(Window, WindUI)
     local tab = Window:Tab({Title = "玩家", Icon = "users"})
 
-    local flingSection = tab:Section({ Title = "甩飞控制", Box = true })
-
     local LocalPlayer = game.Players.LocalPlayer
     local Module = {
         state = {
@@ -97,7 +95,7 @@ return function(Window, WindUI)
         return names
     end
 
-    flingSection:Dropdown({
+    tab:Dropdown({
         Title = "选择目标玩家",
         Values = getPlayerNames(),
         Callback = function(selected)
@@ -105,7 +103,7 @@ return function(Window, WindUI)
         end,
     })
 
-    flingSection:Button({
+    tab:Button({
         Title = "甩飞选中玩家 (一次)",
         Callback = function()
             if Module.state.targetPlayer then
@@ -119,7 +117,7 @@ return function(Window, WindUI)
         end,
     })
 
-    flingSection:Toggle({
+    tab:Toggle({
         Title = "循环甩飞选中玩家",
         Value = false,
         Callback = function(val)
@@ -136,14 +134,14 @@ return function(Window, WindUI)
         end,
     })
 
-    flingSection:Button({
+    tab:Button({
         Title = "甩飞所有玩家 (一次)",
         Callback = function()
             startFlingAll()
         end,
     })
 
-    flingSection:Toggle({
+    tab:Toggle({
         Title = "循环甩飞所有人",
         Value = false,
         Callback = function(val)
