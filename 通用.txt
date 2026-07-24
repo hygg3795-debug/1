@@ -1,7 +1,6 @@
 return function(Window, WindUI)
     local tab = Window:Tab({Title = "通用", Icon = "settings"})
 
-    -- ================= 基础通用功能 =================
     tab:Toggle({
         Title = "防踢",
         Value = false,
@@ -185,7 +184,7 @@ return function(Window, WindUI)
 
     local tpConnection = nil
     tab:Toggle({
-        Title = "固定传送 (-273, 179.5, 394)",
+        Title = "自动存活",
         Value = false,
         Callback = function(val)
             if val then
@@ -208,7 +207,7 @@ return function(Window, WindUI)
     })
 
     tab:Toggle({
-        Title = "显示地图投票界面",
+        Title = "地图投票",
         Value = false,
         Callback = function(val)
             local plr = game.Players.LocalPlayer
@@ -235,7 +234,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- ================= 隐身与加速区 =================
     local specialSection = tab:Section({ Title = "隐身与加速", Box = true })
 
     local function playActionSound()
@@ -257,7 +255,7 @@ return function(Window, WindUI)
 
     local invis_on = false
     specialSection:Toggle({
-        Title = "隐身 (Seat Bug)",
+        Title = "隐身",
         Value = false,
         Callback = function(val)
             invis_on = val
@@ -307,7 +305,7 @@ return function(Window, WindUI)
     local speedCon = nil
 
     specialSection:Toggle({
-        Title = "加速 (WalkSpeed 48)",
+        Title = "加速",
         Value = false,
         Callback = function(val)
             isSpeedBoosted = val
