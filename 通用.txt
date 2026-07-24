@@ -207,6 +207,34 @@ return function(Window, WindUI)
         end,
     })
 
+    tab:Toggle({
+        Title = "显示地图投票界面",
+        Value = false,
+        Callback = function(val)
+            local plr = game.Players.LocalPlayer
+            local playerGui = plr:FindFirstChild("PlayerGui")
+            local mainGui = playerGui and playerGui:FindFirstChild("MainGui")
+            local mapPage = mainGui and mainGui:FindFirstChild("MapVotePage")
+
+            if mapPage then
+                mapPage.Visible = val
+                WindUI:Notify({
+                    Title = "地图投票",
+                    Content = val and "界面已开启" or "界面已关闭",
+                    Duration = 2,
+                    Icon = val and "eye" or "eye-off"
+                })
+            else
+                WindUI:Notify({
+                    Title = "提示",
+                    Content = "未找到地图投票界面 (MainGui.MapVotePage)",
+                    Duration = 2,
+                    Icon = "alert"
+                })
+            end
+        end,
+    })
+
     -- ================= 隐身与加速区 =================
     local specialSection = tab:Section({ Title = "隐身与加速", Box = true })
 
