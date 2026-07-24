@@ -2,24 +2,21 @@ local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footag
 local BRAND = {name = "hygg脚本", version = "v1.0", author = "hygg", folder = "hyggHub", icon = "zap", theme = "Dark", accent = "#FF6B35"}
 
 local Window = WindUI:CreateWindow({
-    Title = BRAND.name, Icon = BRAND.icon, IconThemed = true, Author = BRAND.version, Folder = BRAND.folder,
-    Size = UDim2.fromOffset(640, 420), Transparent = true, Theme = BRAND.theme, HideSearchBar = false, Resizable = true,
+    Title = BRAND.name,
+    Icon = BRAND.icon,
+    IconThemed = true,
+    Author = BRAND.version,
+    Folder = BRAND.folder,
+    Size = UDim2.fromOffset(640, 420),
+    Transparent = true,
+    Theme = BRAND.theme,
+    HideSearchBar = true,
+    Resizable = true,
     SideBarWidth = 240,
-    BackgroundTransparency = 0.5,
-    Search = {Enabled = true, Placeholder = "搜索...", Callback = function(text) end},
+    Background = "rbxassetid://84674071500810",
+    BackgroundImageTransparency = 0.5,
     User = {Enabled = true, Callback = function() WindUI:Notify({Title = "玩家信息", Content = game.Players.LocalPlayer.Name, Duration = 2, Icon = "user"}) end},
 })
-
-Window:CreateTopbarButton("ThemeToggle", "moon", function()
-    local current = WindUI:GetCurrentTheme()
-    if current == "Light" then 
-        WindUI:SetTheme("Dark") 
-        WindUI:Notify({Title = "已切换暗黑主题", Duration = 2, Icon = "moon"})
-    else 
-        WindUI:SetTheme("Light") 
-        WindUI:Notify({Title = "已切换明亮主题", Duration = 2, Icon = "sun"}) 
-    end
-end, 990)
 
 Window:EditOpenButton({
     Title = BRAND.name,
@@ -33,16 +30,53 @@ Window:EditOpenButton({
     Draggable = true,
 })
 
-Window:Tag({Title = BRAND.name .. " " .. BRAND.version, Color = Color3.fromHex(BRAND.accent)})
-local timeTag = Window:Tag({Title = os.date("%H:%M:%S"), Color = Color3.fromHex("#00ffff")})
-task.spawn(function() 
-    while Window do 
-        task.wait(1) 
-        pcall(function() timeTag:SetTitle(os.date("%H:%M:%S")) end) 
-    end 
+task.spawn(function()
+    task.wait(0.5)
+    pcall(function()
+        local mainFrame = Window.Frame or Window.Main or (Window.UIElements and Window.UIElements.Main)
+        if not mainFrame and Window.Instance then
+            mainFrame = Window.Instance:FindFirstChildWhichIsA("Frame", true)
+        end
+        if mainFrame then
+            local topbar = mainFrame:FindFirstChild("Topbar") or mainFrame:FindFirstChild("Header") or mainFrame
+            
+            local titleObj = nil
+            for _, child in ipairs(topbar:GetDescendants()) do
+                if child:IsA("TextLabel") and (child.Text == BRAND.name or child.Name:lower():find("title")) then
+                    titleObj = child
+                    break
+                end
+            end
+
+            local timeLabel = Instance.new("TextLabel")
+            timeLabel.Name = "CustomTimeLabel"
+            timeLabel.Parent = topbar
+            timeLabel.BackgroundTransparency = 1
+            timeLabel.Size = UDim2.new(0, 100, 0, 30)
+            timeLabel.Position = UDim2.new(0, 150, 0, 8)
+            timeLabel.Font = Enum.Font.GothamBold
+            if titleObj then
+                timeLabel.TextColor3 = titleObj.TextColor3
+            else
+                timeLabel.TextColor3 = Color3.fromHex(BRAND.accent)
+            end
+            timeLabel.TextSize = 14
+            timeLabel.TextXAlignment = Enum.TextXAlignment.Left
+            timeLabel.ZIndex = 100
+            
+            task.spawn(function()
+                while timeLabel and timeLabel.Parent do
+                    timeLabel.Text = os.date("%H:%M:%S")
+                    if titleObj then
+                        timeLabel.TextColor3 = titleObj.TextColor3
+                    end
+                    task.wait(1)
+                end
+            end)
+        end
+    end)
 end)
 
--- 1. 加载通用模块
 local okGeneral, loadGeneralTab = pcall(function()
     return loadstring(game:HttpGet("https://hygg3795-debug.github.io/1/通用.txt"))()
 end)
@@ -52,7 +86,6 @@ else
     WindUI:Notify({Title = "通用模块加载失败", Content = "请检查网络或仓库地址", Duration = 3, Icon = "alert"})
 end
 
--- 2. 加载玩家模块
 local okPlayer, loadPlayerTab = pcall(function()
     return loadstring(game:HttpGet("https://hygg3795-debug.github.io/1/玩家.txt"))()
 end)
@@ -62,7 +95,6 @@ else
     WindUI:Notify({Title = "玩家模块加载失败", Content = "请检查网络或仓库地址", Duration = 3, Icon = "alert"})
 end
 
--- 3. 加载黑洞模块
 local okBlackhole, loadBlackholeTab = pcall(function()
     return loadstring(game:HttpGet("https://hygg3795-debug.github.io/1/黑洞.txt"))()
 end)
@@ -72,7 +104,6 @@ else
     WindUI:Notify({Title = "黑洞模块加载失败", Content = "请检查网络或仓库地址", Duration = 3, Icon = "alert"})
 end
 
--- 4. 加载超人模块
 local okSuper, loadSuperTab = pcall(function()
     return loadstring(game:HttpGet("https://hygg3795-debug.github.io/1/超人.txt"))()
 end)
@@ -82,7 +113,6 @@ else
     WindUI:Notify({Title = "超人模块加载失败", Content = "请检查网络或仓库地址", Duration = 3, Icon = "alert"})
 end
 
--- 5. 加载动作模块
 local okAction, loadActionTab = pcall(function()
     return loadstring(game:HttpGet("https://hygg3795-debug.github.io/1/动作.txt"))()
 end)
