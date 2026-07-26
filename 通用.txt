@@ -1,6 +1,180 @@
 return function(Window, WindUI)
     local tab = Window:Tab({Title = "通用", Icon = "settings"})
 
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+
+    tab:Toggle({
+        Title = "防踢",
+        Value = false,
+        Callback = function(val)
+            if val then
+                local vu = game:GetService("VirtualUser")
+                local con = LocalPlayer.Idled:Connect(function()
+                    vu:CaptureController()
+                    vu:ClickButton2(Vector2.new())
+                end)
+                _G.AntiAFKCon = con
+                WindUI:Notify({Title = "防踢", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if _G.AntiAFKCon then
+                    _G.AntiAFKCon:Disconnect()
+                    _G.AntiAFKCon = nil
+                end
+                WindUI:Notify({Title = "防踢", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
+    tab:Toggle({
+        Title = "防甩飞",
+        Value = false,
+        Callback = function(val)
+            local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            local root = char:FindFirstChild("HumanoidRootPart")
+
+            if not hum or not root then
+                WindUI:Notify({Title = "错误", Content = "角色未加载完成", Duration = 2, Icon = "x"})
+                return
+            end
+
+            if val then
+                hum.PlatformStand = true
+                local antiVelocity = Instance.new("BodyVelocity")
+                antiVelocity.Name = "AntiFling"
+                antiVelocity.Parent = root
+                antiVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                antiVelocity.Velocity = Vector3.new(0, 0, 0)
+
+                local antiAngular = Instance.new("BodyAngularVelocity")
+                antiAngular.Name = "AntiFlingAngular"
+                antiAngular.Parent = root
+                antiAngular.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                antiAngular.AngularVelocity = Vector3.new(0, 0, 0)
+
+                WindUI:Notify({Title = "防甩飞", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                hum.PlatformStand = false
+                local antiVelocity = root:FindFirstChild("AntiFling")
+                if antiVelocity then antiVelocity:Destroy() end
+                local antiAngular = root:FindFirstChild("AntiFlingAngular")
+                if antiAngular then antiAngular:Destroy() end
+
+                WindUI:Notify({Title = "防甩飞", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
+    local espEnabled = false
+    local espConnections = {}
+    local playerAddedConn = nil
+
+    local function createESP(player)
+        if not espEnabled or player == LocalPlayer then return end
+        if player.Character then
+            local hl = player.Character:FindFirstChild("NH_ESP")
+            if not hl then
+                hl = Instance.new("Highlight")
+                hl.Name = "NH_ESP"
+                hl.FillTransparency = 0.7
+                hl.OutlineTransparency = 0
+                hl.FillColor = Color3.fromRGB(255, 0, 0)
+                hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                hl.Adornee = player.Character
+                hl.Parent = player.Character
+            end
+        end
+
+        if not espConnections[player] then
+            espConnections[player] = player.CharacterAdded:Connect(function(char)
+                task.wait(0.5)
+                if espEnabled and player ~= LocalPlayer then
+                    local newHl = Instance.new("Highlight")
+                    newHl.Name = "NH_ESP"
+                    newHl.FillTransparency = 0.7
+                    newHl.OutlineTransparency = 0
+                    newHl.FillColor = Color3.fromRGB(255, 0, 0)
+                    newHl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    newHl.Adornee = char
+                    newHl.Parent = char
+                end
+            end)
+        end
+    end
+
+    tab:Toggle({
+        Title = "透视玩家",
+        Value = false,
+        Callback = function(enabled)
+            espEnabled = enabled
+            if enabled then
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer then
+                        createESP(player)
+                    end
+                end
+
+                if playerAddedConn then playerAddedConn:Disconnect() end
+                playerAddedConn = Players.PlayerAdded:Connect(function(player)
+                    if espEnabled and player ~= LocalPlayer then
+                        createESP(player)
+                    end
+                end)
+                WindUI:Notify({Title = "透视玩家", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if playerAddedConn then
+                    playerAddedConn:Disconnect()
+                    playerAddedConn = nil
+                end
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player.Character then
+                        local hl = player.Character:FindFirstChild("NH_ESP")
+                        if hl then hl:Destroy() end
+                    end
+                    if espConnections[player] then
+                        espConnections[player]:Disconnect()
+                        espConnections[player] = nil
+                    end
+                end
+                WindUI:Notify({Title = "透视玩家", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end
+    })
+
+    local flyEnabled = false
+    local flyConnections = {}
+    local flyBody = {}
+
+    tab:Toggle({
+        Title = "飞行",
+        Value = false,
+        Callback = function(val)
+            flyEnabled = val
+            local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            local root = char:FindFirstChild("HumanoidRootPart")
+
+            if val then
+                if hum then
+                    for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
+                        hum:SetStateEnabled(state, false)
+                    end
+                    hum:ChangeState(Enum.HumanoidStateType.Swimming)
+                end
+                if char.Animate then char.Animate.Disabled = true end
+
+                local bg =已将透视功能整合进通用（`tab`）页面中[cite: 1, 2]。在整合过程中补全了 `Players` 和 `LocalPlayer` 服务变量声明[cite: 2]，并完善了关闭透视时的监听断开与 Highlight 实例清理逻辑[cite: 2]。
+
+修改后的完整代码如下：
+
+```lua
+return function(Window, WindUI)
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+
+    local tab = Window:Tab({Title = "通用", Icon = "settings"})
+
     tab:Toggle({
         Title = "防踢",
         Value = false,
@@ -398,6 +572,93 @@ return function(Window, WindUI)
                 end
                 WindUI:Notify({Title = "虚空传送", Content = "已返回现实", Duration = 2, Icon = "x"})
             end
+        end,
+    })
+
+    -- 透视玩家功能
+    local espEnabled = false
+    local espConnections = {}
+    local playerAddedConn = nil
+
+    local function createESP(player)
+        if not espEnabled or player == LocalPlayer then return end
+        
+        if player.Character then
+            local existing = player.Character:FindFirstChild("NH_ESP")
+            if existing then existing:Destroy() end
+
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "NH_ESP"
+            highlight.FillTransparency = 0.7
+            highlight.OutlineTransparency = 0
+            highlight.FillColor = Color3.fromRGB(255, 0, 0)
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.Adornee = player.Character
+            highlight.Parent = player.Character
+        end
+
+        if not espConnections[player] then
+            local connection = player.CharacterAdded:Connect(function(char)
+                task.wait(0.5)
+                if espEnabled and player ~= LocalPlayer then
+                    local existing = char:FindFirstChild("NH_ESP")
+                    if existing then existing:Destroy() end
+
+                    local highlight = Instance.new("Highlight")
+                    highlight.Name = "NH_ESP"
+                    highlight.FillTransparency = 0.7
+                    highlight.OutlineTransparency = 0
+                    highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    highlight.Adornee = char
+                    highlight.Parent = char
+                end
+            end)
+            espConnections[player] = connection
+        end
+    end
+
+    tab:Toggle({
+        Title = "透视玩家",
+        Value = false,
+        Callback = function(enabled)
+            espEnabled = enabled
+            if enabled then
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer then
+                        createESP(player)
+                    end
+                end
+
+                playerAddedConn = Players.PlayerAdded:Connect(function(player)
+                    if espEnabled and player ~= LocalPlayer then
+                        createESP(player)
+                    end
+                end)
+            else
+                if playerAddedConn then
+                    playerAddedConn:Disconnect()
+                    playerAddedConn = nil
+                end
+
+                for player, conn in pairs(espConnections) do
+                    if conn then conn:Disconnect() end
+                end
+                espConnections = {}
+
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player.Character then
+                        local hl = player.Character:FindFirstChild("NH_ESP")
+                        if hl then hl:Destroy() end
+                    end
+                end
+            end
+            WindUI:Notify({
+                Title = "透视玩家",
+                Content = enabled and "透视已开启" or "透视已关闭",
+                Duration = 2,
+                Icon = enabled and "check" or "x"
+            })
         end,
     })
 
