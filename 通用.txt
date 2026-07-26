@@ -23,6 +23,47 @@ return function(Window, WindUI)
         end,
     })
 
+    tab:Toggle({
+        Title = "防甩飞",
+        Value = false,
+        Callback = function(val)
+            local plr = game.Players.LocalPlayer
+            local char = plr.Character or plr.CharacterAdded:Wait()
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            local root = char:FindFirstChild("HumanoidRootPart")
+
+            if not hum or not root then
+                WindUI:Notify({Title = "错误", Content = "角色未加载完成", Duration = 2, Icon = "x"})
+                return
+            end
+
+            if val then
+                hum.PlatformStand = true
+                local antiVelocity = Instance.new("BodyVelocity")
+                antiVelocity.Name = "AntiFling"
+                antiVelocity.Parent = root
+                antiVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                antiVelocity.Velocity = Vector3.new(0, 0, 0)
+
+                local antiAngular = Instance.new("BodyAngularVelocity")
+                antiAngular.Name = "AntiFlingAngular"
+                antiAngular.Parent = root
+                antiAngular.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                antiAngular.AngularVelocity = Vector3.new(0, 0, 0)
+
+                WindUI:Notify({Title = "防甩飞", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                hum.PlatformStand = false
+                local antiVelocity = root:FindFirstChild("AntiFling")
+                if antiVelocity then antiVelocity:Destroy() end
+                local antiAngular = root:FindFirstChild("AntiFlingAngular")
+                if antiAngular then antiAngular:Destroy() end
+
+                WindUI:Notify({Title = "防甩飞", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
     local flyEnabled = false
     local flyConnections = {}
     local flyBody = {}
