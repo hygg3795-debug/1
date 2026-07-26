@@ -1,7 +1,10 @@
 return function(Window, WindUI)
     local tab = Window:Tab({Title = "玩家", Icon = "users"})
 
-    local LocalPlayer = game.Players.LocalPlayer
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local LocalPlayer = Players.LocalPlayer
+
     local Module = {
         state = {
             isLoopFlingingSingle = false,
@@ -10,82 +13,97 @@ return function(Window, WindUI)
         }
     }
 
-    local function SkidFling(TargetPlayer)
+    local function ModernSkidFling(TargetPlayer)
         if not TargetPlayer or TargetPlayer == LocalPlayer then return end
+        
         local Character = LocalPlayer.Character
         local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
+        
         local TCharacter = TargetPlayer.Character
         local TRootPart = TCharacter and TCharacter:FindFirstChild("HumanoidRootPart")
 
         if not (Character and RootPart and TCharacter and TRootPart) then return end
 
         local SavedCFrame = RootPart.CFrame
-        local OldVelocity = RootPart.AssemblyLinearVelocity
 
         local bav = Instance.new("BodyAngularVelocity")
         bav.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
         bav.AngularVelocity = Vector3.new(0, 999999, 0)
         bav.Parent = RootPart
 
+        local noclipConnection = RunService.Stepped:Connect(function()
+            for _, part in ipairs(Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end)
+
         local startTime = tick()
         while tick() - startTime < 0.5 do
             if not TargetPlayer or not TargetPlayer.Parent or not TRootPart or not TRootPart.Parent then break end
-            RootPart.CFrame = TRootPart.CFrame * CFrame.new(0, 0, 0)
-            RootPart.AssemblyLinearVelocity = Vector3.new(9999, 9999, 9999)
-            task.wait()
+            
+            local targetVel = TRootPart.AssemblyLinearVelocity
+            RootPart.CFrame = TRootPart.CFrame * CFrame.new(0, 0, 0) + (targetVel * 0.05)
+            RootPart.AssemblyLinearVelocity = Vector3.new(10000, 10000, 10000)
+            
+            RunService.RenderStepped:Wait()
         end
 
+        noclipConnection:Disconnect()
         bav:Destroy()
-        RootPart.AssemblyLinearVelocity = OldVelocity
-        RootPart.CFrame = SavedCFrame
+        
+        if RootPart and RootPart.Parent then
+            RootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            RootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            RootPart.CFrame = SavedCFrame
+        end
     end
 
     local function startFlingAll()
-        local players = game.Players:GetPlayers()
+        local players = Players:GetPlayers()
         for _, player in ipairs(players) do
             if player ~= LocalPlayer then
                 task.spawn(function()
-                    SkidFling(player)
+                    ModernSkidFling(player)
                 end)
             end
         end
-        WindUI:Notify({Title = "成功", Content = "甩飞所有玩家一次", Duration = 3, Icon = "check"})
+        WindUI:Notify({Title = "成功", Content = "已对所有玩家执行甩飞", Duration = 3, Icon = "check"})
     end
 
     local function stopLoopFlingSingle()
         Module.state.isLoopFlingingSingle = false
-        WindUI:Notify({Title = "停止", Content = "循环甩飞玩家已停止", Duration = 3, Icon = "x"})
+        WindUI:Notify({Title = "停止", Content = "循环甩飞已停止", Duration = 3, Icon = "x"})
     end
 
     local function stopLoopFlingAll()
         Module.state.isLoopFlingingAll = false
-        WindUI:Notify({Title = "停止", Content = "循环甩飞所有玩家已停止", Duration = 3, Icon = "x"})
+        WindUI:Notify({Title = "停止", Content = "循环甩飞所有人已停止", Duration = 3, Icon = "x"})
     end
 
-    -- 后台循环处理
     task.spawn(function()
         while true do
-            task.wait(0.6)
+            task.wait(0.5)
             if Module.state.isLoopFlingingAll then
-                local players = game.Players:GetPlayers()
+                local players = Players:GetPlayers()
                 for _, player in ipairs(players) do
                     if not Module.state.isLoopFlingingAll then break end
                     if player ~= LocalPlayer then
-                        SkidFling(player)
+                        ModernSkidFling(player)
                     end
                 end
             elseif Module.state.isLoopFlingingSingle and Module.state.targetPlayer then
-                SkidFling(Module.state.targetPlayer)
+                ModernSkidFling(Module.state.targetPlayer)
             end
         end
     end)
 
-    -- 玩家选择下拉框
     local playerMap = {}
     local function getPlayerNames()
         local names = {}
         playerMap = {}
-        for _, p in ipairs(game.Players:GetPlayers()) do
+        for _, p in ipairs(Players:GetPlayers()) do
             if p ~= LocalPlayer then
                 local label = p.DisplayName .. " (@" .. p.Name .. ")"
                 table.insert(names, label)
@@ -95,7 +113,7 @@ return function(Window, WindUI)
         return names
     end
 
-    tab:Dropdown({
+    local playerDropdown = tab:Dropdown({
         Title = "选择目标玩家",
         Values = getPlayerNames(),
         Callback = function(selected)
@@ -103,12 +121,20 @@ return function(Window, WindUI)
         end,
     })
 
+    local function refreshDropdown()
+        if playerDropdown and playerDropdown.SetValues then
+            playerDropdown:SetValues(getPlayerNames())
+        end
+    end
+    Players.PlayerAdded:Connect(refreshDropdown)
+    Players.PlayerRemoving:Connect(refreshDropdown)
+
     tab:Button({
         Title = "甩飞选中玩家 (一次)",
         Callback = function()
             if Module.state.targetPlayer then
                 task.spawn(function()
-                    SkidFling(Module.state.targetPlayer)
+                    ModernSkidFling(Module.state.targetPlayer)
                 end)
                 WindUI:Notify({Title = "成功", Content = "已甩飞目标玩家", Duration = 3, Icon = "check"})
             else
