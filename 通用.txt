@@ -836,9 +836,17 @@ return function(Window, WindUI)
                 confirmCorner.CornerRadius = UDim.new(0, 6)
                 confirmCorner.Parent = confirmBtn
 
+                -- 确认逻辑：保存速度并销毁弹窗（速度保持不变）
                 confirmBtn.MouseButton1Click:Connect(function()
                     local num = tonumber(inputBox.Text)
-                    if num then applySpeed(num) end
+                    if num then 
+                        applySpeed(num) 
+                        if speedGuiObj then
+                            speedGuiObj:Destroy()
+                            speedGuiObj = nil
+                        end
+                        WindUI:Notify({Title = "移动控制", Content = "速度已设置为 " .. math.floor(num) .. "，面板已隐藏", Duration = 2, Icon = "check"})
+                    end
                 end)
 
                 local resetBtn = Instance.new("TextButton")
@@ -872,11 +880,16 @@ return function(Window, WindUI)
                 closeCorner.CornerRadius = UDim.new(0, 6)
                 closeCorner.Parent = closeBtn
 
+                -- X 按钮逻辑：关闭弹窗并变回默认速度
                 closeBtn.MouseButton1Click:Connect(function()
                     stopSpeedAntiPull()
                     local hum = getHumanoid()
                     if hum then hum.WalkSpeed = 16 end
-                    if speedGuiObj then speedGuiObj:Destroy() speedGuiObj = nil end
+                    if speedGuiObj then 
+                        speedGuiObj:Destroy() 
+                        speedGuiObj = nil 
+                    end
+                    WindUI:Notify({Title = "移动控制", Content = "已恢复默认速度 (16)", Duration = 2, Icon = "x"})
                 end)
 
                 local knobDragging = false
@@ -915,7 +928,7 @@ return function(Window, WindUI)
                     speedGuiObj:Destroy()
                     speedGuiObj = nil
                 end
-                WindUI:Notify({Title = "移动控制面板", Content = "面板已关闭", Duration = 2, Icon = "x"})
+                WindUI:Notify({Title = "移动控制面板", Content = "面板已关闭，恢复默认速度", Duration = 2, Icon = "x"})
             end
         end,
     })
