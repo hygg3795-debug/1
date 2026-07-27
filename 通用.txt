@@ -7,6 +7,44 @@ return function(Window, WindUI)
 
     local tab = Window:Tab({Title = "通用", Icon = "settings"})
 
+    local function makeDraggable(guiObj, dragHandle)
+        local dragging = false
+        local dragInput, dragStart, startPos
+        guiObj.Active = true
+        dragHandle.Active = true
+
+        dragHandle.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+                dragStart = input.Position
+                startPos = guiObj.Position
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        dragging = false
+                    end
+                end)
+            end
+        end)
+
+        dragHandle.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                dragInput = input
+            end
+        end)
+
+        UserInputService.InputChanged:Connect(function(input)
+            if input == dragInput and dragging then
+                local delta = input.Position - dragStart
+                guiObj.Position = UDim2.new(
+                    startPos.X.Scale,
+                    startPos.X.Offset + delta.X,
+                    startPos.Y.Scale,
+                    startPos.Y.Offset + delta.Y
+                )
+            end
+        end)
+    end
+
     tab:Toggle({
         Title = "防踢",
         Value = false,
@@ -353,105 +391,6 @@ return function(Window, WindUI)
         end,
     })
 
-    local disasterConn = nil
-    local disastertable = {
-        ["Blizzard"] = "暴风雪",
-        ["Sandstorm"] = "沙尘暴",
-        ["Tornado"] = "龙卷风",
-        ["Volcanic Eruption"] = "火山",
-        ["Flash Flood"] = "洪水",
-        ["Deadly Virus"] = "病毒",
-        ["Tsunami"] = "海啸",
-        ["Acid Rain"] = "酸雨",
-        ["Fire"] = "火焰",
-        ["Meteor Shower"] = "流星雨",
-        ["Earthquake"] = "地震",
-        ["Thunder Storm"] = "暴风雨",
-        ["Avalanche"] = "雪崩",
-        ["Lightning"] = "闪电"
-    }
-
-    local function checkDisaster(tag)
-        if tag and disastertable[tag.Value] then
-            WindUI:Notify({
-                Title = "灾难预警",
-                Content = "⚠️ " .. disastertable[tag.Value] .. " 即将到来！",
-                Duration = 5,
-                Icon = "alert"
-            })
-        end
-    end
-
-    tab:Toggle({
-        Title = "灾难预警",
-        Value = false,
-        Callback = function(val)
-            if val then
-                local SurvivalTag = workspace:FindFirstChild("SurvivalTag")
-                if SurvivalTag then
-                    checkDisaster(SurvivalTag)
-                end
-                if disasterConn then disasterConn:Disconnect() end
-                disasterConn = workspace.ChildAdded:Connect(function(v)
-                    if v.Name == "SurvivalTag" then
-                        checkDisaster(v)
-                    end
-                end)
-                WindUI:Notify({Title = "灾难预警", Content = "已开启", Duration = 2, Icon = "check"})
-            else
-                if disasterConn then
-                    disasterConn:Disconnect()
-                    disasterConn = nil
-                end
-                WindUI:Notify({Title = "灾难预警", Content = "已关闭", Duration = 2, Icon = "x"})
-            end
-        end,
-    })
-
-    local voidConnection = nil
-    local savedVoidCFrame = nil
-    local VOID_POSITION = CFrame.new(0, -10000, 0)
-
-    tab:Toggle({
-        Title = "虚空传送",
-        Value = false,
-        Callback = function(val)
-            local char = LocalPlayer.Character
-            local root = char and char:FindFirstChild("HumanoidRootPart")
-
-            if val then
-                if root then
-                    savedVoidCFrame = root.CFrame
-                    if voidConnection then voidConnection:Disconnect() end
-                    voidConnection = RunService.Heartbeat:Connect(function()
-                        local cChar = LocalPlayer.Character
-                        local cRoot = cChar and cChar:FindFirstChild("HumanoidRootPart")
-                        if cRoot then
-                            cRoot.CFrame = VOID_POSITION
-                            cRoot.AssemblyLinearVelocity = Vector3.zero
-                            cRoot.AssemblyAngularVelocity = Vector3.zero
-                            for _, child in ipairs(cRoot:GetChildren()) do
-                                if child:IsA("BodyVelocity") or child:IsA("BodyThrust") or child:IsA("BodyAngularVelocity") or child:IsA("BodyGyro") then
-                                    child:Destroy()
-                                end
-                            end
-                        end
-                    end)
-                    WindUI:Notify({Title = "虚空传送", Content = "已进入虚空", Duration = 2, Icon = "check"})
-                end
-            else
-                if voidConnection then
-                    voidConnection:Disconnect()
-                    voidConnection = nil
-                end
-                if savedVoidCFrame and root then
-                    root.CFrame = savedVoidCFrame
-                end
-                WindUI:Notify({Title = "虚空传送", Content = "已返回现实", Duration = 2, Icon = "x"})
-            end
-        end,
-    })
-
     local function playActionSound()
         local sound = Instance.new("Sound", LocalPlayer:WaitForChild("PlayerGui"))
         sound.SoundId = "rbxassetid://942127495"
@@ -513,43 +452,6 @@ return function(Window, WindUI)
         end,
     })
 
-    local defaultSpeed = 16
-    local boostedSpeed = 48
-    local isSpeedBoosted = false
-    local speedCon = nil
-
-    tab:Toggle({
-        Title = "加速",
-        Value = false,
-        Callback = function(val)
-            isSpeedBoosted = val
-            playActionSound()
-            local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
-            
-            if isSpeedBoosted then
-                if humanoid then
-                    humanoid.WalkSpeed = boostedSpeed
-                end
-                if not speedCon then
-                    speedCon = LocalPlayer.CharacterAdded:Connect(function(character)
-                        local hum = character:WaitForChild("Humanoid")
-                        hum.WalkSpeed = isSpeedBoosted and boostedSpeed or defaultSpeed
-                    end)
-                end
-                WindUI:Notify({Title = "加速", Content = "速度提升至: " .. boostedSpeed, Duration = 2, Icon = "check"})
-            else
-                if humanoid then
-                    humanoid.WalkSpeed = defaultSpeed
-                end
-                if speedCon then
-                    speedCon:Disconnect()
-                    speedCon = nil
-                end
-                WindUI:Notify({Title = "加速", Content = "速度恢复至: " .. defaultSpeed, Duration = 2, Icon = "x"})
-            end
-        end,
-    })
-
     local NoclipEnabled = false
     local noclipConnection = nil
     local lastGroundY = 0
@@ -605,6 +507,7 @@ return function(Window, WindUI)
         end,
     })
 
+    local blockGui = nil
     local autoPlace = false
     local autoPlacing = false
 
@@ -627,42 +530,113 @@ return function(Window, WindUI)
         Title = "自动放置方块",
         Value = false,
         Callback = function(val)
-            autoPlace = val
             if val then
-                if not autoPlacing then
-                    autoPlacing = true
-                    task.spawn(function()
-                        while autoPlace and task.wait(0.1) do
-                            placeOneBlock()
+                if blockGui then blockGui:Destroy() end
+                local sg = Instance.new("ScreenGui")
+                sg.Name = "BlockPlaceGui"
+                sg.Parent = LocalPlayer.PlayerGui
+                sg.ResetOnSpawn = false
+                sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+                blockGui = sg
+
+                local mainFrame = Instance.new("Frame")
+                mainFrame.Parent = sg
+                mainFrame.Size = UDim2.new(0, 160, 0, 100)
+                mainFrame.Position = UDim2.new(0.1, 0, 0.18, 0)
+                mainFrame.BackgroundTransparency = 1
+                mainFrame.ZIndex = 9999
+
+                local btnClear = Instance.new("TextButton")
+                btnClear.Parent = mainFrame
+                btnClear.Size = UDim2.new(0, 50, 0, 50)
+                btnClear.Position = UDim2.new(0, 0, 0, 0)
+                btnClear.BackgroundColor3 = Color3.new(1, 0, 0)
+                btnClear.TextColor3 = Color3.new(1, 1, 1)
+                btnClear.Text = "清除"
+                btnClear.Font = Enum.Font.GothamBold
+                btnClear.TextSize = 14
+                btnClear.AutoButtonColor = false
+                btnClear.ZIndex = 10000
+                local corner1 = Instance.new("UICorner")
+                corner1.CornerRadius = UDim.new(0, 12)
+                corner1.Parent = btnClear
+
+                btnClear.MouseButton1Click:Connect(function()
+                    for _, v in pairs(workspace:GetChildren()) do
+                        if v.Name == "LocalBlock" then
+                            v:Destroy()
                         end
-                        autoPlacing = false
-                    end)
-                end
-                WindUI:Notify({Title = "自动放置方块", Content = "已开启", Duration = 2, Icon = "check"})
+                    end
+                end)
+
+                local closeBtn = Instance.new("TextButton")
+                closeBtn.Parent = mainFrame
+                closeBtn.Size = UDim2.new(0, 50, 0, 50)
+                closeBtn.Position = UDim2.new(0, 55, 0, 0)
+                closeBtn.BackgroundColor3 = Color3.new(0, 0, 0)
+                closeBtn.Text = "X"
+                closeBtn.TextColor3 = Color3.new(1, 1, 1)
+                closeBtn.TextSize = 18
+                closeBtn.ZIndex = 10002
+                local closeCorner = Instance.new("UICorner")
+                closeCorner.CornerRadius = UDim.new(0, 8)
+                closeCorner.Parent = closeBtn
+
+                closeBtn.MouseButton1Click:Connect(function()
+                    autoPlace = false
+                    autoPlacing = false
+                    if blockGui then blockGui:Destroy() blockGui = nil end
+                end)
+
+                local autoBtn = Instance.new("TextButton")
+                autoBtn.Parent = mainFrame
+                autoBtn.Size = UDim2.new(0, 160, 0, 40)
+                autoBtn.Position = UDim2.new(0, 0, 0, 55)
+                autoBtn.BackgroundColor3 = Color3.new(0, 0, 0)
+                autoBtn.Text = "自动放置"
+                autoBtn.TextColor3 = Color3.new(1, 1, 1)
+                autoBtn.Font = Enum.Font.GothamBold
+                autoBtn.TextSize = 14
+                autoBtn.AutoButtonColor = false
+                autoBtn.ZIndex = 10000
+                local autoCorner = Instance.new("UICorner")
+                autoCorner.CornerRadius = UDim.new(0, 12)
+                autoCorner.Parent = autoBtn
+
+                autoBtn.MouseButton1Click:Connect(function()
+                    autoPlace = not autoPlace
+                    if autoPlace then
+                        autoBtn.BackgroundColor3 = Color3.new(0.2, 0.8, 0.2)
+                        if not autoPlacing then
+                            autoPlacing = true
+                            task.spawn(function()
+                                while autoPlace and task.wait(0.1) do
+                                    placeOneBlock()
+                                end
+                                autoPlacing = false
+                            end)
+                        end
+                    else
+                        autoBtn.BackgroundColor3 = Color3.new(0, 0, 0)
+                    end
+                end)
+
+                makeDraggable(mainFrame, mainFrame)
+                WindUI:Notify({Title = "自动放置方块", Content = "窗口已打开", Duration = 2, Icon = "check"})
             else
-                WindUI:Notify({Title = "自动放置方块", Content = "已关闭", Duration = 2, Icon = "x"})
-            end
-        end,
-    })
-
-    tab:Button({
-        Title = "清除放置方块",
-        Callback = function()
-            local count = 0
-            for _, v in pairs(workspace:GetChildren()) do
-                if v.Name == "LocalBlock" then
-                    v:Destroy()
-                    count = count + 1
+                autoPlace = false
+                autoPlacing = false
+                if blockGui then
+                    blockGui:Destroy()
+                    blockGui = nil
                 end
+                WindUI:Notify({Title = "自动放置方块", Content = "窗口已关闭", Duration = 2, Icon = "x"})
             end
-            WindUI:Notify({Title = "清除成功", Content = "已清除 " .. count .. " 个方块", Duration = 2, Icon = "trash"})
         end,
     })
 
-    local isStealing = false
+    local stealLoop = false
     local function stealAllItems()
-        if isStealing then return 0 end
-        isStealing = true
         local count = 0
         local myBackpack = LocalPlayer:FindFirstChild("Backpack")
         if not myBackpack then
@@ -683,28 +657,35 @@ return function(Window, WindUI)
                 for _, item in ipairs(container:GetChildren()) do
                     if item:IsA("Tool") or item:IsA("Model") or item:IsA("Part") or item:IsA("Accessory") then
                         local success = pcall(function() item.Parent = myBackpack end)
-                        if success then count = count + 1 task.wait(0.1) end
+                        if success then count = count + 1 task.wait(0.05) end
                     end
                 end
             end
         end
-        isStealing = false
         return count
     end
 
-    tab:Button({
+    tab:Toggle({
         Title = "偷取所有物品",
-        Callback = function()
-            task.spawn(function()
-                WindUI:Notify({Title = "开始偷取", Content = "正在获取附近玩家物品...", Duration = 2, Icon = "download"})
-                local count = stealAllItems()
-                WindUI:Notify({Title = "偷取完成", Content = "成功偷取 " .. count .. " 个物品", Duration = 2, Icon = "check"})
-            end)
+        Value = false,
+        Callback = function(val)
+            stealLoop = val
+            if val then
+                WindUI:Notify({Title = "偷取所有物品", Content = "自动偷取中...", Duration = 2, Icon = "check"})
+                task.spawn(function()
+                    while stealLoop do
+                        stealAllItems()
+                        task.wait(1)
+                    end
+                end)
+            else
+                WindUI:Notify({Title = "偷取所有物品", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
         end,
     })
 
     local speedAntiPull = nil
-    local speedPanel = nil
+    local speedGuiObj = nil
 
     local function getHumanoid()
         local char = LocalPlayer.Character
@@ -721,6 +702,13 @@ return function(Window, WindUI)
         end)
     end
 
+    local function stopSpeedAntiPull()
+        if speedAntiPull then
+            speedAntiPull:Disconnect()
+            speedAntiPull = nil
+        end
+    end
+
     local function setSpeed(val)
         val = math.clamp(math.floor(val), 5, 1000)
         local hum = getHumanoid()
@@ -728,188 +716,207 @@ return function(Window, WindUI)
         startSpeedAntiPull(val)
     end
 
-    local function createSpeedPanel()
-        if speedPanel then return speedPanel end
-        
-        local sg = Instance.new("ScreenGui")
-        sg.Parent = LocalPlayer.PlayerGui
-        sg.Name = "SpeedGui"
-        sg.ResetOnSpawn = false
-        sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-        
-        speedPanel = Instance.new("Frame")
-        speedPanel.Parent = sg
-        speedPanel.Size = UDim2.new(0, 300, 0, 200)
-        speedPanel.Position = UDim2.new(0.5, -150, 0.5, -100)
-        speedPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-        speedPanel.BackgroundTransparency = 0.1
-        speedPanel.ZIndex = 200
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 12)
-        corner.Parent = speedPanel
-        local stroke = Instance.new("UIStroke")
-        stroke.Thickness = 2
-        stroke.Color = Color3.fromRGB(100, 100, 255)
-        stroke.Parent = speedPanel
+    tab:Toggle({
+        Title = "移动控制面板",
+        Value = false,
+        Callback = function(val)
+            if val then
+                if speedGuiObj then speedGuiObj:Destroy() end
 
-        local title = Instance.new("TextLabel")
-        title.Parent = speedPanel
-        title.Size = UDim2.new(1, 0, 0, 35)
-        title.Position = UDim2.new(0, 0, 0, 5)
-        title.BackgroundTransparency = 1
-        title.Text = "修改移速"
-        title.TextColor3 = Color3.new(1, 1, 1)
-        title.Font = Enum.Font.GothamBold
-        title.TextSize = 18
-        title.TextXAlignment = Enum.TextXAlignment.Center
+                local sg = Instance.new("ScreenGui")
+                sg.Name = "SpeedGui"
+                sg.Parent = LocalPlayer.PlayerGui
+                sg.ResetOnSpawn = false
+                sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+                speedGuiObj = sg
 
-        local slider = Instance.new("Frame")
-        slider.Parent = speedPanel
-        slider.Size = UDim2.new(1, -40, 0, 30)
-        slider.Position = UDim2.new(0, 20, 0, 50)
-        slider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        local sliderCorner = Instance.new("UICorner")
-        sliderCorner.CornerRadius = UDim.new(0, 6)
-        sliderCorner.Parent = slider
+                local speedPanel = Instance.new("Frame")
+                speedPanel.Parent = sg
+                speedPanel.Size = UDim2.new(0, 300, 0, 200)
+                speedPanel.Position = UDim2.new(0.5, -150, 0.5, -100)
+                speedPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+                speedPanel.BackgroundTransparency = 0.1
+                speedPanel.ZIndex = 200
 
-        local fill = Instance.new("Frame")
-        fill.Parent = slider
-        fill.Size = UDim2.new(0, 0, 1, 0)
-        fill.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-        fill.BorderSizePixel = 0
-        local fillCorner = Instance.new("UICorner")
-        fillCorner.CornerRadius = UDim.new(0, 6)
-        fillCorner.Parent = fill
+                local corner = Instance.new("UICorner")
+                corner.CornerRadius = UDim.new(0, 12)
+                corner.Parent = speedPanel
 
-        local knob = Instance.new("TextButton")
-        knob.Parent = slider
-        knob.Size = UDim2.new(0, 20, 0, 20)
-        knob.Position = UDim2.new(0, -10, 0.5, -10)
-        knob.Text = ""
-        knob.BackgroundColor3 = Color3.new(1, 1, 1)
-        knob.AutoButtonColor = false
-        local knobCorner = Instance.new("UICorner")
-        knobCorner.CornerRadius = UDim.new(1, 0)
-        knobCorner.Parent = knob
+                local stroke = Instance.new("UIStroke")
+                stroke.Thickness = 2
+                stroke.Color = Color3.fromRGB(100, 100, 255)
+                stroke.Parent = speedPanel
 
-        local minSpeed, maxSpeed = 5, 1000
+                local dragHeader = Instance.new("Frame")
+                dragHeader.Name = "DragHeader"
+                dragHeader.Parent = speedPanel
+                dragHeader.Size = UDim2.new(1, 0, 0, 35)
+                dragHeader.BackgroundTransparency = 1
+                dragHeader.ZIndex = 201
 
-        local inputBox = Instance.new("TextBox")
-        inputBox.Parent = speedPanel
-        inputBox.Size = UDim2.new(0, 100, 0, 35)
-        inputBox.Position = UDim2.new(0, 20, 0, 95)
-        inputBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        inputBox.Text = "16"
-        inputBox.TextColor3 = Color3.new(1, 1, 1)
-        inputBox.Font = Enum.Font.Gotham
-        inputBox.TextSize = 18
-        inputBox.PlaceholderText = "速度值"
-        local inputCorner = Instance.new("UICorner")
-        inputCorner.CornerRadius = UDim.new(0, 6)
-        inputCorner.Parent = inputBox
+                local title = Instance.new("TextLabel")
+                title.Parent = dragHeader
+                title.Size = UDim2.new(1, -40, 1, 0)
+                title.Position = UDim2.new(0, 10, 0, 0)
+                title.BackgroundTransparency = 1
+                title.Text = "修改移速 (按住此处拖动)"
+                title.TextColor3 = Color3.new(1, 1, 1)
+                title.Font = Enum.Font.GothamBold
+                title.TextSize = 15
+                title.TextXAlignment = Enum.TextXAlignment.Left
 
-        local function updateSliderDisplay(val)
-            local percent = (val - minSpeed) / (maxSpeed - minSpeed)
-            fill.Size = UDim2.new(percent, 0, 1, 0)
-            knob.Position = UDim2.new(percent, -10, 0.5, -10)
-        end
+                local slider = Instance.new("Frame")
+                slider.Parent = speedPanel
+                slider.Size = UDim2.new(1, -40, 0, 30)
+                slider.Position = UDim2.new(0, 20, 0, 50)
+                slider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+                local sliderCorner = Instance.new("UICorner")
+                sliderCorner.CornerRadius = UDim.new(0, 6)
+                sliderCorner.Parent = slider
 
-        local function applySpeed(val)
-            val = math.clamp(math.floor(val), minSpeed, maxSpeed)
-            inputBox.Text = tostring(val)
-            updateSliderDisplay(val)
-            setSpeed(val)
-        end
+                local fill = Instance.new("Frame")
+                fill.Parent = slider
+                fill.Size = UDim2.new(0, 0, 1, 0)
+                fill.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+                fill.BorderSizePixel = 0
+                local fillCorner = Instance.new("UICorner")
+                fillCorner.CornerRadius = UDim.new(0, 6)
+                fillCorner.Parent = fill
 
-        local confirmBtn = Instance.new("TextButton")
-        confirmBtn.Parent = speedPanel
-        confirmBtn.Size = UDim2.new(0, 80, 0, 35)
-        confirmBtn.Position = UDim2.new(0, 130, 0, 95)
-        confirmBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-        confirmBtn.Text = "确认"
-        confirmBtn.TextColor3 = Color3.new(1, 1, 1)
-        confirmBtn.Font = Enum.Font.GothamBold
-        confirmBtn.TextSize = 16
-        local confirmCorner = Instance.new("UICorner")
-        confirmCorner.CornerRadius = UDim.new(0, 6)
-        confirmCorner.Parent = confirmBtn
-        confirmBtn.MouseButton1Click:Connect(function()
-            local num = tonumber(inputBox.Text)
-            if num then applySpeed(num) end
-        end)
+                local knob = Instance.new("TextButton")
+                knob.Parent = slider
+                knob.Size = UDim2.new(0, 20, 0, 20)
+                knob.Position = UDim2.new(0, -10, 0.5, -10)
+                knob.Text = ""
+                knob.BackgroundColor3 = Color3.new(1, 1, 1)
+                knob.AutoButtonColor = false
+                local knobCorner = Instance.new("UICorner")
+                knobCorner.CornerRadius = UDim.new(1, 0)
+                knobCorner.Parent = knob
 
-        local resetBtn = Instance.new("TextButton")
-        resetBtn.Parent = speedPanel
-        resetBtn.Size = UDim2.new(0, 80, 0, 35)
-        resetBtn.Position = UDim2.new(0, 220, 0, 95)
-        resetBtn.BackgroundColor3 = Color3.fromRGB(180, 80, 0)
-        resetBtn.Text = "重置"
-        resetBtn.TextColor3 = Color3.new(1, 1, 1)
-        resetBtn.Font = Enum.Font.GothamBold
-        resetBtn.TextSize = 16
-        local resetCorner = Instance.new("UICorner")
-        resetCorner.CornerRadius = UDim.new(0, 6)
-        resetCorner.Parent = resetBtn
-        resetBtn.MouseButton1Click:Connect(function()
-            applySpeed(16)
-        end)
+                local minSpeed, maxSpeed = 5, 1000
 
-        local closeBtn = Instance.new("TextButton")
-        closeBtn.Parent = speedPanel
-        closeBtn.Size = UDim2.new(0, 30, 0, 30)
-        closeBtn.Position = UDim2.new(1, -35, 0, 5)
-        closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        closeBtn.Text = "X"
-        closeBtn.TextSize = 16
-        closeBtn.Font = Enum.Font.GothamBold
-        closeBtn.TextColor3 = Color3.new(1, 1, 1)
-        local closeCorner = Instance.new("UICorner")
-        closeCorner.CornerRadius = UDim.new(0, 6)
-        closeCorner.Parent = closeBtn
-        closeBtn.MouseButton1Click:Connect(function()
-            speedPanel.Parent:Destroy()
-            speedPanel = nil
-        end)
+                local inputBox = Instance.new("TextBox")
+                inputBox.Parent = speedPanel
+                inputBox.Size = UDim2.new(0, 100, 0, 35)
+                inputBox.Position = UDim2.new(0, 20, 0, 95)
+                inputBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                inputBox.Text = "16"
+                inputBox.TextColor3 = Color3.new(1, 1, 1)
+                inputBox.Font = Enum.Font.Gotham
+                inputBox.TextSize = 18
+                inputBox.PlaceholderText = "速度值"
+                local inputCorner = Instance.new("UICorner")
+                inputCorner.CornerRadius = UDim.new(0, 6)
+                inputCorner.Parent = inputBox
 
-        local dragging = false
-        knob.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                dragging = true
+                local function updateSliderDisplay(sVal)
+                    local percent = (sVal - minSpeed) / (maxSpeed - minSpeed)
+                    fill.Size = UDim2.new(percent, 0, 1, 0)
+                    knob.Position = UDim2.new(percent, -10, 0.5, -10)
+                end
+
+                local function applySpeed(sVal)
+                    sVal = math.clamp(math.floor(sVal), minSpeed, maxSpeed)
+                    inputBox.Text = tostring(sVal)
+                    updateSliderDisplay(sVal)
+                    setSpeed(sVal)
+                end
+
+                local confirmBtn = Instance.new("TextButton")
+                confirmBtn.Parent = speedPanel
+                confirmBtn.Size = UDim2.new(0, 80, 0, 35)
+                confirmBtn.Position = UDim2.new(0, 130, 0, 95)
+                confirmBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+                confirmBtn.Text = "确认"
+                confirmBtn.TextColor3 = Color3.new(1, 1, 1)
+                confirmBtn.Font = Enum.Font.GothamBold
+                confirmBtn.TextSize = 16
+                local confirmCorner = Instance.new("UICorner")
+                confirmCorner.CornerRadius = UDim.new(0, 6)
+                confirmCorner.Parent = confirmBtn
+
+                confirmBtn.MouseButton1Click:Connect(function()
+                    local num = tonumber(inputBox.Text)
+                    if num then applySpeed(num) end
+                end)
+
+                local resetBtn = Instance.new("TextButton")
+                resetBtn.Parent = speedPanel
+                resetBtn.Size = UDim2.new(0, 80, 0, 35)
+                resetBtn.Position = UDim2.new(0, 220, 0, 95)
+                resetBtn.BackgroundColor3 = Color3.fromRGB(180, 80, 0)
+                resetBtn.Text = "重置"
+                resetBtn.TextColor3 = Color3.new(1, 1, 1)
+                resetBtn.Font = Enum.Font.GothamBold
+                resetBtn.TextSize = 16
+                local resetCorner = Instance.new("UICorner")
+                resetCorner.CornerRadius = UDim.new(0, 6)
+                resetCorner.Parent = resetBtn
+
+                resetBtn.MouseButton1Click:Connect(function()
+                    applySpeed(16)
+                end)
+
+                local closeBtn = Instance.new("TextButton")
+                closeBtn.Parent = speedPanel
+                closeBtn.Size = UDim2.new(0, 30, 0, 30)
+                closeBtn.Position = UDim2.new(1, -35, 0, 5)
+                closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+                closeBtn.Text = "X"
+                closeBtn.TextSize = 16
+                closeBtn.Font = Enum.Font.GothamBold
+                closeBtn.TextColor3 = Color3.new(1, 1, 1)
+                closeBtn.ZIndex = 202
+                local closeCorner = Instance.new("UICorner")
+                closeCorner.CornerRadius = UDim.new(0, 6)
+                closeCorner.Parent = closeBtn
+
+                closeBtn.MouseButton1Click:Connect(function()
+                    stopSpeedAntiPull()
+                    local hum = getHumanoid()
+                    if hum then hum.WalkSpeed = 16 end
+                    if speedGuiObj then speedGuiObj:Destroy() speedGuiObj = nil end
+                end)
+
+                local knobDragging = false
+                knob.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        knobDragging = true
+                    end
+                end)
+                UserInputService.InputChanged:Connect(function(input)
+                    if knobDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                        local mousePos = UserInputService:GetMouseLocation()
+                        local sliderAbs = slider.AbsolutePosition
+                        local sliderSize = slider.AbsoluteSize
+                        local relativeX = math.clamp(mousePos.X - sliderAbs.X, 0, sliderSize.X)
+                        local percent = relativeX / sliderSize.X
+                        local newVal = math.floor(minSpeed + (maxSpeed - minSpeed) * percent)
+                        inputBox.Text = tostring(newVal)
+                        updateSliderDisplay(newVal)
+                        setSpeed(newVal)
+                    end
+                end)
+                UserInputService.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        knobDragging = false
+                    end
+                end)
+
+                makeDraggable(speedPanel, dragHeader)
+                updateSliderDisplay(16)
+                WindUI:Notify({Title = "移动控制面板", Content = "面板已打开", Duration = 2, Icon = "check"})
+            else
+                stopSpeedAntiPull()
+                local hum = getHumanoid()
+                if hum then hum.WalkSpeed = 16 end
+                if speedGuiObj then
+                    speedGuiObj:Destroy()
+                    speedGuiObj = nil
+                end
+                WindUI:Notify({Title = "移动控制面板", Content = "面板已关闭", Duration = 2, Icon = "x"})
             end
-        end)
-        UserInputService.InputChanged:Connect(function(input)
-            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                local mousePos = UserInputService:GetMouseLocation()
-                local sliderAbs = slider.AbsolutePosition
-                local sliderSize = slider.AbsoluteSize
-                local relativeX = math.clamp(mousePos.X - sliderAbs.X, 0, sliderSize.X)
-                local percent = relativeX / sliderSize.X
-                local newVal = math.floor(minSpeed + (maxSpeed - minSpeed) * percent)
-                inputBox.Text = tostring(newVal)
-                updateSliderDisplay(newVal)
-                setSpeed(newVal)
-            end
-        end)
-        UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                dragging = false
-            end
-        end)
-        inputBox.FocusLost:Connect(function(enterPressed)
-            if enterPressed then
-                local num = tonumber(inputBox.Text)
-                if num then applySpeed(num) end
-            end
-        end)
-
-        updateSliderDisplay(16)
-        return speedPanel
-    end
-
-    tab:Button({
-        Title = "打开移速控制面板",
-        Callback = function()
-            createSpeedPanel()
         end,
     })
 
