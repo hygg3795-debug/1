@@ -684,72 +684,82 @@ return function(Window, WindUI)
         end,
     })
 
-    local speedAntiPull = nil
-    local speedGuiObj = nil
+    ------------------ 移速跳高调整 模块 ------------------
+    local speedJumpGuiObj = nil
+    local speedHeartbeat = nil
+    local jumpHeartbeat = nil
 
     local function getHumanoid()
         local char = LocalPlayer.Character
-        if char then return char:FindFirstChild("Humanoid") end
+        return char and char:FindFirstChildOfClass("Humanoid")
     end
 
-    local function startSpeedAntiPull(speed)
-        if speedAntiPull then speedAntiPull:Disconnect() end
-        speedAntiPull = RunService.Heartbeat:Connect(function()
+    local function stopSpeedLock()
+        if speedHeartbeat then speedHeartbeat:Disconnect() speedHeartbeat = nil end
+    end
+
+    local function stopJumpLock()
+        if jumpHeartbeat then jumpHeartbeat:Disconnect() jumpHeartbeat = nil end
+    end
+
+    local function startSpeedLock(sVal)
+        stopSpeedLock()
+        speedHeartbeat = RunService.Heartbeat:Connect(function()
             local hum = getHumanoid()
-            if hum and hum.WalkSpeed ~= speed then
-                hum.WalkSpeed = speed
+            if hum and hum.WalkSpeed ~= sVal then
+                hum.WalkSpeed = sVal
             end
         end)
     end
 
-    local function stopSpeedAntiPull()
-        if speedAntiPull then
-            speedAntiPull:Disconnect()
-            speedAntiPull = nil
-        end
-    end
-
-    local function setSpeed(val)
-        val = math.clamp(math.floor(val), 5, 1000)
-        local hum = getHumanoid()
-        if hum then hum.WalkSpeed = val end
-        startSpeedAntiPull(val)
+    local function startJumpLock(jVal)
+        stopJumpLock()
+        jumpHeartbeat = RunService.Heartbeat:Connect(function()
+            local hum = getHumanoid()
+            if hum then
+                hum.UseJumpPower = true
+                if hum.JumpPower ~= jVal then
+                    hum.JumpPower = jVal
+                end
+            end
+        end)
     end
 
     tab:Toggle({
-        Title = "移动控制面板",
+        Title = "移速跳高调整",
         Value = false,
         Callback = function(val)
             if val then
-                if speedGuiObj then speedGuiObj:Destroy() end
+                if speedJumpGuiObj then speedJumpGuiObj:Destroy() end
 
                 local sg = Instance.new("ScreenGui")
-                sg.Name = "SpeedGui"
-                sg.Parent = LocalPlayer.PlayerGui
+                sg.Name = "SpeedJumpGui"
+                sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
                 sg.ResetOnSpawn = false
                 sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-                speedGuiObj = sg
+                speedJumpGuiObj = sg
 
-                local speedPanel = Instance.new("Frame")
-                speedPanel.Parent = sg
-                speedPanel.Size = UDim2.new(0, 300, 0, 200)
-                speedPanel.Position = UDim2.new(0.5, -150, 0.5, -100)
-                speedPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-                speedPanel.BackgroundTransparency = 0.1
-                speedPanel.ZIndex = 200
+                local panel = Instance.new("Frame")
+                panel.Parent = sg
+                panel.Size = UDim2.new(0, 320, 0, 260)
+                panel.Position = UDim2.new(0.5, -160, 0.5, -130)
+                panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+                panel.BackgroundTransparency = 0.1
+                panel.ZIndex = 200
 
                 local corner = Instance.new("UICorner")
                 corner.CornerRadius = UDim.new(0, 12)
-                corner.Parent = speedPanel
+                corner.Parent = panel
 
                 local stroke = Instance.new("UIStroke")
                 stroke.Thickness = 2
                 stroke.Color = Color3.fromRGB(100, 100, 255)
-                stroke.Parent = speedPanel
+                stroke.Parent = panel
 
+                -- 窗口标题栏（防拖动抓取）
                 local dragHeader = Instance.new("Frame")
                 dragHeader.Name = "DragHeader"
-                dragHeader.Parent = speedPanel
+                dragHeader.Parent = panel
                 dragHeader.Size = UDim2.new(1, 0, 0, 35)
                 dragHeader.BackgroundTransparency = 1
                 dragHeader.ZIndex = 201
@@ -759,115 +769,223 @@ return function(Window, WindUI)
                 title.Size = UDim2.new(1, -40, 1, 0)
                 title.Position = UDim2.new(0, 10, 0, 0)
                 title.BackgroundTransparency = 1
-                title.Text = "修改移速 (按住此处拖动)"
+                title.Text = "移速跳高调整 (按住此处拖动)"
                 title.TextColor3 = Color3.new(1, 1, 1)
                 title.Font = Enum.Font.GothamBold
                 title.TextSize = 15
                 title.TextXAlignment = Enum.TextXAlignment.Left
 
-                local slider = Instance.new("Frame")
-                slider.Parent = speedPanel
-                slider.Size = UDim2.new(1, -40, 0, 30)
-                slider.Position = UDim2.new(0, 20, 0, 50)
-                slider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-                local sliderCorner = Instance.new("UICorner")
-                sliderCorner.CornerRadius = UDim.new(0, 6)
-                sliderCorner.Parent = slider
+                makeDraggable(panel, dragHeader)
 
-                local fill = Instance.new("Frame")
-                fill.Parent = slider
-                fill.Size = UDim2.new(0, 0, 1, 0)
-                fill.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-                fill.BorderSizePixel = 0
-                local fillCorner = Instance.new("UICorner")
-                fillCorner.CornerRadius = UDim.new(0, 6)
-                fillCorner.Parent = fill
+                ------------------ 调整移速部分 ------------------
+                local speedLabel = Instance.new("TextLabel")
+                speedLabel.Parent = panel
+                speedLabel.Size = UDim2.new(1, -40, 0, 20)
+                speedLabel.Position = UDim2.new(0, 20, 0, 40)
+                speedLabel.BackgroundTransparency = 1
+                speedLabel.Text = "调整移速"
+                speedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+                speedLabel.Font = Enum.Font.GothamBold
+                speedLabel.TextSize = 13
+                speedLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-                local knob = Instance.new("TextButton")
-                knob.Parent = slider
-                knob.Size = UDim2.new(0, 20, 0, 20)
-                knob.Position = UDim2.new(0, -10, 0.5, -10)
-                knob.Text = ""
-                knob.BackgroundColor3 = Color3.new(1, 1, 1)
-                knob.AutoButtonColor = false
-                local knobCorner = Instance.new("UICorner")
-                knobCorner.CornerRadius = UDim.new(1, 0)
-                knobCorner.Parent = knob
+                local speedSlider = Instance.new("Frame")
+                speedSlider.Parent = panel
+                speedSlider.Size = UDim2.new(1, -120, 0, 24)
+                speedSlider.Position = UDim2.new(0, 20, 0, 65)
+                speedSlider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+                Instance.new("UICorner", speedSlider).CornerRadius = UDim.new(0, 6)
+
+                local speedFill = Instance.new("Frame")
+                speedFill.Parent = speedSlider
+                speedFill.Size = UDim2.new(0, 0, 1, 0)
+                speedFill.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+                speedFill.BorderSizePixel = 0
+                Instance.new("UICorner", speedFill).CornerRadius = UDim.new(0, 6)
+
+                local speedKnob = Instance.new("TextButton")
+                speedKnob.Parent = speedSlider
+                speedKnob.Size = UDim2.new(0, 18, 0, 18)
+                speedKnob.Position = UDim2.new(0, -9, 0.5, -9)
+                speedKnob.Text = ""
+                speedKnob.BackgroundColor3 = Color3.new(1, 1, 1)
+                speedKnob.AutoButtonColor = false
+                Instance.new("UICorner", speedKnob).CornerRadius = UDim.new(1, 0)
+
+                local speedBox = Instance.new("TextBox")
+                speedBox.Parent = panel
+                speedBox.Size = UDim2.new(0, 70, 0, 28)
+                speedBox.Position = UDim2.new(1, -90, 0, 63)
+                speedBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                speedBox.Text = "16"
+                speedBox.TextColor3 = Color3.new(1, 1, 1)
+                speedBox.Font = Enum.Font.Gotham
+                speedBox.TextSize = 14
+                Instance.new("UICorner", speedBox).CornerRadius = UDim.new(0, 6)
 
                 local minSpeed, maxSpeed = 5, 1000
 
-                local inputBox = Instance.new("TextBox")
-                inputBox.Parent = speedPanel
-                inputBox.Size = UDim2.new(0, 100, 0, 35)
-                inputBox.Position = UDim2.new(0, 20, 0, 95)
-                inputBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-                inputBox.Text = "16"
-                inputBox.TextColor3 = Color3.new(1, 1, 1)
-                inputBox.Font = Enum.Font.Gotham
-                inputBox.TextSize = 18
-                inputBox.PlaceholderText = "速度值"
-                local inputCorner = Instance.new("UICorner")
-                inputCorner.CornerRadius = UDim.new(0, 6)
-                inputCorner.Parent = inputBox
-
-                local function updateSliderDisplay(sVal)
-                    local percent = (sVal - minSpeed) / (maxSpeed - minSpeed)
-                    fill.Size = UDim2.new(percent, 0, 1, 0)
-                    knob.Position = UDim2.new(percent, -10, 0.5, -10)
+                local function updateSpeedSliderDisplay(val)
+                    local percent = (val - minSpeed) / (maxSpeed - minSpeed)
+                    speedFill.Size = UDim2.new(percent, 0, 1, 0)
+                    speedKnob.Position = UDim2.new(percent, -9, 0.5, -9)
                 end
 
-                local function applySpeed(sVal)
-                    sVal = math.clamp(math.floor(sVal), minSpeed, maxSpeed)
-                    inputBox.Text = tostring(sVal)
-                    updateSliderDisplay(sVal)
-                    setSpeed(sVal)
+                ------------------ 调整跳高部分 ------------------
+                local jumpLabel = Instance.new("TextLabel")
+                jumpLabel.Parent = panel
+                jumpLabel.Size = UDim2.new(1, -40, 0, 20)
+                jumpLabel.Position = UDim2.new(0, 20, 0, 105)
+                jumpLabel.BackgroundTransparency = 1
+                jumpLabel.Text = "调整跳高"
+                jumpLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+                jumpLabel.Font = Enum.Font.GothamBold
+                jumpLabel.TextSize = 13
+                jumpLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+                local jumpSlider = Instance.new("Frame")
+                jumpSlider.Parent = panel
+                jumpSlider.Size = UDim2.new(1, -120, 0, 24)
+                jumpSlider.Position = UDim2.new(0, 20, 0, 130)
+                jumpSlider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+                Instance.new("UICorner", jumpSlider).CornerRadius = UDim.new(0, 6)
+
+                local jumpFill = Instance.new("Frame")
+                jumpFill.Parent = jumpSlider
+                jumpFill.Size = UDim2.new(0, 0, 1, 0)
+                jumpFill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+                jumpFill.BorderSizePixel = 0
+                Instance.new("UICorner", jumpFill).CornerRadius = UDim.new(0, 6)
+
+                local jumpKnob = Instance.new("TextButton")
+                jumpKnob.Parent = jumpSlider
+                jumpKnob.Size = UDim2.new(0, 18, 0, 18)
+                jumpKnob.Position = UDim2.new(0, -9, 0.5, -9)
+                jumpKnob.Text = ""
+                jumpKnob.BackgroundColor3 = Color3.new(1, 1, 1)
+                jumpKnob.AutoButtonColor = false
+                Instance.new("UICorner", jumpKnob).CornerRadius = UDim.new(1, 0)
+
+                local jumpBox = Instance.new("TextBox")
+                jumpBox.Parent = panel
+                jumpBox.Size = UDim2.new(0, 70, 0, 28)
+                jumpBox.Position = UDim2.new(1, -90, 0, 128)
+                jumpBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                jumpBox.Text = "50"
+                jumpBox.TextColor3 = Color3.new(1, 1, 1)
+                jumpBox.Font = Enum.Font.Gotham
+                jumpBox.TextSize = 14
+                Instance.new("UICorner", jumpBox).CornerRadius = UDim.new(0, 6)
+
+                local minJump, maxJump = 50, 600
+
+                local function updateJumpSliderDisplay(val)
+                    local percent = (val - minJump) / (maxJump - minJump)
+                    jumpFill.Size = UDim2.new(percent, 0, 1, 0)
+                    jumpKnob.Position = UDim2.new(percent, -9, 0.5, -9)
                 end
 
+                ------------------ 滑动事件处理 ------------------
+                local speedDragging, jumpDragging = false, false
+
+                speedKnob.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        speedDragging = true
+                    end
+                end)
+
+                jumpKnob.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        jumpDragging = true
+                    end
+                end)
+
+                UserInputService.InputChanged:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                        if speedDragging then
+                            local mousePos = UserInputService:GetMouseLocation()
+                            local sliderAbs = speedSlider.AbsolutePosition
+                            local sliderSize = speedSlider.AbsoluteSize
+                            local relativeX = math.clamp(mousePos.X - sliderAbs.X, 0, sliderSize.X)
+                            local percent = relativeX / sliderSize.X
+                            local newVal = math.floor(minSpeed + (maxSpeed - minSpeed) * percent)
+                            speedBox.Text = tostring(newVal)
+                            updateSpeedSliderDisplay(newVal)
+                        elseif jumpDragging then
+                            local mousePos = UserInputService:GetMouseLocation()
+                            local sliderAbs = jumpSlider.AbsolutePosition
+                            local sliderSize = jumpSlider.AbsoluteSize
+                            local relativeX = math.clamp(mousePos.X - sliderAbs.X, 0, sliderSize.X)
+                            local percent = relativeX / sliderSize.X
+                            local newVal = math.floor(minJump + (maxJump - minJump) * percent)
+                            jumpBox.Text = tostring(newVal)
+                            updateJumpSliderDisplay(newVal)
+                        end
+                    end
+                end)
+
+                UserInputService.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        speedDragging = false
+                        jumpDragging = false
+                    end
+                end)
+
+                ------------------ 操作按钮 ------------------
                 local confirmBtn = Instance.new("TextButton")
-                confirmBtn.Parent = speedPanel
-                confirmBtn.Size = UDim2.new(0, 80, 0, 35)
-                confirmBtn.Position = UDim2.new(0, 130, 0, 95)
+                confirmBtn.Parent = panel
+                confirmBtn.Size = UDim2.new(0, 120, 0, 35)
+                confirmBtn.Position = UDim2.new(0, 20, 0, 185)
                 confirmBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
                 confirmBtn.Text = "确认"
                 confirmBtn.TextColor3 = Color3.new(1, 1, 1)
                 confirmBtn.Font = Enum.Font.GothamBold
-                confirmBtn.TextSize = 16
-                local confirmCorner = Instance.new("UICorner")
-                confirmCorner.CornerRadius = UDim.new(0, 6)
-                confirmCorner.Parent = confirmBtn
+                confirmBtn.TextSize = 15
+                Instance.new("UICorner", confirmBtn).CornerRadius = UDim.new(0, 6)
 
-                -- 确认逻辑：保存速度并销毁弹窗（速度保持不变）
+                -- 确认：应用移速与跳高，销毁弹窗窗口，但保持锁定
                 confirmBtn.MouseButton1Click:Connect(function()
-                    local num = tonumber(inputBox.Text)
-                    if num then 
-                        applySpeed(num) 
-                        if speedGuiObj then
-                            speedGuiObj:Destroy()
-                            speedGuiObj = nil
-                        end
-                        WindUI:Notify({Title = "移动控制", Content = "速度已设置为 " .. math.floor(num) .. "，面板已隐藏", Duration = 2, Icon = "check"})
+                    local sVal = tonumber(speedBox.Text) or 16
+                    local jVal = tonumber(jumpBox.Text) or 50
+
+                    sVal = math.clamp(math.floor(sVal), minSpeed, maxSpeed)
+                    jVal = math.clamp(math.floor(jVal), minJump, maxJump)
+
+                    startSpeedLock(sVal)
+                    startJumpLock(jVal)
+
+                    if speedJumpGuiObj then
+                        speedJumpGuiObj:Destroy()
+                        speedJumpGuiObj = nil
                     end
+                    WindUI:Notify({
+                        Title = "移速跳高调整", 
+                        Content = "已应用 (速度:" .. sVal .. " / 跳高:" .. jVal .. ")", 
+                        Duration = 2, 
+                        Icon = "check"
+                    })
                 end)
 
                 local resetBtn = Instance.new("TextButton")
-                resetBtn.Parent = speedPanel
-                resetBtn.Size = UDim2.new(0, 80, 0, 35)
-                resetBtn.Position = UDim2.new(0, 220, 0, 95)
+                resetBtn.Parent = panel
+                resetBtn.Size = UDim2.new(0, 120, 0, 35)
+                resetBtn.Position = UDim2.new(1, -140, 0, 185)
                 resetBtn.BackgroundColor3 = Color3.fromRGB(180, 80, 0)
                 resetBtn.Text = "重置"
                 resetBtn.TextColor3 = Color3.new(1, 1, 1)
                 resetBtn.Font = Enum.Font.GothamBold
-                resetBtn.TextSize = 16
-                local resetCorner = Instance.new("UICorner")
-                resetCorner.CornerRadius = UDim.new(0, 6)
-                resetCorner.Parent = resetBtn
+                resetBtn.TextSize = 15
+                Instance.new("UICorner", resetBtn).CornerRadius = UDim.new(0, 6)
 
                 resetBtn.MouseButton1Click:Connect(function()
-                    applySpeed(16)
+                    speedBox.Text = "16"
+                    jumpBox.Text = "50"
+                    updateSpeedSliderDisplay(16)
+                    updateJumpSliderDisplay(50)
                 end)
 
                 local closeBtn = Instance.new("TextButton")
-                closeBtn.Parent = speedPanel
+                closeBtn.Parent = panel
                 closeBtn.Size = UDim2.new(0, 30, 0, 30)
                 closeBtn.Position = UDim2.new(1, -35, 0, 5)
                 closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
@@ -876,59 +994,40 @@ return function(Window, WindUI)
                 closeBtn.Font = Enum.Font.GothamBold
                 closeBtn.TextColor3 = Color3.new(1, 1, 1)
                 closeBtn.ZIndex = 202
-                local closeCorner = Instance.new("UICorner")
-                closeCorner.CornerRadius = UDim.new(0, 6)
-                closeCorner.Parent = closeBtn
+                Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
 
-                -- X 按钮逻辑：关闭弹窗并变回默认速度
+                -- X 按钮：关闭弹窗窗口，恢复默认速度(16)与默认跳高(50)并解锁
                 closeBtn.MouseButton1Click:Connect(function()
-                    stopSpeedAntiPull()
+                    stopSpeedLock()
+                    stopJumpLock()
                     local hum = getHumanoid()
-                    if hum then hum.WalkSpeed = 16 end
-                    if speedGuiObj then 
-                        speedGuiObj:Destroy() 
-                        speedGuiObj = nil 
+                    if hum then
+                        hum.WalkSpeed = 16
+                        hum.JumpPower = 50
                     end
-                    WindUI:Notify({Title = "移动控制", Content = "已恢复默认速度 (16)", Duration = 2, Icon = "x"})
+                    if speedJumpGuiObj then
+                        speedJumpGuiObj:Destroy()
+                        speedJumpGuiObj = nil
+                    end
+                    WindUI:Notify({Title = "移速跳高调整", Content = "已恢复默认 (速度16 / 跳高50)", Duration = 2, Icon = "x"})
                 end)
 
-                local knobDragging = false
-                knob.InputBegan:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                        knobDragging = true
-                    end
-                end)
-                UserInputService.InputChanged:Connect(function(input)
-                    if knobDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                        local mousePos = UserInputService:GetMouseLocation()
-                        local sliderAbs = slider.AbsolutePosition
-                        local sliderSize = slider.AbsoluteSize
-                        local relativeX = math.clamp(mousePos.X - sliderAbs.X, 0, sliderSize.X)
-                        local percent = relativeX / sliderSize.X
-                        local newVal = math.floor(minSpeed + (maxSpeed - minSpeed) * percent)
-                        inputBox.Text = tostring(newVal)
-                        updateSliderDisplay(newVal)
-                        setSpeed(newVal)
-                    end
-                end)
-                UserInputService.InputEnded:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                        knobDragging = false
-                    end
-                end)
-
-                makeDraggable(speedPanel, dragHeader)
-                updateSliderDisplay(16)
-                WindUI:Notify({Title = "移动控制面板", Content = "面板已打开", Duration = 2, Icon = "check"})
+                updateSpeedSliderDisplay(16)
+                updateJumpSliderDisplay(50)
+                WindUI:Notify({Title = "移速跳高调整", Content = "窗口已打开", Duration = 2, Icon = "check"})
             else
-                stopSpeedAntiPull()
+                stopSpeedLock()
+                stopJumpLock()
                 local hum = getHumanoid()
-                if hum then hum.WalkSpeed = 16 end
-                if speedGuiObj then
-                    speedGuiObj:Destroy()
-                    speedGuiObj = nil
+                if hum then
+                    hum.WalkSpeed = 16
+                    hum.JumpPower = 50
                 end
-                WindUI:Notify({Title = "移动控制面板", Content = "面板已关闭，恢复默认速度", Duration = 2, Icon = "x"})
+                if speedJumpGuiObj then
+                    speedJumpGuiObj:Destroy()
+                    speedJumpGuiObj = nil
+                end
+                WindUI:Notify({Title = "移速跳高调整", Content = "已关闭，恢复默认", Duration = 2, Icon = "x"})
             end
         end,
     })
