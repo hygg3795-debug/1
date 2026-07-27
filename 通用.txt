@@ -45,6 +45,7 @@ return function(Window, WindUI)
         end)
     end
 
+    ------------------ 防踢 ------------------
     tab:Toggle({
         Title = "防踢",
         Value = false,
@@ -66,6 +67,114 @@ return function(Window, WindUI)
         end,
     })
 
+    ------------------ 水上行走 ------------------
+    local waterHb = nil
+    tab:Toggle({
+        Title = "水上行走",
+        Value = false,
+        Callback = function(val)
+            if val then
+                if waterHb then waterHb:Disconnect() waterHb = nil end
+                waterHb = RunService.Heartbeat:Connect(function()
+                    if LocalPlayer.Character then
+                        local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                        if hrp and hrp.Position.Y < 2 then
+                            local pos = hrp.Position
+                            hrp.CFrame = CFrame.new(pos.X, 5, pos.Z)
+                        end
+                    end
+                end)
+                WindUI:Notify({Title = "水上行走", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if waterHb then
+                    waterHb:Disconnect()
+                    waterHb = nil
+                end
+                WindUI:Notify({Title = "水上行走", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
+    ------------------ 无敌模式 ------------------
+    local godmodeHb = nil
+    local INF = math.huge
+
+    local function applyGodmode()
+        pcall(function()
+            for _, v in pairs(getgc(true)) do
+                if type(v) == "table" then
+                    local h = rawget(v, "Health")
+                    if h and h ~= INF then
+                        rawset(v, "Health", INF)
+                        rawset(v, "MaxHealth", INF)
+                    end
+                end
+            end
+        end)
+        if LocalPlayer.Character then
+            local hu = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if hu then
+                hu.MaxHealth = INF
+                hu.Health = INF
+                hu:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+            end
+        end
+    end
+
+    tab:Toggle({
+        Title = "无敌模式",
+        Value = false,
+        Callback = function(val)
+            if val then
+                applyGodmode()
+                if godmodeHb then godmodeHb:Disconnect() godmodeHb = nil end
+                local gcTimer = 0
+                local GC_FREQ = 5
+                godmodeHb = RunService.Heartbeat:Connect(function(dt)
+                    if LocalPlayer.Character then
+                        local hu = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                        if hu then
+                            if hu.MaxHealth ~= INF then hu.MaxHealth = INF end
+                            hu.Health = hu.MaxHealth
+                            hu:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+                        end
+                        gcTimer = gcTimer + dt
+                        if gcTimer >= GC_FREQ then
+                            gcTimer = 0
+                            pcall(function()
+                                for _, v in pairs(getgc(true)) do
+                                    if type(v) == "table" then
+                                        local h = rawget(v, "Health")
+                                        if h and h ~= INF then
+                                            rawset(v, "Health", INF)
+                                            rawset(v, "MaxHealth", INF)
+                                        end
+                                    end
+                                end
+                            end)
+                        end
+                    end
+                end)
+                WindUI:Notify({Title = "无敌模式", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if godmodeHb then
+                    godmodeHb:Disconnect()
+                    godmodeHb = nil
+                end
+                if LocalPlayer.Character then
+                    local hu = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                    if hu then
+                        hu:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
+                        hu.MaxHealth = 100
+                        hu.Health = 100
+                    end
+                end
+                WindUI:Notify({Title = "无敌模式", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
+    ------------------ 防甩飞 ------------------
     local antiPushConn = nil
     tab:Toggle({
         Title = "防甩飞",
@@ -100,6 +209,7 @@ return function(Window, WindUI)
         end,
     })
 
+    ------------------ 透视玩家 ------------------
     local espEnabled = false
     local espConnections = {}
     local playerAddedConn = nil
@@ -186,6 +296,7 @@ return function(Window, WindUI)
         end,
     })
 
+    ------------------ 飞行 ------------------
     local flyEnabled = false
     local flyConnections = {}
     local flyBody = {}
@@ -261,6 +372,7 @@ return function(Window, WindUI)
         end,
     })
 
+    ------------------ 防摔 ------------------
     local function createNoFall()
         local con = nil
         local charCon = nil
@@ -318,6 +430,7 @@ return function(Window, WindUI)
         end,
     })
 
+    ------------------ 无限跳 ------------------
     tab:Toggle({
         Title = "无限跳",
         Value = false,
@@ -341,6 +454,7 @@ return function(Window, WindUI)
         end,
     })
 
+    ------------------ 自动存活 ------------------
     local tpConnection = nil
     tab:Toggle({
         Title = "自动存活",
@@ -364,6 +478,7 @@ return function(Window, WindUI)
         end,
     })
 
+    ------------------ 地图投票 ------------------
     tab:Toggle({
         Title = "地图投票",
         Value = false,
@@ -391,6 +506,7 @@ return function(Window, WindUI)
         end,
     })
 
+    ------------------ 隐身 ------------------
     local function playActionSound()
         local sound = Instance.new("Sound", LocalPlayer:WaitForChild("PlayerGui"))
         sound.SoundId = "rbxassetid://942127495"
@@ -452,6 +568,7 @@ return function(Window, WindUI)
         end,
     })
 
+    ------------------ 穿墙 ------------------
     local NoclipEnabled = false
     local noclipConnection = nil
     local lastGroundY = 0
@@ -507,6 +624,7 @@ return function(Window, WindUI)
         end,
     })
 
+    ------------------ 自动放置方块 ------------------
     local blockGui = nil
     local autoPlace = false
     local autoPlacing = false
@@ -635,6 +753,7 @@ return function(Window, WindUI)
         end,
     })
 
+    ------------------ 偷取所有物品 ------------------
     local stealLoop = false
     local function stealAllItems()
         local count = 0
@@ -684,7 +803,7 @@ return function(Window, WindUI)
         end,
     })
 
-    ------------------ 移速跳高调整 模块 ------------------
+    ------------------ 移速跳高调整 ------------------
     local speedJumpGuiObj = nil
     local speedHeartbeat = nil
     local jumpHeartbeat = nil
@@ -756,7 +875,6 @@ return function(Window, WindUI)
                 stroke.Color = Color3.fromRGB(100, 100, 255)
                 stroke.Parent = panel
 
-                -- 窗口标题栏（防拖动抓取）
                 local dragHeader = Instance.new("Frame")
                 dragHeader.Name = "DragHeader"
                 dragHeader.Parent = panel
@@ -777,7 +895,6 @@ return function(Window, WindUI)
 
                 makeDraggable(panel, dragHeader)
 
-                ------------------ 调整移速部分 ------------------
                 local speedLabel = Instance.new("TextLabel")
                 speedLabel.Parent = panel
                 speedLabel.Size = UDim2.new(1, -40, 0, 20)
@@ -831,7 +948,6 @@ return function(Window, WindUI)
                     speedKnob.Position = UDim2.new(percent, -9, 0.5, -9)
                 end
 
-                ------------------ 调整跳高部分 ------------------
                 local jumpLabel = Instance.new("TextLabel")
                 jumpLabel.Parent = panel
                 jumpLabel.Size = UDim2.new(1, -40, 0, 20)
@@ -885,7 +1001,6 @@ return function(Window, WindUI)
                     jumpKnob.Position = UDim2.new(percent, -9, 0.5, -9)
                 end
 
-                ------------------ 滑动事件处理 ------------------
                 local speedDragging, jumpDragging = false, false
 
                 speedKnob.InputBegan:Connect(function(input)
@@ -931,7 +1046,6 @@ return function(Window, WindUI)
                     end
                 end)
 
-                ------------------ 操作按钮 ------------------
                 local confirmBtn = Instance.new("TextButton")
                 confirmBtn.Parent = panel
                 confirmBtn.Size = UDim2.new(0, 120, 0, 35)
@@ -943,7 +1057,6 @@ return function(Window, WindUI)
                 confirmBtn.TextSize = 15
                 Instance.new("UICorner", confirmBtn).CornerRadius = UDim.new(0, 6)
 
-                -- 确认：应用移速与跳高，销毁弹窗窗口，但保持锁定
                 confirmBtn.MouseButton1Click:Connect(function()
                     local sVal = tonumber(speedBox.Text) or 16
                     local jVal = tonumber(jumpBox.Text) or 50
@@ -996,7 +1109,6 @@ return function(Window, WindUI)
                 closeBtn.ZIndex = 202
                 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
 
-                -- X 按钮：关闭弹窗窗口，恢复默认速度(16)与默认跳高(50)并解锁
                 closeBtn.MouseButton1Click:Connect(function()
                     stopSpeedLock()
                     stopJumpLock()
