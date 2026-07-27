@@ -1,0 +1,36 @@
+return function(Window, WindUI)
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+
+    local tab = Window:Tab({Title = "传送", Icon = "map-pin"})
+
+    tab:Button({
+        Title = "传送平台",
+        Icon = "map-pin",
+        Callback = function()
+            local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                root.CFrame = CFrame.new(-273, 179.5, 394)
+                WindUI:Notify({Title = "传送完成", Content = "已传送至平台", Duration = 2, Icon = "check"})
+            else
+                WindUI:Notify({Title = "传送失败", Content = "角色未加载", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
+    tab:Button({
+        Title = "传送小岛",
+        Icon = "map-pin",
+        Callback = function()
+            local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                root.CFrame = CFrame.new(-115.6, 48.6, 6.9)
+                WindUI:Notify({Title = "传送完成", Content = "已传送至小岛", Duration = 2, Icon = "check"})
+            else
+                WindUI:Notify({Title = "传送失败", Content = "角色未加载", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
+    return tab
+end
