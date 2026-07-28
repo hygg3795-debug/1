@@ -32,5 +32,19 @@ return function(Window, WindUI)
         end,
     })
 
+    tab:Button({
+        Title = "传送彩蛋",
+        Icon = "star",
+        Callback = function()
+            local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                root.CFrame = CFrame.new(-5059.2, 264.0, 6078.0)
+                WindUI:Notify({Title = "传送完成", Content = "已传送至彩蛋", Duration = 2, Icon = "star"})
+            else
+                WindUI:Notify({Title = "传送失败", Content = "角色未加载", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
     return tab
 end
