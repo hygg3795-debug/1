@@ -45,6 +45,44 @@ return function(Window, WindUI)
         end)
     end
 
+    ------------------ 防防摔核心函数 ------------------
+    local function createNoFall()
+        local con = nil
+        local charCon = nil
+        local z = Vector3.zero
+
+        local function bind(c)
+            if not c then return end
+            local r = c:WaitForChild("HumanoidRootPart", 5)
+            if r then
+                if con then con:Disconnect() con = nil end
+                con = RunService.Heartbeat:Connect(function()
+                    if not r.Parent then
+                        if con then con:Disconnect() con = nil end
+                        return
+                    end
+                    local v = r.AssemblyLinearVelocity
+                    r.AssemblyLinearVelocity = z
+                    RunService.RenderStepped:Wait()
+                    r.AssemblyLinearVelocity = v
+                end)
+            end
+        end
+
+        local function start()
+            if charCon then charCon:Disconnect() end
+            bind(LocalPlayer.Character)
+            charCon = LocalPlayer.CharacterAdded:Connect(bind)
+        end
+
+        local function stop()
+            if con then con:Disconnect() con = nil end
+            if charCon then charCon:Disconnect() charCon = nil end
+        end
+
+        return {start = start, stop = stop}
+    end
+
     ------------------ 防踢 ------------------
     tab:Toggle({
         Title = "防踢",
@@ -128,6 +166,27 @@ return function(Window, WindUI)
                 end)
             end
             WindUI:Notify({Title = "移除天气 UI", Content = "沙尘暴/暴风雪 UI 已清理", Duration = 2, Icon = "trash"})
+        end,
+    })
+
+    ------------------ 防摔 ------------------
+    tab:Toggle({
+        Title = "防摔伤害",
+        Value = false,
+        Callback = function(val)
+            local api = _G.NoFallAPI
+            if not api then
+                api = createNoFall()
+                _G.NoFallAPI = api
+            end
+
+            if val then
+                api.start()
+                WindUI:Notify({Title = "防摔伤害", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                api.stop()
+                WindUI:Notify({Title = "防摔伤害", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
         end,
     })
 
@@ -325,64 +384,6 @@ return function(Window, WindUI)
                 flyConnections = {}
 
                 WindUI:Notify({Title = "飞行", Content = "已关闭", Duration = 2, Icon = "x"})
-            end
-        end,
-    })
-
-    ------------------ 防摔 ------------------
-    local function createNoFall()
-        local con = nil
-        local charCon = nil
-        local z = Vector3.zero
-
-        local function bind(c)
-            if not c then return end
-            local r = c:WaitForChild("HumanoidRootPart", 5)
-            if r then
-                if con then con:Disconnect() con = nil end
-                con = RunService.Heartbeat:Connect(function()
-                    if not r.Parent then
-                        if con then con:Disconnect() con = nil end
-                        return
-                    end
-                    local v = r.AssemblyLinearVelocity
-                    r.AssemblyLinearVelocity = z
-                    RunService.RenderStepped:Wait()
-                    r.AssemblyLinearVelocity = v
-                end)
-            end
-        end
-
-        local function start()
-            if charCon then charCon:Disconnect() end
-            bind(LocalPlayer.Character)
-            charCon = LocalPlayer.CharacterAdded:Connect(bind)
-        end
-
-        local function stop()
-            if con then con:Disconnect() con = nil end
-            if charCon then charCon:Disconnect() charCon = nil end
-        end
-
-        return {start = start, stop = stop}
-    end
-
-    tab:Toggle({
-        Title = "防摔",
-        Value = false,
-        Callback = function(val)
-            local api = _G.NoFallAPI
-            if not api then
-                api = createNoFall()
-                _G.NoFallAPI = api
-            end
-
-            if val then
-                api.start()
-                WindUI:Notify({Title = "防摔", Content = "已开启", Duration = 2, Icon = "check"})
-            else
-                api.stop()
-                WindUI:Notify({Title = "防摔", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -746,7 +747,7 @@ return function(Window, WindUI)
         Value = false,
         Callback = function(val)
             stealLoop = val
-            if val then
+            if val me
                 WindUI:Notify({Title = "偷取所有物品", Content = "自动偷取中...", Duration = 2, Icon = "check"})
                 task.spawn(function()
                     while stealLoop do
@@ -817,8 +818,8 @@ return function(Window, WindUI)
 
                 local panel = Instance.new("Frame")
                 panel.Parent = sg
-                panel.Size = UDim2.new(0, 320, 0, 260)
-                panel.Position = UDim2.new(0.5, -160, 0.5, -130)
+                panel.Size = UDim2.new(0, 320, 0, 300)
+                panel.Position = UDim2.new(0.5, -160, 0.5, -150)
                 panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
                 panel.BackgroundTransparency = 0.1
                 panel.ZIndex = 200
@@ -852,6 +853,7 @@ return function(Window, WindUI)
 
                 makeDraggable(panel, dragHeader)
 
+                -- 移速
                 local speedLabel = Instance.new("TextLabel")
                 speedLabel.Parent = panel
                 speedLabel.Size = UDim2.new(1, -40, 0, 20)
@@ -905,6 +907,7 @@ return function(Window, WindUI)
                     speedKnob.Position = UDim2.new(percent, -9, 0.5, -9)
                 end
 
+                -- 跳高
                 local jumpLabel = Instance.new("TextLabel")
                 jumpLabel.Parent = panel
                 jumpLabel.Size = UDim2.new(1, -40, 0, 20)
@@ -958,6 +961,38 @@ return function(Window, WindUI)
                     jumpKnob.Position = UDim2.new(percent, -9, 0.5, -9)
                 end
 
+                -- 面板内置：防摔开关
+                local noFallBtn = Instance.new("TextButton")
+                noFallBtn.Parent = panel
+                noFallBtn.Size = UDim2.new(1, -40, 0, 32)
+                noFallBtn.Position = UDim2.new(0, 20, 0, 175)
+                noFallBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+                noFallBtn.Text = "防摔伤害: 已关闭"
+                noFallBtn.TextColor3 = Color3.new(1, 1, 1)
+                noFallBtn.Font = Enum.Font.GothamBold
+                noFallBtn.TextSize = 14
+                Instance.new("UICorner", noFallBtn).CornerRadius = UDim.new(0, 6)
+
+                local panelNoFallEnabled = false
+                noFallBtn.MouseButton1Click:Connect(function()
+                    panelNoFallEnabled = not panelNoFallEnabled
+                    local api = _G.NoFallAPI
+                    if not api then
+                        api = createNoFall()
+                        _G.NoFallAPI = api
+                    end
+
+                    if panelNoFallEnabled then
+                        api.start()
+                        noFallBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+                        noFallBtn.Text = "防摔伤害: 已开启"
+                    else
+                        api.stop()
+                        noFallBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+                        noFallBtn.Text = "防摔伤害: 已关闭"
+                    end
+                end)
+
                 local speedDragging, jumpDragging = false, false
 
                 speedKnob.InputBegan:Connect(function(input)
@@ -1006,7 +1041,7 @@ return function(Window, WindUI)
                 local confirmBtn = Instance.new("TextButton")
                 confirmBtn.Parent = panel
                 confirmBtn.Size = UDim2.new(0, 120, 0, 35)
-                confirmBtn.Position = UDim2.new(0, 20, 0, 185)
+                confirmBtn.Position = UDim2.new(0, 20, 0, 230)
                 confirmBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
                 confirmBtn.Text = "确认"
                 confirmBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -1039,7 +1074,7 @@ return function(Window, WindUI)
                 local resetBtn = Instance.new("TextButton")
                 resetBtn.Parent = panel
                 resetBtn.Size = UDim2.new(0, 120, 0, 35)
-                resetBtn.Position = UDim2.new(1, -140, 0, 185)
+                resetBtn.Position = UDim2.new(1, -140, 0, 230)
                 resetBtn.BackgroundColor3 = Color3.fromRGB(180, 80, 0)
                 resetBtn.Text = "重置"
                 resetBtn.TextColor3 = Color3.new(1, 1, 1)
