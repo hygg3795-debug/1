@@ -68,109 +68,66 @@ return function(Window, WindUI)
     })
 
     ------------------ 水上行走 ------------------
-    local waterHb = nil
     tab:Toggle({
         Title = "水上行走",
         Value = false,
         Callback = function(val)
-            if val then
-                if waterHb then waterHb:Disconnect() waterHb = nil end
-                waterHb = RunService.Heartbeat:Connect(function()
-                    if LocalPlayer.Character then
-                        local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                        if hrp and hrp.Position.Y < 2 then
-                            local pos = hrp.Position
-                            hrp.CFrame = CFrame.new(pos.X, 5, pos.Z)
-                        end
-                    end
-                end)
-                WindUI:Notify({Title = "水上行走", Content = "已开启", Duration = 2, Icon = "check"})
-            else
-                if waterHb then
-                    waterHb:Disconnect()
-                    waterHb = nil
+            local water = workspace:FindFirstChild("WaterLevel")
+            if water then
+                if val then
+                    water.CanCollide = true
+                    water.Size = Vector3.new(1000, 1, 1000)
+                    WindUI:Notify({Title = "水上行走", Content = "已开启", Duration = 2, Icon = "check"})
+                else
+                    water.CanCollide = false
+                    water.Size = Vector3.new(10, 1, 10)
+                    WindUI:Notify({Title = "水上行走", Content = "已关闭", Duration = 2, Icon = "x"})
                 end
-                WindUI:Notify({Title = "水上行走", Content = "已关闭", Duration = 2, Icon = "x"})
+            else
+                WindUI:Notify({Title = "提示", Content = "未找到水面对象 (WaterLevel)", Duration = 2, Icon = "alert"})
             end
         end,
     })
 
-    ------------------ 无敌模式 ------------------
-    local godmodeHb = nil
-    local INF = math.huge
-
-    local function applyGodmode()
-        pcall(function()
-            for _, v in pairs(getgc(true)) do
-                if type(v) == "table" then
-                    local h = rawget(v, "Health")
-                    if h and h ~= INF then
-                        rawset(v, "Health", INF)
-                        rawset(v, "MaxHealth", INF)
-                    end
-                end
-            end
-        end)
-        if LocalPlayer.Character then
-            local hu = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if hu then
-                hu.MaxHealth = INF
-                hu.Health = INF
-                hu:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-            end
-        end
-    end
-
+    ------------------ 下层岩石实体化 ------------------
     tab:Toggle({
-        Title = "无敌模式",
+        Title = "下层岩石实体化",
         Value = false,
         Callback = function(val)
-            if val then
-                applyGodmode()
-                if godmodeHb then godmodeHb:Disconnect() godmodeHb = nil end
-                local gcTimer = 0
-                local GC_FREQ = 5
-                godmodeHb = RunService.Heartbeat:Connect(function(dt)
-                    if LocalPlayer.Character then
-                        local hu = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                        if hu then
-                            if hu.MaxHealth ~= INF then hu.MaxHealth = INF end
-                            hu.Health = hu.MaxHealth
-                            hu:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-                        end
-                        gcTimer = gcTimer + dt
-                        if gcTimer >= GC_FREQ then
-                            gcTimer = 0
-                            pcall(function()
-                                for _, v in pairs(getgc(true)) do
-                                    if type(v) == "table" then
-                                        local h = rawget(v, "Health")
-                                        if h and h ~= INF then
-                                            rawset(v, "Health", INF)
-                                            rawset(v, "MaxHealth", INF)
-                                        end
-                                    end
-                                end
-                            end)
-                        end
+            local count = 0
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v.Name == "LowerRocks" and v:IsA("BasePart") then
+                    v.CanCollide = val
+                    count = count + 1
+                end
+            end
+            WindUI:Notify({
+                Title = "下层岩石实体化",
+                Content = val and ("已开启碰撞 (" .. count .. ")") or "已关闭碰撞",
+                Duration = 2,
+                Icon = val and "check" or "x"
+            })
+        end,
+    })
+
+    ------------------ 移除天气 UI ------------------
+    tab:Button({
+        Title = "移除天气 UI",
+        Callback = function()
+            local pGui = LocalPlayer:FindFirstChild("PlayerGui")
+            if pGui then
+                pcall(function()
+                    if pGui:FindFirstChild("SandStormGui") then
+                        pGui.SandStormGui:Destroy()
                     end
                 end)
-                WindUI:Notify({Title = "无敌模式", Content = "已开启", Duration = 2, Icon = "check"})
-            else
-                if godmodeHb then
-                    godmodeHb:Disconnect()
-                    godmodeHb = nil
-                end
-                if LocalPlayer.Character then
-                    local hu = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                    if hu then
-                        hu:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
-                        hu.MaxHealth = 100
-                        hu.Health = 100
+                pcall(function()
+                    if pGui:FindFirstChild("BlizzardGui") then
+                        pGui.BlizzardGui:Destroy()
                     end
-                end
-                WindUI:Notify({Title = "无敌模式", Content = "已关闭", Duration = 2, Icon = "x"})
+                end)
             end
+            WindUI:Notify({Title = "移除天气 UI", Content = "沙尘暴/暴风雪 UI 已清理", Duration = 2, Icon = "trash"})
         end,
     })
 
