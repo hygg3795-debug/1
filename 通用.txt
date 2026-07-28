@@ -46,7 +46,7 @@ return function(Window, WindUI)
         end)
     end
 
-    ------------------ 建议开列表 ------------------
+    ------------------ 功能列表 ------------------
     local suggestSection = tab:Section({Title = "建议开"})
 
     -- 防踢
@@ -341,7 +341,7 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 点击传送工具 (已修改为开关式)
+    -- 点击传送工具
     local tpTool = nil
     suggestSection:Toggle({
         Title = "点击传送工具",
@@ -402,7 +402,7 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 一键清屏 (已修改为开关式)
+    -- 一键清屏
     suggestSection:Toggle({
         Title = "一键清屏",
         Value = false,
@@ -542,7 +542,7 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 岩石实体化 (已修改为开关式)
+    -- 岩石实体化
     suggestSection:Toggle({
         Title = "岩石实体化",
         Value = false,
@@ -701,7 +701,7 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 移除灾害视角 (已修改为开关式)
+    -- 移除灾害视角
     local disasterConn = nil
     suggestSection:Toggle({
         Title = "移除灾害视角",
@@ -738,14 +738,6 @@ return function(Window, WindUI)
             end
         end,
     })
-
-    ------------------ 分割线 ------------------
-    if tab.Divider then
-        tab:Divider()
-    end
-
-    ------------------ 其他功能 (不在建议开列表) ------------------
-    local otherSection = tab:Section({Title = "其他功能"})
 
     -- 透视玩家
     local espEnabled = false
@@ -790,7 +782,7 @@ return function(Window, WindUI)
         end
     end
 
-    otherSection:Toggle({
+    suggestSection:Toggle({
         Title = "透视玩家",
         Value = false,
         Callback = function(enabled)
@@ -839,7 +831,7 @@ return function(Window, WindUI)
     local flyConnections = {}
     local flyBody = {}
 
-    otherSection:Toggle({
+    suggestSection:Toggle({
         Title = "飞行",
         Value = false,
         Callback = function(val)
@@ -912,7 +904,7 @@ return function(Window, WindUI)
 
     -- 自动存活
     local tpConnection = nil
-    otherSection:Toggle({
+    suggestSection:Toggle({
         Title = "自动存活",
         Value = false,
         Callback = function(val)
@@ -935,7 +927,7 @@ return function(Window, WindUI)
     })
 
     -- 地图投票
-    otherSection:Toggle({
+    suggestSection:Toggle({
         Title = "地图投票",
         Value = false,
         Callback = function(val)
@@ -980,7 +972,7 @@ return function(Window, WindUI)
     end
 
     local invis_on = false
-    otherSection:Toggle({
+    suggestSection:Toggle({
         Title = "隐身",
         Value = false,
         Callback = function(val)
@@ -1055,7 +1047,7 @@ return function(Window, WindUI)
         return count
     end
 
-    otherSection:Toggle({
+    suggestSection:Toggle({
         Title = "偷取所有物品",
         Value = false,
         Callback = function(val)
@@ -1115,7 +1107,7 @@ return function(Window, WindUI)
         end)
     end
 
-    otherSection:Toggle({
+    suggestSection:Toggle({
         Title = "移速跳高调整",
         Value = false,
         Callback = function(val)
