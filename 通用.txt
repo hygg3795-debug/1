@@ -46,7 +46,7 @@ return function(Window, WindUI)
         end)
     end
 
-    ------------------ 功能列表 ------------------
+    ------------------ 建议开 ------------------
     local suggestSection = tab:Section({Title = "建议开"})
 
     -- 防踢
@@ -739,6 +739,8 @@ return function(Window, WindUI)
         end,
     })
 
+    ------------------ 独立功能 (不隶属于任何分类) ------------------
+
     -- 透视玩家
     local espEnabled = false
     local espConnections = {}
@@ -782,7 +784,7 @@ return function(Window, WindUI)
         end
     end
 
-    suggestSection:Toggle({
+    tab:Toggle({
         Title = "透视玩家",
         Value = false,
         Callback = function(enabled)
@@ -831,7 +833,7 @@ return function(Window, WindUI)
     local flyConnections = {}
     local flyBody = {}
 
-    suggestSection:Toggle({
+    tab:Toggle({
         Title = "飞行",
         Value = false,
         Callback = function(val)
@@ -904,7 +906,7 @@ return function(Window, WindUI)
 
     -- 自动存活
     local tpConnection = nil
-    suggestSection:Toggle({
+    tab:Toggle({
         Title = "自动存活",
         Value = false,
         Callback = function(val)
@@ -927,7 +929,7 @@ return function(Window, WindUI)
     })
 
     -- 地图投票
-    suggestSection:Toggle({
+    tab:Toggle({
         Title = "地图投票",
         Value = false,
         Callback = function(val)
@@ -972,7 +974,7 @@ return function(Window, WindUI)
     end
 
     local invis_on = false
-    suggestSection:Toggle({
+    tab:Toggle({
         Title = "隐身",
         Value = false,
         Callback = function(val)
@@ -1047,7 +1049,7 @@ return function(Window, WindUI)
         return count
     end
 
-    suggestSection:Toggle({
+    tab:Toggle({
         Title = "偷取所有物品",
         Value = false,
         Callback = function(val)
@@ -1107,7 +1109,7 @@ return function(Window, WindUI)
         end)
     end
 
-    suggestSection:Toggle({
+    tab:Toggle({
         Title = "移速跳高调整",
         Value = false,
         Callback = function(val)
@@ -1403,6 +1405,25 @@ return function(Window, WindUI)
                     speedJumpGuiObj = nil
                 end
                 WindUI:Notify({Title = "移速跳高调整", Content = "已关闭，恢复默认", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
+    -- 自杀按钮
+    tab:Button({
+        Title = "自杀",
+        Callback = function()
+            local char = LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum.Health = 0
+                    WindUI:Notify({Title = "已自杀", Content = "角色已死亡", Duration = 2, Icon = "check"})
+                else
+                    WindUI:Notify({Title = "失败", Content = "未找到Humanoid", Duration = 2, Icon = "alert"})
+                end
+            else
+                WindUI:Notify({Title = "失败", Content = "角色未加载", Duration = 2, Icon = "alert"})
             end
         end,
     })
