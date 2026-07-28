@@ -3,6 +3,7 @@ return function(Window, WindUI)
     local RunService = game:GetService("RunService")
     local UserInputService = game:GetService("UserInputService")
     local VirtualUser = game:GetService("VirtualUser")
+    local Lighting = game:GetService("Lighting")
     local LocalPlayer = Players.LocalPlayer
 
     local tab = Window:Tab({Title = "通用", Icon = "settings"})
@@ -45,11 +46,12 @@ return function(Window, WindUI)
         end)
     end
 
+    ------------------ 建议开列表 ------------------
     local suggestSection = tab:Section({Title = "建议开"})
 
+    -- 防踢
     local antiAFKEnabled = false
-    local antiAFKToggle
-    antiAFKToggle = suggestSection:Toggle({
+    suggestSection:Toggle({
         Title = "防踢",
         Value = false,
         Callback = function(val)
@@ -71,12 +73,12 @@ return function(Window, WindUI)
         end,
     })
 
+    -- 水上行走 (新版本)
     local waterCollisionEnabled = false
     local originalWaterSize = nil
     local originalWaterCollide = nil
-    local waterToggle
 
-    waterToggle = suggestSection:Toggle({
+    suggestSection:Toggle({
         Title = "水上行走",
         Value = false,
         Callback = function(val)
@@ -86,12 +88,12 @@ return function(Window, WindUI)
                 return
             end
 
-            waterCollisionEnabled = val
             if val then
                 originalWaterSize = water.Size
                 originalWaterCollide = water.CanCollide
                 water.CanCollide = true
                 water.Size = Vector3.new(1000, 1, 1000)
+                waterCollisionEnabled = true
                 WindUI:Notify({Title = "水上行走", Content = "已开启 (水面可站立)", Duration = 2, Icon = "check"})
             else
                 if originalWaterSize then
@@ -104,15 +106,15 @@ return function(Window, WindUI)
                 else
                     water.CanCollide = false
                 end
+                waterCollisionEnabled = false
                 WindUI:Notify({Title = "水上行走", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
 
+    -- 防甩飞
     local antiPushConn = nil
-    local antiPushToggle
-
-    antiPushToggle = suggestSection:Toggle({
+    suggestSection:Toggle({
         Title = "防甩飞",
         Value = false,
         Callback = function(val)
@@ -145,6 +147,7 @@ return function(Window, WindUI)
         end,
     })
 
+    -- 防摔
     local function createNoFall()
         local con = nil
         local charCon = nil
@@ -182,9 +185,7 @@ return function(Window, WindUI)
         return {start = start, stop = stop}
     end
 
-    local noFallToggle
-
-    noFallToggle = suggestSection:Toggle({
+    suggestSection:Toggle({
         Title = "防摔",
         Value = false,
         Callback = function(val)
@@ -204,9 +205,8 @@ return function(Window, WindUI)
         end,
     })
 
-    local infJumpToggle
-
-    infJumpToggle = suggestSection:Toggle({
+    -- 无限跳
+    suggestSection:Toggle({
         Title = "无限跳",
         Value = false,
         Callback = function(val)
@@ -229,40 +229,325 @@ return function(Window, WindUI)
         end,
     })
 
-    local rockSolidEnabled = false
-    local rockSolidConn = nil
-    local rockToggle
+    -- 穿墙
+    local NoclipEnabled = false
+    local noclipConnection = nil
+    local lastGroundY = 0
 
-    rockToggle = suggestSection:Toggle({
-        Title = "岩石实体化",
+    suggestSection:Toggle({
+        Title = "穿墙",
         Value = false,
         Callback = function(val)
-            rockSolidEnabled = val
+            NoclipEnabled = val
             if val then
-                if rockSolidConn then rockSolidConn:Disconnect() end
-                rockSolidConn = RunService.Heartbeat:Connect(function()
-                    if not rockSolidEnabled then return end
-                    for _, v in pairs(game.Workspace:GetDescendants()) do
-                        if v.Name == "LowerRocks" then
-                            v.CanCollide = true
+                if noclipConnection then noclipConnection:Disconnect() end
+                noclipConnection = RunService.Stepped:Connect(function()
+                    if not NoclipEnabled then return end
+                    local char = LocalPlayer.Character
+                    if not char then return end
+                    local root = char:FindFirstChild("HumanoidRootPart")
+                    if not root then return end
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.FloorMaterial ~= Enum.Material.Air then
+                        lastGroundY = root.Position.Y
+                    end
+                    root.CanCollide = false
+                    for _, v in ipairs(char:GetDescendants()) do
+                        if v:IsA("BasePart") and v.CanCollide then
+                            v.CanCollide = false
+                        end
+                    end
+                    if lastGroundY ~= 0 and root.Position.Y < lastGroundY - 5 then
+                        root.CFrame = CFrame.new(root.CFrame.X, lastGroundY, root.CFrame.Z)
+                        if hum then
+                            hum:ChangeState(Enum.HumanoidStateType.Landed)
                         end
                     end
                 end)
-                WindUI:Notify({Title = "岩石实体化", Content = "已开启", Duration = 2, Icon = "check"})
+                WindUI:Notify({Title = "穿墙", Content = "已开启", Duration = 2, Icon = "check"})
             else
-                if rockSolidConn then
-                    rockSolidConn:Disconnect()
-                    rockSolidConn = nil
+                if noclipConnection then
+                    noclipConnection:Disconnect()
+                    noclipConnection = nil
                 end
-                WindUI:Notify({Title = "岩石实体化", Content = "已关闭", Duration = 2, Icon = "x"})
+                local char = LocalPlayer.Character
+                if char then
+                    local root = char:FindFirstChild("HumanoidRootPart")
+                    if root then root.CanCollide = true end
+                    for _, v in ipairs(char:GetDescendants()) do
+                        if v:IsA("BasePart") and not v.CanCollide then
+                            v.CanCollide = true
+                        end
+                    end
+                end
+                WindUI:Notify({Title = "穿墙", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
 
+    -- 去雾
+    local originalLighting = {}
+    local originalAtmosphere = {}
+    suggestSection:Toggle({
+        Title = "去雾",
+        Value = false,
+        Callback = function(enable)
+            if enable then
+                originalLighting.FogStart = Lighting.FogStart
+                originalLighting.FogEnd = Lighting.FogEnd
+                originalLighting.FogColor = Lighting.FogColor
+
+                Lighting.FogStart = 0
+                Lighting.FogEnd = math.huge
+                Lighting.FogColor = Color3.fromRGB(200, 200, 220)
+
+                for _, obj in pairs(Lighting:GetChildren()) do
+                    if obj:IsA("Atmosphere") then
+                        if not originalAtmosphere[obj] then
+                            originalAtmosphere[obj] = {
+                                Density = obj.Density,
+                                Offset = obj.Offset,
+                                Glare = obj.Glare,
+                                Haze = obj.Haze
+                            }
+                        end
+                        pcall(function()
+                            obj.Density = 0
+                            obj.Offset = 0
+                            obj.Glare = 0
+                            obj.Haze = 0
+                        end)
+                    end
+                end
+                WindUI:Notify({Title = "去雾", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if originalLighting.FogStart then Lighting.FogStart = originalLighting.FogStart end
+                if originalLighting.FogEnd then Lighting.FogEnd = originalLighting.FogEnd end
+                if originalLighting.FogColor then Lighting.FogColor = originalLighting.FogColor end
+
+                for obj, props in pairs(originalAtmosphere) do
+                    if obj and obj.Parent then
+                        pcall(function()
+                            obj.Density = props.Density
+                            obj.Offset = props.Offset
+                            obj.Glare = props.Glare
+                            obj.Haze = props.Haze
+                        end)
+                    end
+                end
+                originalAtmosphere = {}
+                WindUI:Notify({Title = "去雾", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
+    -- 点击传送工具
+    suggestSection:Button({
+        Title = "点击传送工具",
+        Callback = function()
+            local ok, err = pcall(function()
+                local Mouse = LocalPlayer:GetMouse()
+                local Camera = workspace.CurrentCamera
+
+                local Tool = Instance.new("Tool")
+                Tool.Name = "点击传送"
+                Tool.RequiresHandle = false
+
+                Tool.Activated:Connect(function()
+                    local Character = LocalPlayer.Character
+                    if not Character then return end
+
+                    local HRP = Character:FindFirstChild("HumanoidRootPart")
+                    if not HRP then return end
+
+                    local params = RaycastParams.new()
+                    params.FilterDescendantsInstances = {Character}
+                    params.FilterType = Enum.RaycastFilterType.Blacklist
+
+                    local unitRay = Camera:ScreenPointToRay(Mouse.X, Mouse.Y)
+                    local rayOrigin = unitRay.Origin
+                    local rayDirection = unitRay.Direction * 100000
+
+                    local result = workspace:Raycast(rayOrigin, rayDirection, params)
+
+                    if not result then return end
+
+                    local hitPos = result.Position + Vector3.new(0, 3, 0)
+                    HRP.CFrame = CFrame.new(hitPos)
+                end)
+
+                Tool.Parent = LocalPlayer:WaitForChild("Backpack")
+            end)
+
+            if ok then
+                WindUI:Notify({Title = "点击传送", Content = "已获得传送工具", Duration = 2, Icon = "check"})
+            else
+                WindUI:Notify({Title = "错误", Content = tostring(err), Duration = 3, Icon = "alert"})
+            end
+        end,
+    })
+
+    -- 一键清屏 (独立浮动窗口模式)
+    suggestSection:Button({
+        Title = "一键清屏",
+        Callback = function()
+            local ok, err = pcall(function()
+                local CoreGui = game:GetService("CoreGui")
+                local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+                if PlayerGui:FindFirstChild("FullUIToggle") then
+                    PlayerGui.FullUIToggle:Destroy()
+                end
+
+                local Hidden = false
+                local Stored = {}
+
+                local ScreenGui = Instance.new("ScreenGui")
+                ScreenGui.Name = "FullUIToggle"
+                ScreenGui.ResetOnSpawn = false
+                ScreenGui.Parent = PlayerGui
+
+                local Button = Instance.new("TextButton")
+                Button.Size = UDim2.new(0, 120, 0, 30)
+                Button.Position = UDim2.new(1, -130, 0, 10)
+                Button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+                Button.TextColor3 = Color3.new(1, 1, 1)
+                Button.Text = "隐藏"
+                Button.Parent = ScreenGui
+
+                Instance.new("UICorner", Button)
+
+                local dragging = false
+                local dragInput, startPos, startFramePos
+
+                Button.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 
+                    or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = true
+                        startPos = input.Position
+                        startFramePos = Button.Position
+
+                        input.Changed:Connect(function()
+                            if input.UserInputState == Enum.UserInputState.End then
+                                dragging = false
+                            end
+                        end)
+                    end
+                end)
+
+                Button.InputChanged:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseMovement 
+                    or input.UserInputType == Enum.UserInputType.Touch then
+                        dragInput = input
+                    end
+                end)
+
+                UserInputService.InputChanged:Connect(function(input)
+                    if input == dragInput and dragging then
+                        local delta = input.Position - startPos
+                        Button.Position = UDim2.new(
+                            startFramePos.X.Scale,
+                            startFramePos.X.Offset + delta.X,
+                            startFramePos.Y.Scale,
+                            startFramePos.Y.Offset + delta.Y
+                        )
+                    end
+                end)
+
+                local function IsUI(obj)
+                    return obj:IsA("GuiObject")
+                end
+
+                local function ShouldSkip(obj)
+                    return obj:IsDescendantOf(ScreenGui)
+                end
+
+                local function Process(container, hide)
+                    for _, obj in ipairs(container:GetDescendants()) do
+                        if IsUI(obj) and not ShouldSkip(obj) then
+                            if hide then
+                                if not Stored[obj] then
+                                    Stored[obj] = obj.Visible
+                                end
+                                obj.Visible = false
+                            else
+                                if Stored[obj] ~= nil then
+                                    obj.Visible = Stored[obj]
+                                end
+                            end
+                        end
+                    end
+                end
+
+                local function Toggle(state)
+                    if state then
+                        Stored = {}
+                        Process(PlayerGui, true)
+                        pcall(function()
+                            Process(CoreGui, true)
+                        end)
+                    else
+                        Process(PlayerGui, false)
+                        pcall(function()
+                            Process(CoreGui, false)
+                        end)
+                        Stored = {}
+                    end
+                end
+
+                Button.MouseButton1Click:Connect(function()
+                    Hidden = not Hidden
+                    Toggle(Hidden)
+                    Button.Text = Hidden and "显示" or "隐藏"
+                end)
+
+                local function Hook(container)
+                    container.DescendantAdded:Connect(function(obj)
+                        if Hidden and obj:IsA("GuiObject") and not ShouldSkip(obj) then
+                            Stored[obj] = obj.Visible
+                            obj.Visible = false
+                        end
+                    end)
+                end
+
+                Hook(PlayerGui)
+                pcall(function()
+                    Hook(CoreGui)
+                end)
+            end)
+
+            if ok then
+                WindUI:Notify({Title = "一键清屏", Content = "独立浮动窗口已打开", Duration = 2, Icon = "check"})
+            else
+                WindUI:Notify({Title = "错误", Content = tostring(err), Duration = 3, Icon = "alert"})
+            end
+        end,
+    })
+
+    -- 岩石实体化 (原岛屿岩石碰撞)
+    suggestSection:Button({
+        Title = "岩石实体化",
+        Callback = function()
+            local count = 0
+            for _, v in pairs(game.Workspace:GetDescendants()) do
+                if v.Name == "LowerRocks" then
+                    v.CanCollide = true
+                    count = count + 1
+                end
+            end
+            WindUI:Notify({
+                Title = "岩石实体化", 
+                Content = "已实体化 " .. count .. " 个岩石", 
+                Duration = 2, 
+                Icon = "check"
+            })
+        end,
+    })
+
+    -- 放置方块 (原自动放置方块)
     local blockGui = nil
     local autoPlace = false
     local autoPlacing = false
-    local blockToggle
 
     local function placeOneBlock()
         local char = LocalPlayer.Character
@@ -279,7 +564,7 @@ return function(Window, WindUI)
         block.Parent = workspace
     end
 
-    blockToggle = suggestSection:Toggle({
+    suggestSection:Toggle({
         Title = "放置方块",
         Value = false,
         Callback = function(val)
@@ -339,7 +624,6 @@ return function(Window, WindUI)
                     autoPlace = false
                     autoPlacing = false
                     if blockGui then blockGui:Destroy() blockGui = nil end
-                    blockToggle:SetValue(false)
                 end)
 
                 local autoBtn = Instance.new("TextButton")
@@ -389,106 +673,81 @@ return function(Window, WindUI)
         end,
     })
 
-    local disasterViewRemoved = false
-    local disasterToggle
-
-    disasterToggle = suggestSection:Toggle({
+    -- 移除灾害视角
+    suggestSection:Button({
         Title = "移除灾害视角",
-        Value = false,
-        Callback = function(val)
-            disasterViewRemoved = val
-            if val then
-                pcall(function()
-                    local gui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("SandStormGui")
-                    if gui then gui:Destroy() end
-                end)
-                pcall(function()
-                    local gui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("BlizzardGui")
-                    if gui then gui:Destroy() end
-                end)
-                WindUI:Notify({Title = "移除灾害视角", Content = "已开启 (灾害UI已移除)", Duration = 2, Icon = "check"})
-            else
-                WindUI:Notify({Title = "移除灾害视角", Content = "已关闭 (不会恢复UI)", Duration = 2, Icon = "x"})
-            end
+        Callback = function()
+            local removed = 0
+            pcall(function()
+                local gui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("SandStormGui")
+                if gui then
+                    gui:Destroy()
+                    removed = removed + 1
+                end
+            end)
+            pcall(function()
+                local gui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("BlizzardGui")
+                if gui then
+                    gui:Destroy()
+                    removed = removed + 1
+                end
+            end)
+            WindUI:Notify({
+                Title = "移除灾害视角", 
+                Content = "已移除 " .. removed .. " 个灾害UI", 
+                Duration = 2, 
+                Icon = "check"
+            })
         end,
     })
 
-    tab:Toggle({
-        Title = "穿墙",
-        Value = false,
-        Callback = function(val)
-            NoclipEnabled = val
-            if val then
-                if noclipConnection then noclipConnection:Disconnect() end
-                noclipConnection = RunService.Stepped:Connect(function()
-                    if not NoclipEnabled then return end
-                    local char = LocalPlayer.Character
-                    if not char then return end
-                    local root = char:FindFirstChild("HumanoidRootPart")
-                    if not root then return end
-                    local hum = char:FindFirstChildOfClass("Humanoid")
-                    if hum and hum.FloorMaterial ~= Enum.Material.Air then
-                        lastGroundY = root.Position.Y
-                    end
-                    root.CanCollide = false
-                    for _, v in ipairs(char:GetDescendants()) do
-                        if v:IsA("BasePart") and v.CanCollide then
-                            v.CanCollide = false
-                        end
-                    end
-                    if lastGroundY ~= 0 and root.Position.Y < lastGroundY - 5 then
-                        root.CFrame = CFrame.new(root.CFrame.X, lastGroundY, root.CFrame.Z)
-                        if hum then
-                            hum:ChangeState(Enum.HumanoidStateType.Landed)
-                        end
-                    end
-                end)
-                WindUI:Notify({Title = "穿墙", Content = "已开启", Duration = 2, Icon = "check"})
-            else
-                if noclipConnection then
-                    noclipConnection:Disconnect()
-                    noclipConnection = nil
-                end
-                local char = LocalPlayer.Character
-                if char then
-                    local root = char:FindFirstChild("HumanoidRootPart")
-                    if root then root.CanCollide = true end
-                    for _, v in ipairs(char:GetDescendants()) do
-                        if v:IsA("BasePart") and not v.CanCollide then
-                            v.CanCollide = true
-                        end
-                    end
-                end
-                WindUI:Notify({Title = "穿墙", Content = "已关闭", Duration = 2, Icon = "x"})
-            end
-        end,
-    })
+    ------------------ 其他功能 (不在建议开列表) ------------------
+    local otherSection = tab:Section({Title = "其他功能"})
 
+    -- 透视玩家
     local espEnabled = false
     local espConnections = {}
     local playerAddedConn = nil
 
-    local function updatePlayerESP(player)
+    local function createESP(player)
         if not espEnabled or player == LocalPlayer then return end
-        local char = player.Character
-        if not char then return end
-        local high = char:FindFirstChild("PlayerESP_Highlight")
-        if espEnabled then
-            if not high then
-                high = Instance.new("Highlight", char)
-                high.Name = "PlayerESP_Highlight"
-            end
-            high.FillColor = Color3.fromRGB(255, 0, 0)
-            high.FillTransparency = 0.7
-            high.OutlineTransparency = 0
-            high.OutlineColor = Color3.fromRGB(255, 255, 255)
-            high.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        elseif high then
-            high:Destroy()
+        
+        if player.Character then
+            local existing = player.Character:FindFirstChild("NH_ESP")
+            if existing then existing:Destroy() end
+
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "NH_ESP"
+            highlight.FillTransparency = 0.7
+            highlight.OutlineTransparency = 0
+            highlight.FillColor = Color3.fromRGB(255, 0, 0)
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.Adornee = player.Character
+            highlight.Parent = player.Character
+        end
+
+        if not espConnections[player] then
+            local connection = player.CharacterAdded:Connect(function(char)
+                task.wait(0.5)
+                if espEnabled and player ~= LocalPlayer then
+                    local existing = char:FindFirstChild("NH_ESP")
+                    if existing then existing:Destroy() end
+
+                    local highlight = Instance.new("Highlight")
+                    highlight.Name = "NH_ESP"
+                    highlight.FillTransparency = 0.7
+                    highlight.OutlineTransparency = 0
+                    highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    highlight.Adornee = char
+                    highlight.Parent = char
+                end
+            end)
+            espConnections[player] = connection
         end
     end
 
-    tab:Toggle({
+    otherSection:Toggle({
         Title = "透视玩家",
         Value = false,
         Callback = function(enabled)
@@ -496,38 +755,30 @@ return function(Window, WindUI)
             if enabled then
                 for _, player in ipairs(Players:GetPlayers()) do
                     if player ~= LocalPlayer then
-                        updatePlayerESP(player)
+                        createESP(player)
                     end
                 end
+
                 playerAddedConn = Players.PlayerAdded:Connect(function(player)
                     if espEnabled and player ~= LocalPlayer then
-                        player.CharacterAdded:Connect(function()
-                            updatePlayerESP(player)
-                        end)
-                        updatePlayerESP(player)
+                        createESP(player)
                     end
                 end)
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and not espConnections[player] then
-                        local conn = player.CharacterAdded:Connect(function()
-                            updatePlayerESP(player)
-                        end)
-                        espConnections[player] = conn
-                    end
-                end
             else
                 if playerAddedConn then
                     playerAddedConn:Disconnect()
                     playerAddedConn = nil
                 end
+
                 for player, conn in pairs(espConnections) do
                     if conn then conn:Disconnect() end
                 end
                 espConnections = {}
+
                 for _, player in ipairs(Players:GetPlayers()) do
                     if player.Character then
-                        local high = player.Character:FindFirstChild("PlayerESP_Highlight")
-                        if high then high:Destroy() end
+                        local hl = player.Character:FindFirstChild("NH_ESP")
+                        if hl then hl:Destroy() end
                     end
                 end
             end
@@ -540,11 +791,12 @@ return function(Window, WindUI)
         end,
     })
 
+    -- 飞行
     local flyEnabled = false
     local flyConnections = {}
     local flyBody = {}
 
-    tab:Toggle({
+    otherSection:Toggle({
         Title = "飞行",
         Value = false,
         Callback = function(val)
@@ -615,8 +867,9 @@ return function(Window, WindUI)
         end,
     })
 
+    -- 自动存活
     local tpConnection = nil
-    tab:Toggle({
+    otherSection:Toggle({
         Title = "自动存活",
         Value = false,
         Callback = function(val)
@@ -638,7 +891,8 @@ return function(Window, WindUI)
         end,
     })
 
-    tab:Toggle({
+    -- 地图投票
+    otherSection:Toggle({
         Title = "地图投票",
         Value = false,
         Callback = function(val)
@@ -665,6 +919,7 @@ return function(Window, WindUI)
         end,
     })
 
+    -- 隐身
     local function playActionSound()
         local sound = Instance.new("Sound", LocalPlayer:WaitForChild("PlayerGui"))
         sound.SoundId = "rbxassetid://942127495"
@@ -682,7 +937,7 @@ return function(Window, WindUI)
     end
 
     local invis_on = false
-    tab:Toggle({
+    otherSection:Toggle({
         Title = "隐身",
         Value = false,
         Callback = function(val)
@@ -726,6 +981,7 @@ return function(Window, WindUI)
         end,
     })
 
+    -- 偷取所有物品
     local stealLoop = false
     local function stealAllItems()
         local count = 0
@@ -756,7 +1012,7 @@ return function(Window, WindUI)
         return count
     end
 
-    tab:Toggle({
+    otherSection:Toggle({
         Title = "偷取所有物品",
         Value = false,
         Callback = function(val)
@@ -775,6 +1031,7 @@ return function(Window, WindUI)
         end,
     })
 
+    -- 移速跳高调整
     local speedJumpGuiObj = nil
     local speedHeartbeat = nil
     local jumpHeartbeat = nil
@@ -815,7 +1072,7 @@ return function(Window, WindUI)
         end)
     end
 
-    tab:Toggle({
+    otherSection:Toggle({
         Title = "移速跳高调整",
         Value = false,
         Callback = function(val)
