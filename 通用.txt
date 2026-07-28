@@ -45,14 +45,11 @@ return function(Window, WindUI)
         end)
     end
 
-    ------------------ 建议开列表 ------------------
     local suggestSection = tab:Section({Title = "建议开"})
 
-    -- 存储所有功能开关的状态和回调
     local toggleStates = {}
     local toggleCallbacks = {}
 
-    -- 一键开关
     local masterToggleValue = false
     local masterToggle
 
@@ -70,7 +67,6 @@ return function(Window, WindUI)
         masterToggleValue = allOn
     end
 
-    -- 防踢
     local antiAFKEnabled = false
     local antiAFKToggle
     antiAFKToggle = suggestSection:Toggle({
@@ -102,7 +98,6 @@ return function(Window, WindUI)
         antiAFKToggle._callback(val)
     end
 
-    -- 水上行走
     local waterCollisionEnabled = false
     local originalWaterSize = nil
     local originalWaterCollide = nil
@@ -148,7 +143,6 @@ return function(Window, WindUI)
         waterToggle._callback(val)
     end
 
-    -- 防甩飞
     local antiPushConn = nil
     local antiPushToggle
 
@@ -192,7 +186,6 @@ return function(Window, WindUI)
         antiPushToggle._callback(val)
     end
 
-    -- 防摔
     local function createNoFall()
         local con = nil
         local charCon = nil
@@ -259,7 +252,6 @@ return function(Window, WindUI)
         noFallToggle._callback(val)
     end
 
-    -- 无限跳
     local infJumpToggle
 
     infJumpToggle = suggestSection:Toggle({
@@ -292,7 +284,6 @@ return function(Window, WindUI)
         infJumpToggle._callback(val)
     end
 
-    -- 岩石实体化 (开关版)
     local rockSolidEnabled = false
     local rockSolidConn = nil
     local rockToggle
@@ -330,7 +321,6 @@ return function(Window, WindUI)
         rockToggle._callback(val)
     end
 
-    -- 放置方块
     local blockGui = nil
     local autoPlace = false
     local autoPlacing = false
@@ -470,7 +460,6 @@ return function(Window, WindUI)
         blockToggle._callback(val)
     end
 
-    -- 移除灾害视角 (开关版)
     local disasterViewRemoved = false
     local disasterToggle
 
@@ -502,7 +491,6 @@ return function(Window, WindUI)
         disasterToggle._callback(val)
     end
 
-    -- 一键开关（放在列表最前面）
     masterToggle = suggestSection:Toggle({
         Title = "一键开关",
         Value = false,
@@ -519,11 +507,6 @@ return function(Window, WindUI)
             })
         end,
     })
-
-    ------------------ 穿墙 (从建议开移出，单独放在外面) ------------------
-    local NoclipEnabled = false
-    local noclipConnection = nil
-    local lastGroundY = 0
 
     tab:Toggle({
         Title = "穿墙",
@@ -576,48 +559,27 @@ return function(Window, WindUI)
         end,
     })
 
-    ------------------ 原其他功能 (直接放在外面，没有分类标题) ------------------
-
-    -- 透视玩家
     local espEnabled = false
     local espConnections = {}
     local playerAddedConn = nil
 
-    local function createESP(player)
+    local function updatePlayerESP(player)
         if not espEnabled or player == LocalPlayer then return end
-        
-        if player.Character then
-            local existing = player.Character:FindFirstChild("NH_ESP")
-            if existing then existing:Destroy() end
-
-            local highlight = Instance.new("Highlight")
-            highlight.Name = "NH_ESP"
-            highlight.FillTransparency = 0.7
-            highlight.OutlineTransparency = 0
-            highlight.FillColor = Color3.fromRGB(255, 0, 0)
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.Adornee = player.Character
-            highlight.Parent = player.Character
-        end
-
-        if not espConnections[player] then
-            local connection = player.CharacterAdded:Connect(function(char)
-                task.wait(0.5)
-                if espEnabled and player ~= LocalPlayer then
-                    local existing = char:FindFirstChild("NH_ESP")
-                    if existing then existing:Destroy() end
-
-                    local highlight = Instance.new("Highlight")
-                    highlight.Name = "NH_ESP"
-                    highlight.FillTransparency = 0.7
-                    highlight.OutlineTransparency = 0
-                    highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                    highlight.Adornee = char
-                    highlight.Parent = char
-                end
-            end)
-            espConnections[player] = connection
+        local char = player.Character
+        if not char then return end
+        local high = char:FindFirstChild("PlayerESP_Highlight")
+        if espEnabled then
+            if not high then
+                high = Instance.new("Highlight", char)
+                high.Name = "PlayerESP_Highlight"
+            end
+            high.FillColor = Color3.fromRGB(255, 0, 0)
+            high.FillTransparency = 0.7
+            high.OutlineTransparency = 0
+            high.OutlineColor = Color3.fromRGB(255, 255, 255)
+            high.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        elseif high then
+            high:Destroy()
         end
     end
 
@@ -629,30 +591,38 @@ return function(Window, WindUI)
             if enabled then
                 for _, player in ipairs(Players:GetPlayers()) do
                     if player ~= LocalPlayer then
-                        createESP(player)
+                        updatePlayerESP(player)
                     end
                 end
-
                 playerAddedConn = Players.PlayerAdded:Connect(function(player)
                     if espEnabled and player ~= LocalPlayer then
-                        createESP(player)
+                        player.CharacterAdded:Connect(function()
+                            updatePlayerESP(player)
+                        end)
+                        updatePlayerESP(player)
                     end
                 end)
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and not espConnections[player] then
+                        local conn = player.CharacterAdded:Connect(function()
+                            updatePlayerESP(player)
+                        end)
+                        espConnections[player] = conn
+                    end
+                end
             else
                 if playerAddedConn then
                     playerAddedConn:Disconnect()
                     playerAddedConn = nil
                 end
-
                 for player, conn in pairs(espConnections) do
                     if conn then conn:Disconnect() end
                 end
                 espConnections = {}
-
                 for _, player in ipairs(Players:GetPlayers()) do
                     if player.Character then
-                        local hl = player.Character:FindFirstChild("NH_ESP")
-                        if hl then hl:Destroy() end
+                        local high = player.Character:FindFirstChild("PlayerESP_Highlight")
+                        if high then high:Destroy() end
                     end
                 end
             end
@@ -665,7 +635,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 飞行
     local flyEnabled = false
     local flyConnections = {}
     local flyBody = {}
@@ -741,7 +710,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 自动存活
     local tpConnection = nil
     tab:Toggle({
         Title = "自动存活",
@@ -765,7 +733,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 地图投票
     tab:Toggle({
         Title = "地图投票",
         Value = false,
@@ -793,7 +760,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 隐身
     local function playActionSound()
         local sound = Instance.new("Sound", LocalPlayer:WaitForChild("PlayerGui"))
         sound.SoundId = "rbxassetid://942127495"
@@ -855,7 +821,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 偷取所有物品
     local stealLoop = false
     local function stealAllItems()
         local count = 0
@@ -905,7 +870,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 移速跳高调整
     local speedJumpGuiObj = nil
     local speedHeartbeat = nil
     local jumpHeartbeat = nil
