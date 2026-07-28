@@ -38,8 +38,43 @@ task.spawn(function()
             mainFrame = Window.Instance:FindFirstChildWhichIsA("Frame", true)
         end
         if mainFrame then
-            local topbar = mainFrame:FindFirstChild("Topbar") or mainFrame:FindFirstChild("Header") or mainFrame
+            local Stroke = Instance.new("UIStroke")
+            Stroke.Name = "RainbowBorder"
+            Stroke.Thickness = 3.5
+            Stroke.Color = Color3.new(1, 1, 1)
+            Stroke.LineJoinMode = Enum.LineJoinMode.Round
+            Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+            Stroke.Parent = mainFrame
             
+            local Gradient = Instance.new("UIGradient")
+            Gradient.Name = "RainbowGradient"
+            Gradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+                ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 255, 0)),
+                ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
+                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+                ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
+                ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+            })
+            Gradient.Parent = Stroke
+            
+            local Corner = mainFrame:FindFirstChildOfClass("UICorner")
+            if not Corner then
+                Corner = Instance.new("UICorner")
+                Corner.CornerRadius = UDim.new(0, 12)
+                Corner.Parent = mainFrame
+            end
+            
+            local currentAngle = 0
+            game:GetService("RunService").RenderStepped:Connect(function(dt)
+                if Stroke and Stroke.Parent then
+                    currentAngle = (currentAngle + dt * 150) % 360
+                    Gradient.Rotation = currentAngle
+                end
+            end)
+
+            local topbar = mainFrame:FindFirstChild("Topbar") or mainFrame:FindFirstChild("Header") or mainFrame
             local titleObj = nil
             for _, child in ipairs(topbar:GetDescendants()) do
                 if child:IsA("TextLabel") and (child.Text == BRAND.name or child.Name:lower():find("title")) then
@@ -84,6 +119,15 @@ if okGeneral and loadGeneralTab then
     loadGeneralTab(Window, WindUI)
 else
     WindUI:Notify({Title = "通用模块加载失败", Content = "请检查网络或仓库地址", Duration = 3, Icon = "alert"})
+end
+
+local okTeleport, loadTeleportTab = pcall(function()
+    return loadstring(game:HttpGet("https://hygg3795-debug.github.io/1/传送.txt"))()
+end)
+if okTeleport and loadTeleportTab then
+    loadTeleportTab(Window, WindUI)
+else
+    WindUI:Notify({Title = "传送模块加载失败", Content = "请检查网络或仓库地址", Duration = 3, Icon = "alert"})
 end
 
 local okPlayer, loadPlayerTab = pcall(function()
