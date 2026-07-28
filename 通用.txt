@@ -747,7 +747,7 @@ return function(Window, WindUI)
         Value = false,
         Callback = function(val)
             stealLoop = val
-            if val me
+            if val then
                 WindUI:Notify({Title = "偷取所有物品", Content = "自动偷取中...", Duration = 2, Icon = "check"})
                 task.spawn(function()
                     while stealLoop do
