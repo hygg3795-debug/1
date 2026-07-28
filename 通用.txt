@@ -47,7 +47,8 @@ return function(Window, WindUI)
 
     local suggestSection = tab:Section({Title = "建议开"})
 
-    local toggles = {}
+    local toggleWidgets = {}
+    local toggleStates = {}
 
     local function createNoFall()
         local con = nil
@@ -86,9 +87,29 @@ return function(Window, WindUI)
         return {start = start, stop = stop}
     end
 
+    local oneKeyToggle
+    oneKeyToggle = suggestSection:Toggle({
+        Title = "一键开关",
+        Value = false,
+        Callback = function(val)
+            for name, widget in pairs(toggleWidgets) do
+                if widget and widget.SetValue then
+                    widget:SetValue(val)
+                end
+            end
+            WindUI:Notify({
+                Title = "一键开关", 
+                Content = val and "已开启所有功能" or "已关闭所有功能", 
+                Duration = 2, 
+                Icon = val and "check" or "x"
+            })
+        end,
+    })
+    toggleWidgets["一键开关"] = oneKeyToggle
+
     local antiAFKEnabled = false
-    toggles.antiAFK = {set = function(v) antiAFKEnabled = v end, get = function() return antiAFKEnabled end}
-    suggestSection:Toggle({
+    local antiAFKToggle
+    antiAFKToggle = suggestSection:Toggle({
         Title = "防踢",
         Value = false,
         Callback = function(val)
@@ -109,12 +130,13 @@ return function(Window, WindUI)
             end
         end,
     })
+    toggleWidgets["防踢"] = antiAFKToggle
 
     local waterCollisionEnabled = false
     local originalWaterSize = nil
     local originalWaterCollide = nil
-    toggles.waterWalk = {set = function(v) waterCollisionEnabled = v end, get = function() return waterCollisionEnabled end}
-    suggestSection:Toggle({
+    local waterToggle
+    waterToggle = suggestSection:Toggle({
         Title = "水上行走",
         Value = false,
         Callback = function(val)
@@ -147,10 +169,11 @@ return function(Window, WindUI)
             end
         end,
     })
+    toggleWidgets["水上行走"] = waterToggle
 
     local antiPushConn = nil
-    toggles.antiPush = {set = function(v) end, get = function() return antiPushConn ~= nil end}
-    suggestSection:Toggle({
+    local antiPushToggle
+    antiPushToggle = suggestSection:Toggle({
         Title = "防甩飞",
         Value = false,
         Callback = function(val)
@@ -182,10 +205,11 @@ return function(Window, WindUI)
             end
         end,
     })
+    toggleWidgets["防甩飞"] = antiPushToggle
 
     local noFallAPI = nil
-    toggles.noFall = {set = function(v) end, get = function() return noFallAPI ~= nil end}
-    suggestSection:Toggle({
+    local noFallToggle
+    noFallToggle = suggestSection:Toggle({
         Title = "防摔",
         Value = false,
         Callback = function(val)
@@ -203,9 +227,10 @@ return function(Window, WindUI)
             end
         end,
     })
+    toggleWidgets["防摔"] = noFallToggle
 
-    toggles.infJump = {set = function(v) end, get = function() return _G.InfJumpCon ~= nil end}
-    suggestSection:Toggle({
+    local infJumpToggle
+    infJumpToggle = suggestSection:Toggle({
         Title = "无限跳",
         Value = false,
         Callback = function(val)
@@ -227,11 +252,12 @@ return function(Window, WindUI)
             end
         end,
     })
+    toggleWidgets["无限跳"] = infJumpToggle
 
     local blockGui = nil
     local autoPlace = false
     local autoPlacing = false
-    toggles.placeBlock = {set = function(v) end, get = function() return blockGui ~= nil end}
+    local blockToggle
 
     local function placeOneBlock()
         local char = LocalPlayer.Character
@@ -248,7 +274,7 @@ return function(Window, WindUI)
         block.Parent = workspace
     end
 
-    suggestSection:Toggle({
+    blockToggle = suggestSection:Toggle({
         Title = "放置方块",
         Value = false,
         Callback = function(val)
@@ -308,6 +334,7 @@ return function(Window, WindUI)
                     autoPlace = false
                     autoPlacing = false
                     if blockGui then blockGui:Destroy() blockGui = nil end
+                    if blockToggle then blockToggle:SetValue(false) end
                 end)
 
                 local autoBtn = Instance.new("TextButton")
@@ -356,10 +383,11 @@ return function(Window, WindUI)
             end
         end,
     })
+    toggleWidgets["放置方块"] = blockToggle
 
     local rockEnabled = false
-    toggles.rockSolid = {set = function(v) rockEnabled = v end, get = function() return rockEnabled end}
-    suggestSection:Toggle({
+    local rockToggle
+    rockToggle = suggestSection:Toggle({
         Title = "岩石实体化",
         Value = false,
         Callback = function(val)
@@ -379,10 +407,11 @@ return function(Window, WindUI)
             })
         end,
     })
+    toggleWidgets["岩石实体化"] = rockToggle
 
     local disasterRemoved = false
-    toggles.removeDisaster = {set = function(v) disasterRemoved = v end, get = function() return disasterRemoved end}
-    suggestSection:Toggle({
+    local disasterToggle
+    disasterToggle = suggestSection:Toggle({
         Title = "移除灾害视角",
         Value = false,
         Callback = function(val)
@@ -419,34 +448,12 @@ return function(Window, WindUI)
             end
         end,
     })
-
-    suggestSection:Toggle({
-        Title = "一键开关",
-        Value = false,
-        Callback = function(val)
-            for name, toggle in pairs(toggles) do
-                local current = toggle.get()
-                if current ~= val then
-                    local widget = suggestSection:GetWidget(name)
-                    if widget then
-                        widget:SetValue(val)
-                    end
-                end
-            end
-            WindUI:Notify({
-                Title = "一键开关", 
-                Content = val and "已开启所有功能" or "已关闭所有功能", 
-                Duration = 2, 
-                Icon = val and "check" or "x"
-            })
-        end,
-    })
-
-    local otherSection = tab:Section({Title = "其他功能"})
+    toggleWidgets["移除灾害视角"] = disasterToggle
 
     local espEnabled = false
     local espConnections = {}
     local playerAddedConn = nil
+    local espToggle
 
     local function createESP(player)
         if not espEnabled or player == LocalPlayer then return end
@@ -486,7 +493,7 @@ return function(Window, WindUI)
         end
     end
 
-    otherSection:Toggle({
+    espToggle = suggestSection:Toggle({
         Title = "透视玩家",
         Value = false,
         Callback = function(enabled)
@@ -529,12 +536,14 @@ return function(Window, WindUI)
             })
         end,
     })
+    toggleWidgets["透视玩家"] = espToggle
 
     local flyEnabled = false
     local flyConnections = {}
     local flyBody = {}
+    local flyToggle
 
-    otherSection:Toggle({
+    flyToggle = suggestSection:Toggle({
         Title = "飞行",
         Value = false,
         Callback = function(val)
@@ -604,9 +613,11 @@ return function(Window, WindUI)
             end
         end,
     })
+    toggleWidgets["飞行"] = flyToggle
 
     local tpConnection = nil
-    otherSection:Toggle({
+    local tpToggle
+    tpToggle = suggestSection:Toggle({
         Title = "自动存活",
         Value = false,
         Callback = function(val)
@@ -617,18 +628,20 @@ return function(Window, WindUI)
                         LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-273, 179.5, 394)
                     end
                 end)
-                WindUI:Notify({Title = "固定传送", Content = "已开启", Duration = 2, Icon = "check"})
+                WindUI:Notify({Title = "自动存活", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 if tpConnection then
                     tpConnection:Disconnect()
                     tpConnection = nil
                 end
-                WindUI:Notify({Title = "固定传送", Content = "已关闭", Duration = 2, Icon = "x"})
+                WindUI:Notify({Title = "自动存活", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
+    toggleWidgets["自动存活"] = tpToggle
 
-    otherSection:Toggle({
+    local mapToggle
+    mapToggle = suggestSection:Toggle({
         Title = "地图投票",
         Value = false,
         Callback = function(val)
@@ -654,6 +667,7 @@ return function(Window, WindUI)
             end
         end,
     })
+    toggleWidgets["地图投票"] = mapToggle
 
     local function playActionSound()
         local sound = Instance.new("Sound", LocalPlayer:WaitForChild("PlayerGui"))
@@ -672,7 +686,8 @@ return function(Window, WindUI)
     end
 
     local invis_on = false
-    otherSection:Toggle({
+    local invisToggle
+    invisToggle = suggestSection:Toggle({
         Title = "隐身",
         Value = false,
         Callback = function(val)
@@ -715,8 +730,10 @@ return function(Window, WindUI)
             end
         end,
     })
+    toggleWidgets["隐身"] = invisToggle
 
     local stealLoop = false
+    local stealToggle
     local function stealAllItems()
         local count = 0
         local myBackpack = LocalPlayer:FindFirstChild("Backpack")
@@ -746,7 +763,7 @@ return function(Window, WindUI)
         return count
     end
 
-    otherSection:Toggle({
+    stealToggle = suggestSection:Toggle({
         Title = "偷取所有物品",
         Value = false,
         Callback = function(val)
@@ -764,10 +781,12 @@ return function(Window, WindUI)
             end
         end,
     })
+    toggleWidgets["偷取所有物品"] = stealToggle
 
     local speedJumpGuiObj = nil
     local speedHeartbeat = nil
     local jumpHeartbeat = nil
+    local speedJumpToggle
 
     local function getHumanoid()
         local char = LocalPlayer.Character
@@ -805,7 +824,7 @@ return function(Window, WindUI)
         end)
     end
 
-    otherSection:Toggle({
+    speedJumpToggle = suggestSection:Toggle({
         Title = "移速跳高调整",
         Value = false,
         Callback = function(val)
@@ -1104,6 +1123,7 @@ return function(Window, WindUI)
             end
         end,
     })
+    toggleWidgets["移速跳高调整"] = speedJumpToggle
 
     return tab
 end
