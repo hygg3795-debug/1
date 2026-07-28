@@ -48,10 +48,24 @@ return function(Window, WindUI)
 
     ------------------ 建议开列表 ------------------
     local suggestSection = tab:Section({Title = "建议开"})
+    local suggestToggles = {}
+
+    -- 一键开关 (放在最上方)
+    suggestSection:Toggle({
+        Title = "一键开关 (建议功能)",
+        Value = false,
+        Callback = function(val)
+            for _, t in ipairs(suggestToggles) do
+                if t and t.SetValue then
+                    pcall(function() t:SetValue(val) end)
+                end
+            end
+        end,
+    })
 
     -- 防踢
     local antiAFKEnabled = false
-    suggestSection:Toggle({
+    local t1 = suggestSection:Toggle({
         Title = "防踢",
         Value = false,
         Callback = function(val)
@@ -72,13 +86,14 @@ return function(Window, WindUI)
             end
         end,
     })
+    table.insert(suggestToggles, t1)
 
-    -- 水上行走 (新版本)
+    -- 水上行走
     local waterCollisionEnabled = false
     local originalWaterSize = nil
     local originalWaterCollide = nil
 
-    suggestSection:Toggle({
+    local t2 = suggestSection:Toggle({
         Title = "水上行走",
         Value = false,
         Callback = function(val)
@@ -111,10 +126,11 @@ return function(Window, WindUI)
             end
         end,
     })
+    table.insert(suggestToggles, t2)
 
     -- 防甩飞
     local antiPushConn = nil
-    suggestSection:Toggle({
+    local t3 = suggestSection:Toggle({
         Title = "防甩飞",
         Value = false,
         Callback = function(val)
@@ -146,6 +162,7 @@ return function(Window, WindUI)
             end
         end,
     })
+    table.insert(suggestToggles, t3)
 
     -- 防摔
     local function createNoFall()
@@ -178,14 +195,14 @@ return function(Window, WindUI)
         end
 
         local function stop()
-            if con then con:Disconnect() con = nil end
+            if con then con:Disconnect() end
             if charCon then charCon:Disconnect() charCon = nil end
         end
 
         return {start = start, stop = stop}
     end
 
-    suggestSection:Toggle({
+    local t4 = suggestSection:Toggle({
         Title = "防摔",
         Value = false,
         Callback = function(val)
@@ -204,9 +221,10 @@ return function(Window, WindUI)
             end
         end,
     })
+    table.insert(suggestToggles, t4)
 
     -- 无限跳
-    suggestSection:Toggle({
+    local t5 = suggestSection:Toggle({
         Title = "无限跳",
         Value = false,
         Callback = function(val)
@@ -228,13 +246,14 @@ return function(Window, WindUI)
             end
         end,
     })
+    table.insert(suggestToggles, t5)
 
     -- 穿墙
     local NoclipEnabled = false
     local noclipConnection = nil
     local lastGroundY = 0
 
-    suggestSection:Toggle({
+    local t6 = suggestSection:Toggle({
         Title = "穿墙",
         Value = false,
         Callback = function(val)
@@ -284,11 +303,12 @@ return function(Window, WindUI)
             end
         end,
     })
+    table.insert(suggestToggles, t6)
 
     -- 去雾
     local originalLighting = {}
     local originalAtmosphere = {}
-    suggestSection:Toggle({
+    local t7 = suggestSection:Toggle({
         Title = "去雾",
         Value = false,
         Callback = function(enable)
@@ -340,6 +360,7 @@ return function(Window, WindUI)
             end
         end,
     })
+    table.insert(suggestToggles, t7)
 
     -- 点击传送工具
     suggestSection:Button({
@@ -387,7 +408,7 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 一键清屏 (独立浮动窗口模式)
+    -- 一键清屏
     suggestSection:Button({
         Title = "一键清屏",
         Callback = function()
@@ -524,7 +545,7 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 岩石实体化 (原岛屿岩石碰撞)
+    -- 岩石实体化
     suggestSection:Button({
         Title = "岩石实体化",
         Callback = function()
@@ -544,7 +565,7 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 放置方块 (原自动放置方块)
+    -- 放置方块
     local blockGui = nil
     local autoPlace = false
     local autoPlacing = false
@@ -700,6 +721,11 @@ return function(Window, WindUI)
             })
         end,
     })
+
+    ------------------ 分割线 ------------------
+    if tab.Divider then
+        tab:Divider()
+    end
 
     ------------------ 其他功能 (不在建议开列表) ------------------
     local otherSection = tab:Section({Title = "其他功能"})
