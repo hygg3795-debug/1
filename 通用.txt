@@ -1,4 +1,3 @@
-
 return function(Window, WindUI)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
@@ -48,100 +47,7 @@ return function(Window, WindUI)
 
     local suggestSection = tab:Section({Title = "建议开"})
 
-    local antiAFKEnabled = false
-    suggestSection:Toggle({
-        Title = "防踢",
-        Value = false,
-        Callback = function(val)
-            antiAFKEnabled = val
-            if val then
-                local con = LocalPlayer.Idled:Connect(function()
-                    VirtualUser:CaptureController()
-                    VirtualUser:ClickButton2(Vector2.new())
-                end)
-                _G.AntiAFKCon = con
-                WindUI:Notify({Title = "防踢", Content = "已开启", Duration = 2, Icon = "check"})
-            else
-                if _G.AntiAFKCon then
-                    _G.AntiAFKCon:Disconnect()
-                    _G.AntiAFKCon = nil
-                end
-                WindUI:Notify({Title = "防踢", Content = "已关闭", Duration = 2, Icon = "x"})
-            end
-        end,
-    })
-
-    local waterCollisionEnabled = false
-    local originalWaterSize = nil
-    local originalWaterCollide = nil
-
-    suggestSection:Toggle({
-        Title = "水上行走",
-        Value = false,
-        Callback = function(val)
-            local water = game.Workspace:FindFirstChild("WaterLevel")
-            if not water then
-                WindUI:Notify({Title = "水上行走", Content = "未找到 WaterLevel", Duration = 2, Icon = "alert"})
-                return
-            end
-
-            if val then
-                originalWaterSize = water.Size
-                originalWaterCollide = water.CanCollide
-                water.CanCollide = true
-                water.Size = Vector3.new(1000, 1, 1000)
-                waterCollisionEnabled = true
-                WindUI:Notify({Title = "水上行走", Content = "已开启 (水面可站立)", Duration = 2, Icon = "check"})
-            else
-                if originalWaterSize then
-                    water.Size = originalWaterSize
-                else
-                    water.Size = Vector3.new(10, 1, 10)
-                end
-                if originalWaterCollide ~= nil then
-                    water.CanCollide = originalWaterCollide
-                else
-                    water.CanCollide = false
-                end
-                waterCollisionEnabled = false
-                WindUI:Notify({Title = "水上行走", Content = "已关闭", Duration = 2, Icon = "x"})
-            end
-        end,
-    })
-
-    local antiPushConn = nil
-    suggestSection:Toggle({
-        Title = "防甩飞",
-        Value = false,
-        Callback = function(val)
-            if val then
-                if antiPushConn then antiPushConn:Disconnect() end
-                antiPushConn = RunService.Stepped:Connect(function()
-                    local char = LocalPlayer.Character
-                    if char then
-                        local root = char:FindFirstChild("HumanoidRootPart")
-                        if root then
-                            root.CanCollide = false
-                        end
-                    end
-                end)
-                WindUI:Notify({Title = "防甩飞", Content = "已开启", Duration = 2, Icon = "check"})
-            else
-                if antiPushConn then
-                    antiPushConn:Disconnect()
-                    antiPushConn = nil
-                end
-                local char = LocalPlayer.Character
-                if char then
-                    local root = char:FindFirstChild("HumanoidRootPart")
-                    if root then
-                        root.CanCollide = true
-                    end
-                end
-                WindUI:Notify({Title = "防甩飞", Content = "已关闭", Duration = 2, Icon = "x"})
-            end
-        end,
-    })
+    local toggles = {}
 
     local function createNoFall()
         local con = nil
@@ -180,26 +86,125 @@ return function(Window, WindUI)
         return {start = start, stop = stop}
     end
 
+    local antiAFKEnabled = false
+    toggles.antiAFK = {set = function(v) antiAFKEnabled = v end, get = function() return antiAFKEnabled end}
+    suggestSection:Toggle({
+        Title = "防踢",
+        Value = false,
+        Callback = function(val)
+            antiAFKEnabled = val
+            if val then
+                local con = LocalPlayer.Idled:Connect(function()
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton2(Vector2.new())
+                end)
+                _G.AntiAFKCon = con
+                WindUI:Notify({Title = "防踢", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if _G.AntiAFKCon then
+                    _G.AntiAFKCon:Disconnect()
+                    _G.AntiAFKCon = nil
+                end
+                WindUI:Notify({Title = "防踢", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
+    local waterCollisionEnabled = false
+    local originalWaterSize = nil
+    local originalWaterCollide = nil
+    toggles.waterWalk = {set = function(v) waterCollisionEnabled = v end, get = function() return waterCollisionEnabled end}
+    suggestSection:Toggle({
+        Title = "水上行走",
+        Value = false,
+        Callback = function(val)
+            local water = game.Workspace:FindFirstChild("WaterLevel")
+            if not water then
+                WindUI:Notify({Title = "水上行走", Content = "未找到 WaterLevel", Duration = 2, Icon = "alert"})
+                return
+            end
+
+            if val then
+                originalWaterSize = water.Size
+                originalWaterCollide = water.CanCollide
+                water.CanCollide = true
+                water.Size = Vector3.new(1000, 1, 1000)
+                waterCollisionEnabled = true
+                WindUI:Notify({Title = "水上行走", Content = "已开启 (水面可站立)", Duration = 2, Icon = "check"})
+            else
+                if originalWaterSize then
+                    water.Size = originalWaterSize
+                else
+                    water.Size = Vector3.new(10, 1, 10)
+                end
+                if originalWaterCollide ~= nil then
+                    water.CanCollide = originalWaterCollide
+                else
+                    water.CanCollide = false
+                end
+                waterCollisionEnabled = false
+                WindUI:Notify({Title = "水上行走", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
+    local antiPushConn = nil
+    toggles.antiPush = {set = function(v) end, get = function() return antiPushConn ~= nil end}
+    suggestSection:Toggle({
+        Title = "防甩飞",
+        Value = false,
+        Callback = function(val)
+            if val then
+                if antiPushConn then antiPushConn:Disconnect() end
+                antiPushConn = RunService.Stepped:Connect(function()
+                    local char = LocalPlayer.Character
+                    if char then
+                        local root = char:FindFirstChild("HumanoidRootPart")
+                        if root then
+                            root.CanCollide = false
+                        end
+                    end
+                end)
+                WindUI:Notify({Title = "防甩飞", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if antiPushConn then
+                    antiPushConn:Disconnect()
+                    antiPushConn = nil
+                end
+                local char = LocalPlayer.Character
+                if char then
+                    local root = char:FindFirstChild("HumanoidRootPart")
+                    if root then
+                        root.CanCollide = true
+                    end
+                end
+                WindUI:Notify({Title = "防甩飞", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
+    local noFallAPI = nil
+    toggles.noFall = {set = function(v) end, get = function() return noFallAPI ~= nil end}
     suggestSection:Toggle({
         Title = "防摔",
         Value = false,
         Callback = function(val)
-            local api = _G.NoFallAPI
-            if not api then
-                api = createNoFall()
-                _G.NoFallAPI = api
+            if not noFallAPI then
+                noFallAPI = createNoFall()
+                _G.NoFallAPI = noFallAPI
             end
 
             if val then
-                api.start()
+                noFallAPI.start()
                 WindUI:Notify({Title = "防摔", Content = "已开启", Duration = 2, Icon = "check"})
             else
-                api.stop()
+                noFallAPI.stop()
                 WindUI:Notify({Title = "防摔", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
 
+    toggles.infJump = {set = function(v) end, get = function() return _G.InfJumpCon ~= nil end}
     suggestSection:Toggle({
         Title = "无限跳",
         Value = false,
@@ -226,6 +231,7 @@ return function(Window, WindUI)
     local blockGui = nil
     local autoPlace = false
     local autoPlacing = false
+    toggles.placeBlock = {set = function(v) end, get = function() return blockGui ~= nil end}
 
     local function placeOneBlock()
         local char = LocalPlayer.Character
@@ -352,6 +358,7 @@ return function(Window, WindUI)
     })
 
     local rockEnabled = false
+    toggles.rockSolid = {set = function(v) rockEnabled = v end, get = function() return rockEnabled end}
     suggestSection:Toggle({
         Title = "岩石实体化",
         Value = false,
@@ -374,6 +381,7 @@ return function(Window, WindUI)
     })
 
     local disasterRemoved = false
+    toggles.removeDisaster = {set = function(v) disasterRemoved = v end, get = function() return disasterRemoved end}
     suggestSection:Toggle({
         Title = "移除灾害视角",
         Value = false,
@@ -409,6 +417,28 @@ return function(Window, WindUI)
                     Icon = "x"
                 })
             end
+        end,
+    })
+
+    suggestSection:Toggle({
+        Title = "一键开关",
+        Value = false,
+        Callback = function(val)
+            for name, toggle in pairs(toggles) do
+                local current = toggle.get()
+                if current ~= val then
+                    local widget = suggestSection:GetWidget(name)
+                    if widget then
+                        widget:SetValue(val)
+                    end
+                end
+            end
+            WindUI:Notify({
+                Title = "一键开关", 
+                Content = val and "已开启所有功能" or "已关闭所有功能", 
+                Duration = 2, 
+                Icon = val and "check" or "x"
+            })
         end,
     })
 
