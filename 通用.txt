@@ -45,11 +45,154 @@ return function(Window, WindUI)
         end)
     end
 
+    ------------------ 建议开列表 ------------------
     local suggestSection = tab:Section({Title = "建议开"})
 
-    local toggleWidgets = {}
+    -- 存储所有功能开关的状态和回调
     local toggleStates = {}
+    local toggleCallbacks = {}
 
+    -- 一键开关
+    local masterToggleValue = false
+    local masterToggle
+
+    local function updateMasterToggle()
+        local allOn = true
+        for _, state in pairs(toggleStates) do
+            if not state then
+                allOn = false
+                break
+            end
+        end
+        if masterToggle then
+            masterToggle:SetValue(allOn)
+        end
+        masterToggleValue = allOn
+    end
+
+    -- 防踢
+    local antiAFKEnabled = false
+    local antiAFKToggle
+    antiAFKToggle = suggestSection:Toggle({
+        Title = "防踢",
+        Value = false,
+        Callback = function(val)
+            antiAFKEnabled = val
+            toggleStates["防踢"] = val
+            if val then
+                local con = LocalPlayer.Idled:Connect(function()
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton2(Vector2.new())
+                end)
+                _G.AntiAFKCon = con
+                WindUI:Notify({Title = "防踢", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if _G.AntiAFKCon then
+                    _G.AntiAFKCon:Disconnect()
+                    _G.AntiAFKCon = nil
+                end
+                WindUI:Notify({Title = "防踢", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+            updateMasterToggle()
+        end,
+    })
+    toggleStates["防踢"] = false
+    toggleCallbacks["防踢"] = function(val)
+        antiAFKToggle:SetValue(val)
+        antiAFKToggle._callback(val)
+    end
+
+    -- 水上行走
+    local waterCollisionEnabled = false
+    local originalWaterSize = nil
+    local originalWaterCollide = nil
+    local waterToggle
+
+    waterToggle = suggestSection:Toggle({
+        Title = "水上行走",
+        Value = false,
+        Callback = function(val)
+            local water = game.Workspace:FindFirstChild("WaterLevel")
+            if not water then
+                WindUI:Notify({Title = "水上行走", Content = "未找到 WaterLevel", Duration = 2, Icon = "alert"})
+                return
+            end
+
+            waterCollisionEnabled = val
+            toggleStates["水上行走"] = val
+            if val then
+                originalWaterSize = water.Size
+                originalWaterCollide = water.CanCollide
+                water.CanCollide = true
+                water.Size = Vector3.new(1000, 1, 1000)
+                WindUI:Notify({Title = "水上行走", Content = "已开启 (水面可站立)", Duration = 2, Icon = "check"})
+            else
+                if originalWaterSize then
+                    water.Size = originalWaterSize
+                else
+                    water.Size = Vector3.new(10, 1, 10)
+                end
+                if originalWaterCollide ~= nil then
+                    water.CanCollide = originalWaterCollide
+                else
+                    water.CanCollide = false
+                end
+                WindUI:Notify({Title = "水上行走", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+            updateMasterToggle()
+        end,
+    })
+    toggleStates["水上行走"] = false
+    toggleCallbacks["水上行走"] = function(val)
+        waterToggle:SetValue(val)
+        waterToggle._callback(val)
+    end
+
+    -- 防甩飞
+    local antiPushConn = nil
+    local antiPushToggle
+
+    antiPushToggle = suggestSection:Toggle({
+        Title = "防甩飞",
+        Value = false,
+        Callback = function(val)
+            toggleStates["防甩飞"] = val
+            if val then
+                if antiPushConn then antiPushConn:Disconnect() end
+                antiPushConn = RunService.Stepped:Connect(function()
+                    local char = LocalPlayer.Character
+                    if char then
+                        local root = char:FindFirstChild("HumanoidRootPart")
+                        if root then
+                            root.CanCollide = false
+                        end
+                    end
+                end)
+                WindUI:Notify({Title = "防甩飞", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if antiPushConn then
+                    antiPushConn:Disconnect()
+                    antiPushConn = nil
+                end
+                local char = LocalPlayer.Character
+                if char then
+                    local root = char:FindFirstChild("HumanoidRootPart")
+                    if root then
+                        root.CanCollide = true
+                    end
+                end
+                WindUI:Notify({Title = "防甩飞", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+            updateMasterToggle()
+        end,
+    })
+    toggleStates["防甩飞"] = false
+    toggleCallbacks["防甩飞"] = function(val)
+        antiPushToggle:SetValue(val)
+        antiPushToggle._callback(val)
+    end
+
+    -- 防摔
     local function createNoFall()
         local con = nil
         local charCon = nil
@@ -87,153 +230,43 @@ return function(Window, WindUI)
         return {start = start, stop = stop}
     end
 
-    local oneKeyToggle
-    oneKeyToggle = suggestSection:Toggle({
-        Title = "一键开关",
-        Value = false,
-        Callback = function(val)
-            for name, widget in pairs(toggleWidgets) do
-                if widget and widget.SetValue then
-                    widget:SetValue(val)
-                end
-            end
-            WindUI:Notify({
-                Title = "一键开关", 
-                Content = val and "已开启所有功能" or "已关闭所有功能", 
-                Duration = 2, 
-                Icon = val and "check" or "x"
-            })
-        end,
-    })
-    toggleWidgets["一键开关"] = oneKeyToggle
-
-    local antiAFKEnabled = false
-    local antiAFKToggle
-    antiAFKToggle = suggestSection:Toggle({
-        Title = "防踢",
-        Value = false,
-        Callback = function(val)
-            antiAFKEnabled = val
-            if val then
-                local con = LocalPlayer.Idled:Connect(function()
-                    VirtualUser:CaptureController()
-                    VirtualUser:ClickButton2(Vector2.new())
-                end)
-                _G.AntiAFKCon = con
-                WindUI:Notify({Title = "防踢", Content = "已开启", Duration = 2, Icon = "check"})
-            else
-                if _G.AntiAFKCon then
-                    _G.AntiAFKCon:Disconnect()
-                    _G.AntiAFKCon = nil
-                end
-                WindUI:Notify({Title = "防踢", Content = "已关闭", Duration = 2, Icon = "x"})
-            end
-        end,
-    })
-    toggleWidgets["防踢"] = antiAFKToggle
-
-    local waterCollisionEnabled = false
-    local originalWaterSize = nil
-    local originalWaterCollide = nil
-    local waterToggle
-    waterToggle = suggestSection:Toggle({
-        Title = "水上行走",
-        Value = false,
-        Callback = function(val)
-            local water = game.Workspace:FindFirstChild("WaterLevel")
-            if not water then
-                WindUI:Notify({Title = "水上行走", Content = "未找到 WaterLevel", Duration = 2, Icon = "alert"})
-                return
-            end
-
-            if val then
-                originalWaterSize = water.Size
-                originalWaterCollide = water.CanCollide
-                water.CanCollide = true
-                water.Size = Vector3.new(1000, 1, 1000)
-                waterCollisionEnabled = true
-                WindUI:Notify({Title = "水上行走", Content = "已开启 (水面可站立)", Duration = 2, Icon = "check"})
-            else
-                if originalWaterSize then
-                    water.Size = originalWaterSize
-                else
-                    water.Size = Vector3.new(10, 1, 10)
-                end
-                if originalWaterCollide ~= nil then
-                    water.CanCollide = originalWaterCollide
-                else
-                    water.CanCollide = false
-                end
-                waterCollisionEnabled = false
-                WindUI:Notify({Title = "水上行走", Content = "已关闭", Duration = 2, Icon = "x"})
-            end
-        end,
-    })
-    toggleWidgets["水上行走"] = waterToggle
-
-    local antiPushConn = nil
-    local antiPushToggle
-    antiPushToggle = suggestSection:Toggle({
-        Title = "防甩飞",
-        Value = false,
-        Callback = function(val)
-            if val then
-                if antiPushConn then antiPushConn:Disconnect() end
-                antiPushConn = RunService.Stepped:Connect(function()
-                    local char = LocalPlayer.Character
-                    if char then
-                        local root = char:FindFirstChild("HumanoidRootPart")
-                        if root then
-                            root.CanCollide = false
-                        end
-                    end
-                end)
-                WindUI:Notify({Title = "防甩飞", Content = "已开启", Duration = 2, Icon = "check"})
-            else
-                if antiPushConn then
-                    antiPushConn:Disconnect()
-                    antiPushConn = nil
-                end
-                local char = LocalPlayer.Character
-                if char then
-                    local root = char:FindFirstChild("HumanoidRootPart")
-                    if root then
-                        root.CanCollide = true
-                    end
-                end
-                WindUI:Notify({Title = "防甩飞", Content = "已关闭", Duration = 2, Icon = "x"})
-            end
-        end,
-    })
-    toggleWidgets["防甩飞"] = antiPushToggle
-
-    local noFallAPI = nil
     local noFallToggle
+
     noFallToggle = suggestSection:Toggle({
         Title = "防摔",
         Value = false,
         Callback = function(val)
-            if not noFallAPI then
-                noFallAPI = createNoFall()
-                _G.NoFallAPI = noFallAPI
+            local api = _G.NoFallAPI
+            if not api then
+                api = createNoFall()
+                _G.NoFallAPI = api
             end
 
+            toggleStates["防摔"] = val
             if val then
-                noFallAPI.start()
+                api.start()
                 WindUI:Notify({Title = "防摔", Content = "已开启", Duration = 2, Icon = "check"})
             else
-                noFallAPI.stop()
+                api.stop()
                 WindUI:Notify({Title = "防摔", Content = "已关闭", Duration = 2, Icon = "x"})
             end
+            updateMasterToggle()
         end,
     })
-    toggleWidgets["防摔"] = noFallToggle
+    toggleStates["防摔"] = false
+    toggleCallbacks["防摔"] = function(val)
+        noFallToggle:SetValue(val)
+        noFallToggle._callback(val)
+    end
 
+    -- 无限跳
     local infJumpToggle
+
     infJumpToggle = suggestSection:Toggle({
         Title = "无限跳",
         Value = false,
         Callback = function(val)
+            toggleStates["无限跳"] = val
             if val then
                 local conn = UserInputService.JumpRequest:Connect(function()
                     if LocalPlayer and LocalPlayer.Character then
@@ -250,10 +283,54 @@ return function(Window, WindUI)
                 end
                 WindUI:Notify({Title = "无限跳", Content = "已关闭", Duration = 2, Icon = "x"})
             end
+            updateMasterToggle()
         end,
     })
-    toggleWidgets["无限跳"] = infJumpToggle
+    toggleStates["无限跳"] = false
+    toggleCallbacks["无限跳"] = function(val)
+        infJumpToggle:SetValue(val)
+        infJumpToggle._callback(val)
+    end
 
+    -- 岩石实体化 (开关版)
+    local rockSolidEnabled = false
+    local rockSolidConn = nil
+    local rockToggle
+
+    rockToggle = suggestSection:Toggle({
+        Title = "岩石实体化",
+        Value = false,
+        Callback = function(val)
+            rockSolidEnabled = val
+            toggleStates["岩石实体化"] = val
+            if val then
+                if rockSolidConn then rockSolidConn:Disconnect() end
+                rockSolidConn = RunService.Heartbeat:Connect(function()
+                    if not rockSolidEnabled then return end
+                    for _, v in pairs(game.Workspace:GetDescendants()) do
+                        if v.Name == "LowerRocks" then
+                            v.CanCollide = true
+                        end
+                    end
+                end)
+                WindUI:Notify({Title = "岩石实体化", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if rockSolidConn then
+                    rockSolidConn:Disconnect()
+                    rockSolidConn = nil
+                end
+                WindUI:Notify({Title = "岩石实体化", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+            updateMasterToggle()
+        end,
+    })
+    toggleStates["岩石实体化"] = false
+    toggleCallbacks["岩石实体化"] = function(val)
+        rockToggle:SetValue(val)
+        rockToggle._callback(val)
+    end
+
+    -- 放置方块
     local blockGui = nil
     local autoPlace = false
     local autoPlacing = false
@@ -278,6 +355,7 @@ return function(Window, WindUI)
         Title = "放置方块",
         Value = false,
         Callback = function(val)
+            toggleStates["放置方块"] = val
             if val then
                 if blockGui then blockGui:Destroy() end
                 local sg = Instance.new("ScreenGui")
@@ -334,7 +412,9 @@ return function(Window, WindUI)
                     autoPlace = false
                     autoPlacing = false
                     if blockGui then blockGui:Destroy() blockGui = nil end
-                    if blockToggle then blockToggle:SetValue(false) end
+                    blockToggle:SetValue(false)
+                    toggleStates["放置方块"] = false
+                    updateMasterToggle()
                 end)
 
                 local autoBtn = Instance.new("TextButton")
@@ -381,79 +461,127 @@ return function(Window, WindUI)
                 end
                 WindUI:Notify({Title = "放置方块", Content = "窗口已关闭", Duration = 2, Icon = "x"})
             end
+            updateMasterToggle()
         end,
     })
-    toggleWidgets["放置方块"] = blockToggle
+    toggleStates["放置方块"] = false
+    toggleCallbacks["放置方块"] = function(val)
+        blockToggle:SetValue(val)
+        blockToggle._callback(val)
+    end
 
-    local rockEnabled = false
-    local rockToggle
-    rockToggle = suggestSection:Toggle({
-        Title = "岩石实体化",
-        Value = false,
-        Callback = function(val)
-            rockEnabled = val
-            local count = 0
-            for _, v in pairs(game.Workspace:GetDescendants()) do
-                if v.Name == "LowerRocks" then
-                    v.CanCollide = val
-                    count = count + 1
-                end
-            end
-            WindUI:Notify({
-                Title = "岩石实体化", 
-                Content = val and ("已实体化 " .. count .. " 个岩石") or "已关闭", 
-                Duration = 2, 
-                Icon = val and "check" or "x"
-            })
-        end,
-    })
-    toggleWidgets["岩石实体化"] = rockToggle
-
-    local disasterRemoved = false
+    -- 移除灾害视角 (开关版)
+    local disasterViewRemoved = false
     local disasterToggle
+
     disasterToggle = suggestSection:Toggle({
         Title = "移除灾害视角",
         Value = false,
         Callback = function(val)
-            disasterRemoved = val
+            disasterViewRemoved = val
+            toggleStates["移除灾害视角"] = val
             if val then
-                local removed = 0
                 pcall(function()
                     local gui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("SandStormGui")
-                    if gui then
-                        gui:Destroy()
-                        removed = removed + 1
-                    end
+                    if gui then gui:Destroy() end
                 end)
                 pcall(function()
                     local gui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("BlizzardGui")
-                    if gui then
-                        gui:Destroy()
-                        removed = removed + 1
+                    if gui then gui:Destroy() end
+                end)
+                WindUI:Notify({Title = "移除灾害视角", Content = "已开启 (灾害UI已移除)", Duration = 2, Icon = "check"})
+            else
+                WindUI:Notify({Title = "移除灾害视角", Content = "已关闭 (不会恢复UI)", Duration = 2, Icon = "x"})
+            end
+            updateMasterToggle()
+        end,
+    })
+    toggleStates["移除灾害视角"] = false
+    toggleCallbacks["移除灾害视角"] = function(val)
+        disasterToggle:SetValue(val)
+        disasterToggle._callback(val)
+    end
+
+    -- 一键开关（放在列表最前面）
+    masterToggle = suggestSection:Toggle({
+        Title = "一键开关",
+        Value = false,
+        Callback = function(val)
+            masterToggleValue = val
+            for name, callback in pairs(toggleCallbacks) do
+                callback(val)
+            end
+            WindUI:Notify({
+                Title = "一键开关",
+                Content = val and "已全部开启" or "已全部关闭",
+                Duration = 2,
+                Icon = val and "check" or "x"
+            })
+        end,
+    })
+
+    ------------------ 穿墙 (从建议开移出，单独放在外面) ------------------
+    local NoclipEnabled = false
+    local noclipConnection = nil
+    local lastGroundY = 0
+
+    tab:Toggle({
+        Title = "穿墙",
+        Value = false,
+        Callback = function(val)
+            NoclipEnabled = val
+            if val then
+                if noclipConnection then noclipConnection:Disconnect() end
+                noclipConnection = RunService.Stepped:Connect(function()
+                    if not NoclipEnabled then return end
+                    local char = LocalPlayer.Character
+                    if not char then return end
+                    local root = char:FindFirstChild("HumanoidRootPart")
+                    if not root then return end
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.FloorMaterial ~= Enum.Material.Air then
+                        lastGroundY = root.Position.Y
+                    end
+                    root.CanCollide = false
+                    for _, v in ipairs(char:GetDescendants()) do
+                        if v:IsA("BasePart") and v.CanCollide then
+                            v.CanCollide = false
+                        end
+                    end
+                    if lastGroundY ~= 0 and root.Position.Y < lastGroundY - 5 then
+                        root.CFrame = CFrame.new(root.CFrame.X, lastGroundY, root.CFrame.Z)
+                        if hum then
+                            hum:ChangeState(Enum.HumanoidStateType.Landed)
+                        end
                     end
                 end)
-                WindUI:Notify({
-                    Title = "移除灾害视角", 
-                    Content = "已移除 " .. removed .. " 个灾害UI", 
-                    Duration = 2, 
-                    Icon = "check"
-                })
+                WindUI:Notify({Title = "穿墙", Content = "已开启", Duration = 2, Icon = "check"})
             else
-                WindUI:Notify({
-                    Title = "移除灾害视角", 
-                    Content = "已关闭，重新进入灾害区域会恢复", 
-                    Duration = 2, 
-                    Icon = "x"
-                })
+                if noclipConnection then
+                    noclipConnection:Disconnect()
+                    noclipConnection = nil
+                end
+                local char = LocalPlayer.Character
+                if char then
+                    local root = char:FindFirstChild("HumanoidRootPart")
+                    if root then root.CanCollide = true end
+                    for _, v in ipairs(char:GetDescendants()) do
+                        if v:IsA("BasePart") and not v.CanCollide then
+                            v.CanCollide = true
+                        end
+                    end
+                end
+                WindUI:Notify({Title = "穿墙", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
-    toggleWidgets["移除灾害视角"] = disasterToggle
 
+    ------------------ 原其他功能 (直接放在外面，没有分类标题) ------------------
+
+    -- 透视玩家
     local espEnabled = false
     local espConnections = {}
     local playerAddedConn = nil
-    local espToggle
 
     local function createESP(player)
         if not espEnabled or player == LocalPlayer then return end
@@ -493,7 +621,7 @@ return function(Window, WindUI)
         end
     end
 
-    espToggle = suggestSection:Toggle({
+    tab:Toggle({
         Title = "透视玩家",
         Value = false,
         Callback = function(enabled)
@@ -536,14 +664,13 @@ return function(Window, WindUI)
             })
         end,
     })
-    toggleWidgets["透视玩家"] = espToggle
 
+    -- 飞行
     local flyEnabled = false
     local flyConnections = {}
     local flyBody = {}
-    local flyToggle
 
-    flyToggle = suggestSection:Toggle({
+    tab:Toggle({
         Title = "飞行",
         Value = false,
         Callback = function(val)
@@ -613,11 +740,10 @@ return function(Window, WindUI)
             end
         end,
     })
-    toggleWidgets["飞行"] = flyToggle
 
+    -- 自动存活
     local tpConnection = nil
-    local tpToggle
-    tpToggle = suggestSection:Toggle({
+    tab:Toggle({
         Title = "自动存活",
         Value = false,
         Callback = function(val)
@@ -628,20 +754,19 @@ return function(Window, WindUI)
                         LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-273, 179.5, 394)
                     end
                 end)
-                WindUI:Notify({Title = "自动存活", Content = "已开启", Duration = 2, Icon = "check"})
+                WindUI:Notify({Title = "固定传送", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 if tpConnection then
                     tpConnection:Disconnect()
                     tpConnection = nil
                 end
-                WindUI:Notify({Title = "自动存活", Content = "已关闭", Duration = 2, Icon = "x"})
+                WindUI:Notify({Title = "固定传送", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
-    toggleWidgets["自动存活"] = tpToggle
 
-    local mapToggle
-    mapToggle = suggestSection:Toggle({
+    -- 地图投票
+    tab:Toggle({
         Title = "地图投票",
         Value = false,
         Callback = function(val)
@@ -667,8 +792,8 @@ return function(Window, WindUI)
             end
         end,
     })
-    toggleWidgets["地图投票"] = mapToggle
 
+    -- 隐身
     local function playActionSound()
         local sound = Instance.new("Sound", LocalPlayer:WaitForChild("PlayerGui"))
         sound.SoundId = "rbxassetid://942127495"
@@ -686,8 +811,7 @@ return function(Window, WindUI)
     end
 
     local invis_on = false
-    local invisToggle
-    invisToggle = suggestSection:Toggle({
+    tab:Toggle({
         Title = "隐身",
         Value = false,
         Callback = function(val)
@@ -730,10 +854,9 @@ return function(Window, WindUI)
             end
         end,
     })
-    toggleWidgets["隐身"] = invisToggle
 
+    -- 偷取所有物品
     local stealLoop = false
-    local stealToggle
     local function stealAllItems()
         local count = 0
         local myBackpack = LocalPlayer:FindFirstChild("Backpack")
@@ -763,7 +886,7 @@ return function(Window, WindUI)
         return count
     end
 
-    stealToggle = suggestSection:Toggle({
+    tab:Toggle({
         Title = "偷取所有物品",
         Value = false,
         Callback = function(val)
@@ -781,12 +904,11 @@ return function(Window, WindUI)
             end
         end,
     })
-    toggleWidgets["偷取所有物品"] = stealToggle
 
+    -- 移速跳高调整
     local speedJumpGuiObj = nil
     local speedHeartbeat = nil
     local jumpHeartbeat = nil
-    local speedJumpToggle
 
     local function getHumanoid()
         local char = LocalPlayer.Character
@@ -824,7 +946,7 @@ return function(Window, WindUI)
         end)
     end
 
-    speedJumpToggle = suggestSection:Toggle({
+    tab:Toggle({
         Title = "移速跳高调整",
         Value = false,
         Callback = function(val)
@@ -1123,7 +1245,6 @@ return function(Window, WindUI)
             end
         end,
     })
-    toggleWidgets["移速跳高调整"] = speedJumpToggle
 
     return tab
 end
