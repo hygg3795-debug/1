@@ -166,8 +166,9 @@ else
     WindUI:Notify({Title = "动作模块加载失败", Content = "请检查网络或仓库地址", Duration = 3, Icon = "alert"})
 end
 
+-- 改 .lua 为 .txt
 local okLighting, loadLightingTab = pcall(function()
-    return loadstring(game:HttpGet("https://hygg3795-debug.github.io/1/光影.lua"))()
+    return loadstring(game:HttpGet("https://hygg3795-debug.github.io/1/光影.txt"))()
 end)
 if okLighting and loadLightingTab then
     loadLightingTab(Window, WindUI)
