@@ -58,13 +58,11 @@ return function(Window, WindUI)
                     VirtualUser:ClickButton2(Vector2.new())
                 end)
                 _G.AntiAFKCon = con
-                WindUI:Notify({Title = "防踢", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 if _G.AntiAFKCon then
                     _G.AntiAFKCon:Disconnect()
                     _G.AntiAFKCon = nil
                 end
-                WindUI:Notify({Title = "防踢", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -80,7 +78,6 @@ return function(Window, WindUI)
         Callback = function(val)
             local water = game.Workspace:FindFirstChild("WaterLevel")
             if not water then
-                WindUI:Notify({Title = "水上行走", Content = "未找到 WaterLevel", Duration = 2, Icon = "alert"})
                 return
             end
 
@@ -101,7 +98,6 @@ return function(Window, WindUI)
                     end
                 end)
 
-                WindUI:Notify({Title = "水上行走", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 if waterFollowConnection then
                     waterFollowConnection:Disconnect()
@@ -120,7 +116,6 @@ return function(Window, WindUI)
                 end
                 waterCollisionEnabled = false
 
-                WindUI:Notify({Title = "水上行走", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -141,7 +136,6 @@ return function(Window, WindUI)
                         end
                     end
                 end)
-                WindUI:Notify({Title = "防甩飞", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 if antiPushConn then
                     antiPushConn:Disconnect()
@@ -154,7 +148,6 @@ return function(Window, WindUI)
                         root.CanCollide = true
                     end
                 end
-                WindUI:Notify({Title = "防甩飞", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -208,10 +201,8 @@ return function(Window, WindUI)
 
             if val then
                 api.start()
-                WindUI:Notify({Title = "防摔", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 api.stop()
-                WindUI:Notify({Title = "防摔", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -228,13 +219,11 @@ return function(Window, WindUI)
                     end
                 end)
                 _G.InfJumpCon = conn
-                WindUI:Notify({Title = "无限跳", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 if _G.InfJumpCon then
                     _G.InfJumpCon:Disconnect()
                     _G.InfJumpCon = nil
                 end
-                WindUI:Notify({Title = "无限跳", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -272,7 +261,6 @@ return function(Window, WindUI)
                         end)
                     end
                 end
-                WindUI:Notify({Title = "去雾", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 if originalLighting.FogStart then Lighting.FogStart = originalLighting.FogStart end
                 if originalLighting.FogEnd then Lighting.FogEnd = originalLighting.FogEnd end
@@ -289,7 +277,6 @@ return function(Window, WindUI)
                     end
                 end
                 originalAtmosphere = {}
-                WindUI:Notify({Title = "去雾", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -335,10 +322,8 @@ return function(Window, WindUI)
                     Tool.Parent = LocalPlayer:WaitForChild("Backpack")
                 end)
 
-                if ok then
-                    WindUI:Notify({Title = "点击传送", Content = "已获得传送工具", Duration = 2, Icon = "check"})
-                else
-                    WindUI:Notify({Title = "错误", Content = tostring(err), Duration = 3, Icon = "alert"})
+                if not ok then
+                    -- Silent error
                 end
             else
                 if tpTool then
@@ -349,7 +334,6 @@ return function(Window, WindUI)
                     local heldTool = LocalPlayer.Character:FindFirstChild("点击传送")
                     if heldTool then heldTool:Destroy() end
                 end
-                WindUI:Notify({Title = "点击传送", Content = "工具已移除", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -412,7 +396,7 @@ return function(Window, WindUI)
 
                     UserInputService.InputChanged:Connect(function(input)
                         if input == dragInput and dragging then
-                            local delta = input.Position - startPos
+                            local delta = input.Position - dragStart
                             Button.Position = UDim2.new(
                                 startFramePos.X.Scale,
                                 startFramePos.X.Offset + delta.X,
@@ -478,17 +462,14 @@ return function(Window, WindUI)
                     pcall(function() Hook(CoreGui) end)
                 end)
 
-                if ok then
-                    WindUI:Notify({Title = "一键清屏", Content = "清屏浮窗已开启", Duration = 2, Icon = "check"})
-                else
-                    WindUI:Notify({Title = "错误", Content = tostring(err), Duration = 3, Icon = "alert"})
+                if not ok then
+                    -- Silent error
                 end
             else
                 local PlayerGui = LocalPlayer:FindFirstChild("PlayerGui")
                 if PlayerGui and PlayerGui:FindFirstChild("FullUIToggle") then
                     PlayerGui.FullUIToggle:Destroy()
                 end
-                WindUI:Notify({Title = "一键清屏", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -503,21 +484,6 @@ return function(Window, WindUI)
                     v.CanCollide = val
                     count = count + 1
                 end
-            end
-            if val then
-                WindUI:Notify({
-                    Title = "岩石实体化", 
-                    Content = "已实体化 " .. count .. " 个岩石", 
-                    Duration = 2, 
-                    Icon = "check"
-                })
-            else
-                WindUI:Notify({
-                    Title = "岩石实体化", 
-                    Content = "已取消实体化", 
-                    Duration = 2, 
-                    Icon = "x"
-                })
             end
         end,
     })
@@ -637,7 +603,6 @@ return function(Window, WindUI)
                 end)
 
                 makeDraggable(mainFrame, mainFrame)
-                WindUI:Notify({Title = "放置方块", Content = "窗口已打开", Duration = 2, Icon = "check"})
             else
                 autoPlace = false
                 autoPlacing = false
@@ -645,7 +610,6 @@ return function(Window, WindUI)
                     blockGui:Destroy()
                     blockGui = nil
                 end
-                WindUI:Notify({Title = "放置方块", Content = "窗口已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -676,13 +640,11 @@ return function(Window, WindUI)
                     end
                 end)
 
-                WindUI:Notify({Title = "移除灾害视角", Content = "已开启自动防护", Duration = 2, Icon = "check"})
             else
                 if disasterConn then
                     disasterConn:Disconnect()
                     disasterConn = nil
                 end
-                WindUI:Notify({Title = "移除灾害视角", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -724,7 +686,6 @@ return function(Window, WindUI)
                         end
                     end
                 end)
-                WindUI:Notify({Title = "穿墙", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 if noclipConnection then
                     noclipConnection:Disconnect()
@@ -740,7 +701,6 @@ return function(Window, WindUI)
                         end
                     end
                 end
-                WindUI:Notify({Title = "穿墙", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -773,13 +733,11 @@ return function(Window, WindUI)
                     end
                 end)
                 
-                WindUI:Notify({Title = "锁定视角", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 if lockViewConnection then
                     RunService:UnbindFromRenderStep("LockView")
                     lockViewConnection = nil
                 end
-                WindUI:Notify({Title = "锁定视角", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -861,12 +819,6 @@ return function(Window, WindUI)
                     end
                 end
             end
-            WindUI:Notify({
-                Title = "透视玩家",
-                Content = enabled and "透视已开启" or "透视已关闭",
-                Duration = 2,
-                Icon = enabled and "check" or "x"
-            })
         end,
     })
 
@@ -909,14 +861,12 @@ return function(Window, WindUI)
                     end
                 end)
                 coroutine.resume(flingThread)
-                WindUI:Notify({Title = "碰飞", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 flingRunning = false
                 if flingThread then
                     coroutine.close(flingThread)
                     flingThread = nil
                 end
-                WindUI:Notify({Title = "碰飞", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -941,7 +891,6 @@ return function(Window, WindUI)
                         end
                     end
                 end)
-                WindUI:Notify({Title = "透视", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 if xrayConnection then
                     xrayConnection:Disconnect()
@@ -952,7 +901,6 @@ return function(Window, WindUI)
                         v.LocalTransparencyModifier = 0
                     end
                 end
-                WindUI:Notify({Title = "透视", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -1008,7 +956,6 @@ return function(Window, WindUI)
                 end)
                 table.insert(flyConnections, conn2)
 
-                WindUI:Notify({Title = "飞行", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 if hum then
                     for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
@@ -1027,7 +974,6 @@ return function(Window, WindUI)
                 end
                 flyConnections = {}
 
-                WindUI:Notify({Title = "飞行", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -1044,13 +990,11 @@ return function(Window, WindUI)
                         LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-273, 179.5, 394)
                     end
                 end)
-                WindUI:Notify({Title = "固定传送", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 if tpConnection then
                     tpConnection:Disconnect()
                     tpConnection = nil
                 end
-                WindUI:Notify({Title = "固定传送", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -1065,19 +1009,6 @@ return function(Window, WindUI)
 
             if mapPage then
                 mapPage.Visible = val
-                WindUI:Notify({
-                    Title = "地图投票",
-                    Content = val and "界面已开启" or "界面已关闭",
-                    Duration = 2,
-                    Icon = val and "eye" or "eye-off"
-                })
-            else
-                WindUI:Notify({
-                    Title = "提示",
-                    Content = "未找到地图投票界面 (MainGui.MapVotePage)",
-                    Duration = 2,
-                    Icon = "alert"
-                })
             end
         end,
     })
@@ -1128,7 +1059,6 @@ return function(Window, WindUI)
                     task.wait()
                     Seat.CFrame = savedpos
                     setTransparency(char, 0.5)
-                    WindUI:Notify({Title = "隐身", Content = "已开启", Duration = 2, Icon = "check"})
                 end
             else
                 local invisChair = workspace:FindFirstChild('invischair')
@@ -1138,7 +1068,6 @@ return function(Window, WindUI)
                 if LocalPlayer.Character then
                     setTransparency(LocalPlayer.Character, 0)
                 end
-                WindUI:Notify({Title = "隐身", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -1179,15 +1108,12 @@ return function(Window, WindUI)
         Callback = function(val)
             stealLoop = val
             if val then
-                WindUI:Notify({Title = "偷取所有物品", Content = "自动偷取中...", Duration = 2, Icon = "check"})
                 task.spawn(function()
                     while stealLoop do
                         stealAllItems()
                         task.wait(1)
                     end
                 end)
-            else
-                WindUI:Notify({Title = "偷取所有物品", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -1459,12 +1385,6 @@ return function(Window, WindUI)
                         speedJumpGuiObj:Destroy()
                         speedJumpGuiObj = nil
                     end
-                    WindUI:Notify({
-                        Title = "移速跳高调整", 
-                        Content = "已应用 (速度:" .. sVal .. " / 跳高:" .. jVal .. ")", 
-                        Duration = 2, 
-                        Icon = "check"
-                    })
                 end)
 
                 local resetBtn = Instance.new("TextButton")
@@ -1509,12 +1429,10 @@ return function(Window, WindUI)
                         speedJumpGuiObj:Destroy()
                         speedJumpGuiObj = nil
                     end
-                    WindUI:Notify({Title = "移速跳高调整", Content = "已恢复默认 (速度16 / 跳高50)", Duration = 2, Icon = "x"})
                 end)
 
                 updateSpeedSliderDisplay(16)
                 updateJumpSliderDisplay(50)
-                WindUI:Notify({Title = "移速跳高调整", Content = "窗口已打开", Duration = 2, Icon = "check"})
             else
                 stopSpeedLock()
                 stopJumpLock()
@@ -1527,7 +1445,6 @@ return function(Window, WindUI)
                     speedJumpGuiObj:Destroy()
                     speedJumpGuiObj = nil
                 end
-                WindUI:Notify({Title = "移速跳高调整", Content = "已关闭，恢复默认", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -1540,12 +1457,7 @@ return function(Window, WindUI)
                 local hum = char:FindFirstChildOfClass("Humanoid")
                 if hum then
                     hum.Health = 0
-                    WindUI:Notify({Title = "已自杀", Content = "角色已死亡", Duration = 2, Icon = "check"})
-                else
-                    WindUI:Notify({Title = "失败", Content = "未找到Humanoid", Duration = 2, Icon = "alert"})
                 end
-            else
-                WindUI:Notify({Title = "失败", Content = "角色未加载", Duration = 2, Icon = "alert"})
             end
         end,
     })
