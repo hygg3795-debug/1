@@ -842,7 +842,7 @@ return function(Window, WindUI)
                     if espEnabled and player ~= LocalPlayer then
                         createESP(player)
                     end
-                })
+                end)
             else
                 if playerAddedConn then
                     playerAddedConn:Disconnect()
