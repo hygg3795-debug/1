@@ -11,8 +11,6 @@ return function(Window, WindUI)
     local function makeDraggable(guiObj, dragHandle)
         local dragging = false
         local dragInput, dragStart, startPos
-        guiObj.Active = true
-        dragHandle.Active = true
 
         dragHandle.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
