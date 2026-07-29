@@ -166,6 +166,15 @@ else
     WindUI:Notify({Title = "动作模块加载失败", Content = "请检查网络或仓库地址", Duration = 3, Icon = "alert"})
 end
 
+local okLighting, loadLightingTab = pcall(function()
+    return loadstring(game:HttpGet("https://hygg3795-debug.github.io/1/光影.lua"))()
+end)
+if okLighting and loadLightingTab then
+    loadLightingTab(Window, WindUI)
+else
+    WindUI:Notify({Title = "光影模块加载失败", Content = "请检查网络或仓库地址", Duration = 3, Icon = "alert"})
+end
+
 _G._LCF_WindUI = WindUI
 _G._LCF_TmplWin = Window
 print("[" .. BRAND.name .. "] 全新 UI 加载完成 ✅")
