@@ -269,7 +269,6 @@ return function(Window, WindUI)
                 end)
 
                 realLightingEnabled = true
-                WindUI:Notify({Title = "真实光影", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 if realLightingConn then
                     realLightingConn:Disconnect()
@@ -283,7 +282,6 @@ return function(Window, WindUI)
                 clearEffects()
                 restoreLighting()
                 realLightingEnabled = false
-                WindUI:Notify({Title = "真实光影", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end
     })
@@ -373,7 +371,6 @@ return function(Window, WindUI)
                 table.insert(runningConnections, glassConn)
 
                 brightLightingEnabled = true
-                WindUI:Notify({Title = "明亮光影", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 if brightClockConn then
                     brightClockConn:Disconnect()
@@ -382,7 +379,6 @@ return function(Window, WindUI)
                 clearEffects()
                 restoreLighting()
                 brightLightingEnabled = false
-                WindUI:Notify({Title = "明亮光影", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end
     })
@@ -465,7 +461,6 @@ return function(Window, WindUI)
                 table.insert(runningConnections, proMaxConn)
 
                 proMaxEnabled = true
-                WindUI:Notify({Title = "画质增强Pro Max", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 if proMaxConn then
                     proMaxConn:Disconnect()
@@ -474,7 +469,6 @@ return function(Window, WindUI)
                 clearEffects()
                 restoreLighting()
                 proMaxEnabled = false
-                WindUI:Notify({Title = "画质增强Pro Max", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end
     })
@@ -574,7 +568,6 @@ return function(Window, WindUI)
                 table.insert(runningConnections, duskConn)
 
                 duskLightingEnabled = true
-                WindUI:Notify({Title = "固定黄昏光影", Content = "已开启", Duration = 2, Icon = "check"})
             else
                 if duskConn then
                     duskConn:Disconnect()
@@ -583,7 +576,6 @@ return function(Window, WindUI)
                 clearEffects()
                 restoreLighting()
                 duskLightingEnabled = false
-                WindUI:Notify({Title = "固定黄昏光影", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end
     })
