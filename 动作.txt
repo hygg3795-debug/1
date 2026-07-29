@@ -43,7 +43,6 @@ return function(Window, WindUI)
             if track then track:Stop() end
         end
         active = {}
-        WindUI:Notify({Title = "动作", Content = "已停止当前动作", Duration = 2, Icon = "check"})
     end
 
     -- ================= UI 界面绑定 =================
