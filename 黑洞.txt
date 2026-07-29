@@ -1,15 +1,6 @@
--- 黑洞 Tab 模块（完全合并版：黑洞1/黑洞2的实现代码已直接内置，不再需要单独的 5.txt / 9.txt）
--- 用法（在主脚本 hygg 中）：
---   local loadBlackholeTab = loadstring(game:HttpGet("https://你的仓库地址/黑洞"))()
---   loadBlackholeTab(Window, WindUI)
---
--- 这个模块会创建"黑洞"Tab，内含一个下拉选择器（黑洞1/黑洞2）和一个总开关。
--- 两个黑洞互斥（同时只能开一个），各自的悬浮窗仍然独立生成、互不影响。
-
 return function(Window, WindUI)
 
--- ================= 黑洞1 实现（原 5.txt） =================
-local function createBlackhole1()
+local function createBlackholeH1()
     local plr = game.Players.LocalPlayer
     local enabled = false
     local parts = {}
@@ -66,7 +57,7 @@ local function createBlackhole1()
     local function createGUI()
         if screenGui then return end
         screenGui = Instance.new("ScreenGui")
-        screenGui.Name = "SuperRingPartsGUI"
+        screenGui.Name = "BlackholeH1GUI"
         screenGui.ResetOnSpawn = false
         screenGui.Parent = plr:WaitForChild("PlayerGui")
 
@@ -84,7 +75,7 @@ local function createBlackhole1()
 
         local title = Instance.new("TextLabel")
         title.Size = UDim2.new(1, 0, 0, 40)
-        title.Text = "黑洞1"
+        title.Text = "黑洞h1"
         title.TextColor3 = Color3.fromRGB(0, 0, 0)
         title.BackgroundColor3 = Color3.fromRGB(0, 204, 204)
         title.Font = Enum.Font.Fondamento
@@ -108,9 +99,8 @@ local function createBlackhole1()
         closeCorner.Parent = closeBtn
         closeBtn.MouseButton1Click:Connect(function()
             if screenGui then screenGui:Destroy() screenGui = nil end
-            _G.CloseBlackhole1 = true
-            if _G.HyggUI and _G.HyggUI.toggleBlackhole then
-                _G.HyggUI.toggleBlackhole(false)
+            if _G.HyggUI and _G.HyggUI.toggleBlackholeH1 then
+                _G.HyggUI.toggleBlackholeH1(false)
             end
         end)
 
@@ -309,8 +299,7 @@ local function createBlackhole1()
     }
 end
 
--- ================= 黑洞2 实现（原 9.txt） =================
-local function createBlackhole2()
+local function createBlackholeH2()
     local plr = game.Players.LocalPlayer
     local enabled = false
     local parts = {}
@@ -367,7 +356,7 @@ local function createBlackhole2()
     local function createGUI()
         if screenGui then return end
         screenGui = Instance.new("ScreenGui")
-        screenGui.Name = "SuperRingPartsGUI2"
+        screenGui.Name = "BlackholeH2GUI"
         screenGui.ResetOnSpawn = false
         screenGui.Parent = plr:WaitForChild("PlayerGui")
 
@@ -385,7 +374,7 @@ local function createBlackhole2()
 
         local title = Instance.new("TextLabel")
         title.Size = UDim2.new(1, 0, 0, 40)
-        title.Text = "黑洞2"
+        title.Text = "黑洞h2"
         title.TextColor3 = Color3.fromRGB(0, 0, 0)
         title.BackgroundColor3 = Color3.fromRGB(0, 204, 204)
         title.Font = Enum.Font.Fondamento
@@ -409,9 +398,8 @@ local function createBlackhole2()
         closeCorner.Parent = closeBtn
         closeBtn.MouseButton1Click:Connect(function()
             if screenGui then screenGui:Destroy() screenGui = nil end
-            _G.CloseBlackhole2 = true
-            if _G.HyggUI and _G.HyggUI.toggleBH2 then
-                _G.HyggUI.toggleBH2(false)
+            if _G.HyggUI and _G.HyggUI.toggleBlackholeH2 then
+                _G.HyggUI.toggleBlackholeH2(false)
             end
         end)
 
@@ -610,120 +598,218 @@ local function createBlackhole2()
     }
 end
 
--- ================= 主界面：选择器 + 互斥开关 =================
 local blackholeTab = Window:Tab({Title = "黑洞", Icon = "circle"})
 
-local bhConfig = {radius = 50, height = 100, speed = 10, strength = 1000}
-local bh2Config = {radius = 50, height = 100, speed = 10, strength = 1000}
-local bhRunning = false
-local bh2Running = false
-local bhApi = nil
-local bh2Api = nil
-local selectedBlackhole = "黑洞1"
-local bhToggleControl = nil
+local h1Running = false
+local h2Running = false
+local v1Running = false
+local v2Running = false
+local v3Running = false
+local v4Running = false
+local v5Running = false
+local v6Running = false
 
-local function startBlackhole1()
-if not bhApi then
-local success = pcall(function()
-bhApi = createBlackhole1()
-end)
-if not success then
-WindUI:Notify({Title = "黑洞1", Content = "启动失败", Duration = 3, Icon = "alert"})
-end
-end
-if bhApi then
-bhApi:setRadius(bhConfig.radius)
-bhApi:setHeight(bhConfig.height)
-bhApi:setSpeed(bhConfig.speed)
-bhApi:setStrength(bhConfig.strength)
-bhApi:start()
-bhRunning = true
-WindUI:Notify({Title = "黑洞1", Content = "已开启", Duration = 2, Icon = "check"})
-end
-end
+local h1Api = nil
+local h2Api = nil
+local v1Api = nil
+local v2Api = nil
+local v3Api = nil
+local v4Api = nil
+local v5Api = nil
+local v6Api = nil
 
-local function stopBlackhole1(silent)
-if bhApi then pcall(function() bhApi:stop() end) end
-bhRunning = false
-if not silent then
-WindUI:Notify({Title = "黑洞1", Content = "已关闭", Duration = 2, Icon = "x"})
-end
-end
+local selectedBlackhole = "黑洞h1"
+local toggleControl = nil
 
-local function startBlackhole2()
-if not bh2Api then
-local success = pcall(function()
-bh2Api = createBlackhole2()
-end)
-if not success then
-WindUI:Notify({Title = "黑洞2", Content = "启动失败", Duration = 3, Icon = "alert"})
-end
-end
-if bh2Api then
-bh2Api:setRadius(bh2Config.radius)
-bh2Api:setHeight(bh2Config.height)
-bh2Api:setSpeed(bh2Config.speed)
-bh2Api:setStrength(bh2Config.strength)
-bh2Api:start()
-bh2Running = true
-WindUI:Notify({Title = "黑洞2", Content = "已开启", Duration = 2, Icon = "check"})
-end
+local function startH1()
+    if not h1Api then
+        local success = pcall(function()
+            h1Api = createBlackholeH1()
+        end)
+        if not success then
+            WindUI:Notify({Title = "黑洞h1", Content = "启动失败", Duration = 3, Icon = "alert"})
+        end
+    end
+    if h1Api then
+        h1Api:start()
+        h1Running = true
+        WindUI:Notify({Title = "黑洞h1", Content = "已开启", Duration = 2, Icon = "check"})
+    end
 end
 
-local function stopBlackhole2(silent)
-if bh2Api then pcall(function() bh2Api:stop() end) end
-bh2Running = false
-if not silent then
-WindUI:Notify({Title = "黑洞2", Content = "已关闭", Duration = 2, Icon = "x"})
-end
+local function stopH1(silent)
+    if h1Api then pcall(function() h1Api:stop() end) end
+    h1Running = false
+    if not silent then
+        WindUI:Notify({Title = "黑洞h1", Content = "已关闭", Duration = 2, Icon = "x"})
+    end
 end
 
--- 统一开关：只启动当前选择的黑洞，且互斥（开一个自动关另一个）
+local function startH2()
+    if not h2Api then
+        local success = pcall(function()
+            h2Api = createBlackholeH2()
+        end)
+        if not success then
+            WindUI:Notify({Title = "黑洞h2", Content = "启动失败", Duration = 3, Icon = "alert"})
+        end
+    end
+    if h2Api then
+        h2Api:start()
+        h2Running = true
+        WindUI:Notify({Title = "黑洞h2", Content = "已开启", Duration = 2, Icon = "check"})
+    end
+end
+
+local function stopH2(silent)
+    if h2Api then pcall(function() h2Api:stop() end) end
+    h2Running = false
+    if not silent then
+        WindUI:Notify({Title = "黑洞h2", Content = "已关闭", Duration = 2, Icon = "x"})
+    end
+end
+
 local function toggleBlackhole(val)
-if val then
-if selectedBlackhole == "黑洞1" then
-if bh2Running then stopBlackhole2(true) end
-startBlackhole1()
-else
-if bhRunning then stopBlackhole1(true) end
-startBlackhole2()
-end
-else
-if bhRunning then stopBlackhole1() end
-if bh2Running then stopBlackhole2() end
-end
-end
+    if val then
+        if selectedBlackhole == "黑洞h1" then
+            if h2Running then stopH2(true) end
+            if v1Running then stopV1(true) end
+            if v2Running then stopV2(true) end
+            if v3Running then stopV3(true) end
+            if v4Running then stopV4(true) end
+            if v5Running then stopV5(true) end
+            if v6Running then stopV6(true) end
+            startH1()
+        elseif selectedBlackhole == "黑洞h2" then
+            if h1Running then stopH1(true) end
+            if v1Running then stopV1(true) end
+            if v2Running then stopV2(true) end
+            if v3Running then stopV3(true) end
+            if v4Running then stopV4(true) end
+            if v5Running then stopV5(true) end
+            if v6Running then stopV6(true) end
+            startH2()
+        elseif selectedBlackhole == "黑洞V1" then
+            if h1Running then stopH1(true) end
+            if h2Running then stopH2(true) end
+            if v2Running then stopV2(true) end
+            if v3Running then stopV3(true) end
+            if v4Running then stopV4(true) end
+            if v5Running then stopV5(true) end
+            if v6Running then stopV6(true) end
+            startV1()
+        elseif selectedBlackhole == "黑洞V2" then
+            if h1Running then stopH1(true) end
+            if h2Running then stopH2(true) end
+            if v1Running then stopV1(true) end
+            if v3Running then stopV3(true) end
+            if v4Running then stopV4(true) end
+            if v5Running then stopV5(true) end
+            if v6Running then stopV6(true) end
+            startV2()
+        elseif selectedBlackhole == "黑洞V3" then
+            if h1Running then stopH1(true) end
+            if h2Running then stopH2(true) end
+            if v1Running then stopV1(true) end
+            if v2Running then stopV2(true) end
+            if v4Running then stopV4(true) end
+            if v5Running then stopV5(true) end
+            if v6Running then stopV6(true) end
+            startV3()
+        elseif selectedBlackhole == "黑洞V4" then
+            if h1Running then stopH1(true) end
+            if h2Running then stopH2(true) end
+            if v1Running then stopV1(true) end
+            if v2Running then stopV2(true) end
+            if v3Running then stopV3(true) end
+            if v5Running then stopV5(true) end
+            if v6Running then stopV6(true) end
+            startV4()
+        elseif selectedBlackhole == "黑洞V5" then
+            if h1Running then stopH1(true) end
+            if h2Running then stopH2(true) end
+            if v1Running then stopV1(true) end
+            if v2Running then stopV2(true) end
+            if v3Running then stopV3(true) end
+            if v4Running then stopV4(true) end
+            if v6Running then stopV6(true) end
+            startV5()
+        elseif selectedBlackhole == "黑洞V6" then
+            if h1Running then stopH1(true) end
+            if h2Running then stopH2(true) end
+            if v1Running then stopV1(true) end
+            if v2Running then stopV2(true) end
+            if v3Running then stopV3(true) end
+            if v4Running then stopV4(true) end
+            if v5Running then stopV5(true) end
+            startV6()
+        end
+    else
+        if h1Running then stopH1() end
+        if h2Running then stopH2() end
+        if v1Running then stopV1() end
+        if v2Running then stopV2() end
+        if v3Running then stopV3() end
+        if v4Running then stopV4() end
+        if v5Running then stopV5() end
+        if v6Running then stopV6() end
+    endend
 
--- 兼容悬浮窗关闭按钮的回调（内部会调用 _G.HyggUI.toggleBlackhole / toggleBH2）
 _G.HyggUI = _G.HyggUI or {}
-_G.HyggUI.toggleBlackhole = function(val)
-if not val then stopBlackhole1() end
-if bhToggleControl then pcall(function() bhToggleControl:Set(false) end) end
+_G.HyggUI.toggleBlackholeH1 = function(val)
+    if not val then stopH1() end
+    if toggleControl then pcall(function() toggleControl:Set(false) end) end
 end
-_G.HyggUI.toggleBH2 = function(val)
-if not val then stopBlackhole2() end
-if bhToggleControl then pcall(function() bhToggleControl:Set(false) end) end
+_G.HyggUI.toggleBlackholeH2 = function(val)
+    if not val then stopH2() end
+    if toggleControl then pcall(function() toggleControl:Set(false) end) end
+end
+_G.HyggUI.toggleBlackholeV1 = function(val)
+    if not val then stopV1() end
+    if toggleControl then pcall(function() toggleControl:Set(false) end) end
+end
+_G.HyggUI.toggleBlackholeV2 = function(val)
+    if not val then stopV2() end
+    if toggleControl then pcall(function() toggleControl:Set(false) end) end
+end
+_G.HyggUI.toggleBlackholeV3 = function(val)
+    if not val then stopV3() end
+    if toggleControl then pcall(function() toggleControl:Set(false) end) end
+end
+_G.HyggUI.toggleBlackholeV4 = function(val)
+    if not val then stopV4() end
+    if toggleControl then pcall(function() toggleControl:Set(false) end) end
+end
+_G.HyggUI.toggleBlackholeV5 = function(val)
+    if not val then stopV5() end
+    if toggleControl then pcall(function() toggleControl:Set(false) end) end
+end
+_G.HyggUI.toggleBlackholeV6 = function(val)
+    if not val then stopV6() end
+    if toggleControl then pcall(function() toggleControl:Set(false) end) end
 end
 
 local section = blackholeTab:Section({
-Title = "黑洞",
-Box = true,
+    Title = "黑洞",
+    Box = true,
 })
+
 section:Dropdown({
-Title = "选择黑洞",
-Values = {"黑洞1", "黑洞2"},
-Value = "黑洞1",
-Callback = function(selected)
-selectedBlackhole = selected
-if bhRunning or bh2Running then
-toggleBlackhole(true)
-end
-end,
+    Title = "选择黑洞",
+    Values = {"黑洞h1", "黑洞h2", "黑洞V1", "黑洞V2", "黑洞V3", "黑洞V4", "黑洞V5", "黑洞V6"},
+    Value = "黑洞h1",
+    Callback = function(selected)
+        selectedBlackhole = selected
+        if h1Running or h2Running or v1Running or v2Running or v3Running or v4Running or v5Running or v6Running then
+            toggleBlackhole(true)
+        end
+    end,
 })
-bhToggleControl = section:Toggle({
-Title = "开关",
-Value = false,
-Callback = function(val) toggleBlackhole(val) end,
+
+toggleControl = section:Toggle({
+    Title = "开关",
+    Value = false,
+    Callback = function(val) toggleBlackhole(val) end,
 })
 
 return blackholeTab
