@@ -46,7 +46,7 @@ return function(Window, WindUI)
         end)
     end
 
-    ------------------ 建议开 ------------------
+    ------------------ 建议开 分组 ------------------
     local suggestSection = tab:Section({Title = "建议开"})
 
     -- 防踢
@@ -225,62 +225,6 @@ return function(Window, WindUI)
                     _G.InfJumpCon = nil
                 end
                 WindUI:Notify({Title = "无限跳", Content = "已关闭", Duration = 2, Icon = "x"})
-            end
-        end,
-    })
-
-    -- 穿墙
-    local NoclipEnabled = false
-    local noclipConnection = nil
-    local lastGroundY = 0
-
-    suggestSection:Toggle({
-        Title = "穿墙",
-        Value = false,
-        Callback = function(val)
-            NoclipEnabled = val
-            if val then
-                if noclipConnection then noclipConnection:Disconnect() end
-                noclipConnection = RunService.Stepped:Connect(function()
-                    if not NoclipEnabled then return end
-                    local char = LocalPlayer.Character
-                    if not char then return end
-                    local root = char:FindFirstChild("HumanoidRootPart")
-                    if not root then return end
-                    local hum = char:FindFirstChildOfClass("Humanoid")
-                    if hum and hum.FloorMaterial ~= Enum.Material.Air then
-                        lastGroundY = root.Position.Y
-                    end
-                    root.CanCollide = false
-                    for _, v in ipairs(char:GetDescendants()) do
-                        if v:IsA("BasePart") and v.CanCollide then
-                            v.CanCollide = false
-                        end
-                    end
-                    if lastGroundY ~= 0 and root.Position.Y < lastGroundY - 5 then
-                        root.CFrame = CFrame.new(root.CFrame.X, lastGroundY, root.CFrame.Z)
-                        if hum then
-                            hum:ChangeState(Enum.HumanoidStateType.Landed)
-                        end
-                    end
-                end)
-                WindUI:Notify({Title = "穿墙", Content = "已开启", Duration = 2, Icon = "check"})
-            else
-                if noclipConnection then
-                    noclipConnection:Disconnect()
-                    noclipConnection = nil
-                end
-                local char = LocalPlayer.Character
-                if char then
-                    local root = char:FindFirstChild("HumanoidRootPart")
-                    if root then root.CanCollide = true end
-                    for _, v in ipairs(char:GetDescendants()) do
-                        if v:IsA("BasePart") and not v.CanCollide then
-                            v.CanCollide = true
-                        end
-                    end
-                end
-                WindUI:Notify({Title = "穿墙", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
@@ -739,7 +683,65 @@ return function(Window, WindUI)
         end,
     })
 
-    ------------------ 独立功能 (不隶属于任何分类) ------------------
+    ------------------ 分割线 & 独立功能区 ------------------
+    tab:Divider()
+    tab:Section({Title = "独立功能"})
+
+    -- 穿墙 (已移至建议开下方)
+    local NoclipEnabled = false
+    local noclipConnection = nil
+    local lastGroundY = 0
+
+    tab:Toggle({
+        Title = "穿墙",
+        Value = false,
+        Callback = function(val)
+            NoclipEnabled = val
+            if val then
+                if noclipConnection then noclipConnection:Disconnect() end
+                noclipConnection = RunService.Stepped:Connect(function()
+                    if not NoclipEnabled then return end
+                    local char = LocalPlayer.Character
+                    if not char then return end
+                    local root = char:FindFirstChild("HumanoidRootPart")
+                    if not root then return end
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.FloorMaterial ~= Enum.Material.Air then
+                        lastGroundY = root.Position.Y
+                    end
+                    root.CanCollide = false
+                    for _, v in ipairs(char:GetDescendants()) do
+                        if v:IsA("BasePart") and v.CanCollide then
+                            v.CanCollide = false
+                        end
+                    end
+                    if lastGroundY ~= 0 and root.Position.Y < lastGroundY - 5 then
+                        root.CFrame = CFrame.new(root.CFrame.X, lastGroundY, root.CFrame.Z)
+                        if hum then
+                            hum:ChangeState(Enum.HumanoidStateType.Landed)
+                        end
+                    end
+                end)
+                WindUI:Notify({Title = "穿墙", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if noclipConnection then
+                    noclipConnection:Disconnect()
+                    noclipConnection = nil
+                end
+                local char = LocalPlayer.Character
+                if char then
+                    local root = char:FindFirstChild("HumanoidRootPart")
+                    if root then root.CanCollide = true end
+                    for _, v in ipairs(char:GetDescendants()) do
+                        if v:IsA("BasePart") and not v.CanCollide then
+                            v.CanCollide = true
+                        end
+                    end
+                end
+                WindUI:Notify({Title = "穿墙", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
 
     -- 透视玩家
     local espEnabled = false
