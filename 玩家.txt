@@ -7,97 +7,10 @@ return function(Window, WindUI)
 
     local Module = {
         state = {
-            isLoopFlingingSingle = false,
-            isLoopFlingingAll = false,
+            smoothFollowEnabled = false,
             targetPlayer = nil
         }
     }
-
-    local function ModernSkidFling(TargetPlayer)
-        if not TargetPlayer or TargetPlayer == LocalPlayer then return end
-        
-        local Character = LocalPlayer.Character
-        local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
-        
-        local TCharacter = TargetPlayer.Character
-        local TRootPart = TCharacter and TCharacter:FindFirstChild("HumanoidRootPart")
-
-        if not (Character and RootPart and TCharacter and TRootPart) then return end
-
-        local SavedCFrame = RootPart.CFrame
-
-        local bav = Instance.new("BodyAngularVelocity")
-        bav.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-        bav.AngularVelocity = Vector3.new(0, 999999, 0)
-        bav.Parent = RootPart
-
-        local noclipConnection = RunService.Stepped:Connect(function()
-            for _, part in ipairs(Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-        end)
-
-        local startTime = tick()
-        while tick() - startTime < 0.5 do
-            if not TargetPlayer or not TargetPlayer.Parent or not TRootPart or not TRootPart.Parent then break end
-            
-            local targetVel = TRootPart.AssemblyLinearVelocity
-            RootPart.CFrame = TRootPart.CFrame * CFrame.new(0, 0, 0) + (targetVel * 0.05)
-            RootPart.AssemblyLinearVelocity = Vector3.new(10000, 10000, 10000)
-            
-            RunService.RenderStepped:Wait()
-        end
-
-        noclipConnection:Disconnect()
-        bav:Destroy()
-        
-        if RootPart and RootPart.Parent then
-            RootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            RootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-            RootPart.CFrame = SavedCFrame
-        end
-    end
-
-    local function startFlingAll()
-        local players = Players:GetPlayers()
-        for _, player in ipairs(players) do
-            if player ~= LocalPlayer then
-                task.spawn(function()
-                    ModernSkidFling(player)
-                end)
-            end
-        end
-        WindUI:Notify({Title = "成功", Content = "已对所有玩家执行甩飞", Duration = 3, Icon = "check"})
-    end
-
-    local function stopLoopFlingSingle()
-        Module.state.isLoopFlingingSingle = false
-        WindUI:Notify({Title = "停止", Content = "循环甩飞已停止", Duration = 3, Icon = "x"})
-    end
-
-    local function stopLoopFlingAll()
-        Module.state.isLoopFlingingAll = false
-        WindUI:Notify({Title = "停止", Content = "循环甩飞所有人已停止", Duration = 3, Icon = "x"})
-    end
-
-    task.spawn(function()
-        while true do
-            task.wait(0.5)
-            if Module.state.isLoopFlingingAll then
-                local players = Players:GetPlayers()
-                for _, player in ipairs(players) do
-                    if not Module.state.isLoopFlingingAll then break end
-                    if player ~= LocalPlayer then
-                        ModernSkidFling(player)
-                    end
-                end
-            elseif Module.state.isLoopFlingingSingle and Module.state.targetPlayer then
-                ModernSkidFling(Module.state.targetPlayer)
-            end
-        end
-    end)
 
     local playerMap = {}
     local function getPlayerNames()
@@ -118,6 +31,9 @@ return function(Window, WindUI)
         Values = getPlayerNames(),
         Callback = function(selected)
             Module.state.targetPlayer = playerMap[selected]
+            if Module.state.smoothFollowEnabled then
+                WindUI:Notify({Title = "提示", Content = "已切换跟随目标", Duration = 2, Icon = "info"})
+            end
         end,
     })
 
@@ -129,22 +45,49 @@ return function(Window, WindUI)
     Players.PlayerAdded:Connect(refreshDropdown)
     Players.PlayerRemoving:Connect(refreshDropdown)
 
-    tab:Button({
-        Title = "甩飞选中玩家 (一次)",
-        Callback = function()
-            if Module.state.targetPlayer then
-                task.spawn(function()
-                    ModernSkidFling(Module.state.targetPlayer)
-                end)
-                WindUI:Notify({Title = "成功", Content = "已甩飞目标玩家", Duration = 3, Icon = "check"})
-            else
-                WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 3, Icon = "alert"})
+    local smoothFollowConnection = nil
+    local function startSmoothFollow()
+        if smoothFollowConnection then 
+            smoothFollowConnection:Disconnect()
+            smoothFollowConnection = nil
+        end
+        if not Module.state.smoothFollowEnabled then return end
+        if not Module.state.targetPlayer then
+            WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 3, Icon = "alert"})
+            Module.state.smoothFollowEnabled = false
+            return
+        end
+        smoothFollowConnection = RunService.Heartbeat:Connect(function()
+            if not Module.state.smoothFollowEnabled then
+                if smoothFollowConnection then
+                    smoothFollowConnection:Disconnect()
+                    smoothFollowConnection = nil
+                end
+                return
             end
-        end,
-    })
+            local myChar = LocalPlayer.Character
+            if not myChar then return end
+            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+            if not myRoot then return end
+            local target = Module.state.targetPlayer
+            if not target or not target.Character then return end
+            local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
+            if not targetRoot then return end
+            local offset = targetRoot.CFrame.LookVector * -2.5
+            myRoot.CFrame = CFrame.new(targetRoot.Position + offset, targetRoot.Position)
+        end)
+    end
+
+    local function stopSmoothFollow()
+        Module.state.smoothFollowEnabled = false
+        if smoothFollowConnection then
+            smoothFollowConnection:Disconnect()
+            smoothFollowConnection = nil
+        end
+    end
 
     tab:Toggle({
-        Title = "循环甩飞选中玩家",
+        Title = "平滑跟随",
         Value = false,
         Callback = function(val)
             if val then
@@ -152,31 +95,36 @@ return function(Window, WindUI)
                     WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 3, Icon = "alert"})
                     return
                 end
-                Module.state.isLoopFlingingSingle = true
-                WindUI:Notify({Title = "开启", Content = "已开启循环甩飞目标", Duration = 3, Icon = "check"})
+                Module.state.smoothFollowEnabled = true
+                startSmoothFollow()
+                WindUI:Notify({Title = "开启", Content = "平滑跟随已开启", Duration = 2, Icon = "check"})
             else
-                stopLoopFlingSingle()
+                stopSmoothFollow()
+                WindUI:Notify({Title = "关闭", Content = "平滑跟随已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
 
     tab:Button({
-        Title = "甩飞所有玩家 (一次)",
+        Title = "传送至选中玩家",
         Callback = function()
-            startFlingAll()
-        end,
-    })
-
-    tab:Toggle({
-        Title = "循环甩飞所有人",
-        Value = false,
-        Callback = function(val)
-            if val then
-                Module.state.isLoopFlingingAll = true
-                WindUI:Notify({Title = "开启", Content = "循环甩飞所有玩家已开启", Duration = 3, Icon = "check"})
-            else
-                stopLoopFlingAll()
+            if not Module.state.targetPlayer then
+                WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 3, Icon = "alert"})
+                return
             end
+            local target = Module.state.targetPlayer
+            if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then
+                WindUI:Notify({Title = "传送失败", Content = "目标玩家角色未加载", Duration = 3, Icon = "alert"})
+                return
+            end
+            local myChar = LocalPlayer.Character
+            if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then
+                WindUI:Notify({Title = "传送失败", Content = "你的角色未加载", Duration = 3, Icon = "alert"})
+                return
+            end
+            local targetPos = target.Character.HumanoidRootPart.Position
+            myChar.HumanoidRootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 0, 3))
+            WindUI:Notify({Title = "传送成功", Content = "已传送至 " .. target.DisplayName, Duration = 2, Icon = "check"})
         end,
     })
 
