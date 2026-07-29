@@ -1,291 +1,207 @@
-return function(Window, WindUI)
-    local Players = game:GetService("Players")
-    local LocalPlayer = Players.LocalPlayer
-    local RunService = game:GetService("RunService")
-    local UserInputService = game:GetService("UserInputService")
+local function createCoordPanel()
+    if coordGui and coordGui.Parent then
+        coordGui:Destroy()
+        coordGui = nil
+        coordPanel = nil
+        if heartbeatConnection then
+            heartbeatConnection:Disconnect()
+            heartbeatConnection = nil
+        end
+        return
+    end
 
-    local tab = Window:Tab({Title = "传送", Icon = "map-pin"})
+    coordGui = Instance.new("ScreenGui")
+    coordGui.Name = "CoordPanelGui"
+    coordGui.Parent = LocalPlayer.PlayerGui
+    coordGui.IgnoreGuiInset = true
+    coordGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    coordGui.ResetOnSpawn = false
 
-    local coordPanel = nil
-    local coordGui = nil
-    local heartbeatConnection = nil
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Parent = coordGui
+    MainFrame.Size = UDim2.new(0, 380, 0, 260)
+    MainFrame.Position = UDim2.new(0.5, -190, 0.5, -130)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    MainFrame.BackgroundTransparency = 0.1
+    MainFrame.ZIndex = 200
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 14)
+    corner.Parent = MainFrame
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = 2.5
+    stroke.Color = Color3.fromRGB(100, 150, 255)
+    stroke.LineJoinMode = Enum.LineJoinMode.Round
+    stroke.Parent = MainFrame
 
-    local function teleportTo(position)
+    local Title = Instance.new("TextLabel")
+    Title.Parent = MainFrame
+    Title.Size = UDim2.new(1, -50, 0, 40)
+    Title.Position = UDim2.new(0, 15, 0, 5)
+    Title.BackgroundTransparency = 1
+    Title.Text = " 查询坐标传送"
+    Title.TextColor3 = Color3.new(1, 1, 1)
+    Title.Font = Enum.Font.SourceSansBold
+    Title.TextSize = 20
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Parent = MainFrame
+    closeBtn.Size = UDim2.new(0, 28, 0, 28)
+    closeBtn.Position = UDim2.new(1, -38, 0, 8)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    closeBtn.Font = Enum.Font.SourceSansBold
+    closeBtn.TextSize = 14
+    closeBtn.ZIndex = 201
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 6)
+    closeCorner.Parent = closeBtn
+    closeBtn.MouseButton1Click:Connect(function()
+        coordGui:Destroy()
+        coordGui = nil
+        coordPanel = nil
+        if heartbeatConnection then
+            heartbeatConnection:Disconnect()
+            heartbeatConnection = nil
+        end
+    end)
+
+    local CoordLabel = Instance.new("TextLabel")
+    CoordLabel.Name = "CoordText"
+    CoordLabel.Parent = MainFrame
+    CoordLabel.Size = UDim2.new(1, -30, 0, 70)
+    CoordLabel.Position = UDim2.new(0, 15, 0, 50)
+    CoordLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    CoordLabel.BackgroundTransparency = 0.5
+    CoordLabel.Text = "X: 0.00  Y: 0.00  Z: 0.00"
+    CoordLabel.TextColor3 = Color3.new(0.8, 0.8, 1)
+    CoordLabel.TextScaled = true
+    CoordLabel.Font = Enum.Font.SourceSansBold
+    local coordCorner = Instance.new("UICorner")
+    coordCorner.CornerRadius = UDim.new(0, 8)
+    coordCorner.Parent = CoordLabel
+
+    local line1 = Instance.new("Frame")
+    line1.Parent = MainFrame
+    line1.Size = UDim2.new(1, -30, 0, 1)
+    line1.Position = UDim2.new(0, 15, 0, 125)
+    line1.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+    line1.BackgroundTransparency = 0.5
+
+    local inputBox = Instance.new("TextBox")
+    inputBox.Parent = MainFrame
+    inputBox.Size = UDim2.new(0, 250, 0, 40)
+    inputBox.Position = UDim2.new(0.5, -125, 0, 140)
+    inputBox.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    inputBox.PlaceholderText = "输入坐标 (例如: 100,200,300)"
+    inputBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+    inputBox.Text = ""
+    inputBox.TextColor3 = Color3.new(1, 1, 1)
+    inputBox.Font = Enum.Font.SourceSans
+    inputBox.TextSize = 16
+    local inputCorner = Instance.new("UICorner")
+    inputCorner.CornerRadius = UDim.new(0, 8)
+    inputCorner.Parent = inputBox
+
+    local line2 = Instance.new("Frame")
+    line2.Parent = MainFrame
+    line2.Size = UDim2.new(1, -30, 0, 1)
+    line2.Position = UDim2.new(0, 15, 0, 190)
+    line2.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+    line2.BackgroundTransparency = 0.5
+
+    local copyBtn = Instance.new("TextButton")
+    copyBtn.Parent = MainFrame
+    copyBtn.Size = UDim2.new(0.5, -20, 0, 40)
+    copyBtn.Position = UDim2.new(0, 15, 0, 205)
+    copyBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+    copyBtn.Text = "📋 复制坐标"
+    copyBtn.TextColor3 = Color3.new(1, 1, 1)
+    copyBtn.Font = Enum.Font.SourceSansBold
+    copyBtn.TextSize = 16
+    local copyCorner = Instance.new("UICorner")
+    copyCorner.CornerRadius = UDim.new(0, 8)
+    copyCorner.Parent = copyBtn
+    copyBtn.MouseButton1Click:Connect(function()
         local char = LocalPlayer.Character
-        if not char then
-            WindUI:Notify({Title = "传送失败", Content = "角色未加载", Duration = 2, Icon = "x"})
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local pos = char.HumanoidRootPart.Position
+            local coordText = string.format("%.2f,%.2f,%.2f", pos.X, pos.Y, pos.Z)
+            copyToClipboard(coordText)
+        end
+    end)
+
+    local teleportBtn = Instance.new("TextButton")
+    teleportBtn.Parent = MainFrame
+    teleportBtn.Size = UDim2.new(0.5, -20, 0, 40)
+    teleportBtn.Position = UDim2.new(0.5, 5, 0, 205)
+    teleportBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 80)
+    teleportBtn.Text = "🚀 传送"
+    teleportBtn.TextColor3 = Color3.new(1, 1, 1)
+    teleportBtn.Font = Enum.Font.SourceSansBold
+    teleportBtn.TextSize = 16
+    local teleportCorner = Instance.new("UICorner")
+    teleportCorner.CornerRadius = UDim.new(0, 8)
+    teleportCorner.Parent = teleportBtn
+    teleportBtn.MouseButton1Click:Connect(function()
+        local input = inputBox.Text
+        if input == "" or input:match("^%s*$") then
             return
         end
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if root then
-            root.CFrame = CFrame.new(position)
-            WindUI:Notify({Title = "传送完成", Content = string.format("已传送到 (%.1f, %.1f, %.1f)", position.X, position.Y, position.Z), Duration = 2, Icon = "check"})
-        else
-            WindUI:Notify({Title = "传送失败", Content = "未找到HumanoidRootPart", Duration = 2, Icon = "x"})
+        local cleaned = input:gsub("，", ","):gsub("　", " ")
+        local x, y, z = parseCoords(cleaned)
+        if not x or not y or not z then
+            return
+        end
+        teleportTo(Vector3.new(x, y, z))
+    end)
+
+    inputBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            teleportBtn.MouseButton1Click:Fire()
+        end
+    end)
+
+    local function updateCoordDisplay()
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local pos = char.HumanoidRootPart.Position
+            CoordLabel.Text = string.format("X: %.2f  Y: %.2f  Z: %.2f", pos.X, pos.Y, pos.Z)
         end
     end
 
-    local function copyToClipboard(text)
-        local success = pcall(function()
-            if setclipboard then setclipboard(text)
-            elseif game:GetService("ClipboardService") then game:GetService("ClipboardService"):SetClipboard(text)
-            else error("无法访问剪贴板") end
-        end)
-        WindUI:Notify({
-            Title = success and "复制成功" or "复制失败",
-            Content = success and ("已复制: " .. text) or ("请手动复制: " .. text),
-            Duration = 2,
-            Icon = success and "check" or "x"
-        })
-    end
-
-    local function parseCoords(str)
-        local parts = str:split(",")
-        if #parts >= 3 then
-            local x, y, z = tonumber(parts[1]), tonumber(parts[2]), tonumber(parts[3])
-            if x and y and z then return x, y, z end
-        end
-        parts = str:split(" ")
-        if #parts >= 3 then
-            local x, y, z = tonumber(parts[1]), tonumber(parts[2]), tonumber(parts[3])
-            if x and y and z then return x, y, z end
-        end
-        return nil
-    end
-
-    local function createCoordPanel()
+    updateCoordDisplay()
+    if heartbeatConnection then heartbeatConnection:Disconnect() end
+    heartbeatConnection = RunService.Heartbeat:Connect(function()
         if coordGui and coordGui.Parent then
-            coordGui:Destroy()
-            coordGui = nil
-            coordPanel = nil
-            if heartbeatConnection then
-                heartbeatConnection:Disconnect()
-                heartbeatConnection = nil
-            end
-            return
+            updateCoordDisplay()
+        else
+            heartbeatConnection:Disconnect()
+            heartbeatConnection = nil
         end
+    end)
 
-        coordGui = Instance.new("ScreenGui")
-        coordGui.Name = "CoordPanelGui"
-        coordGui.Parent = LocalPlayer.PlayerGui
-        coordGui.IgnoreGuiInset = true
-        coordGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-        coordGui.ResetOnSpawn = false
-
-        local MainFrame = Instance.new("Frame")
-        MainFrame.Parent = coordGui
-        MainFrame.Size = UDim2.new(0, 400, 0, 250)
-        MainFrame.Position = UDim2.new(0.5, -200, 0.5, -125)
-        MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-        MainFrame.BackgroundTransparency = 0.1
-        MainFrame.ZIndex = 200
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 14)
-        corner.Parent = MainFrame
-        local stroke = Instance.new("UIStroke")
-        stroke.Thickness = 2.5
-        stroke.Color = Color3.fromRGB(100, 150, 255)
-        stroke.LineJoinMode = Enum.LineJoinMode.Round
-        stroke.Parent = MainFrame
-
-        local Title = Instance.new("TextLabel")
-        Title.Parent = MainFrame
-        Title.Size = UDim2.new(1, 0, 0, 40)
-        Title.Position = UDim2.new(0, 15, 0, 5)
-        Title.BackgroundTransparency = 1
-        Title.Text = "📍 查询坐标传送"
-        Title.TextColor3 = Color3.new(1, 1, 1)
-        Title.Font = Enum.Font.SourceSansBold
-        Title.TextSize = 20
-        Title.TextXAlignment = Enum.TextXAlignment.Left
-
-        local closeBtn = Instance.new("TextButton")
-        closeBtn.Parent = MainFrame
-        closeBtn.Size = UDim2.new(0, 30, 0, 30)
-        closeBtn.Position = UDim2.new(1, -40, 0, 8)
-        closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        closeBtn.Text = "✕"
-        closeBtn.TextColor3 = Color3.new(1, 1, 1)
-        closeBtn.Font = Enum.Font.SourceSansBold
-        closeBtn.TextSize = 16
-        closeBtn.ZIndex = 201
-        local closeCorner = Instance.new("UICorner")
-        closeCorner.CornerRadius = UDim.new(0, 6)
-        closeCorner.Parent = closeBtn
-        closeBtn.MouseButton1Click:Connect(function()
-            coordGui:Destroy()
-            coordGui = nil
-            coordPanel = nil
-            if heartbeatConnection then
-                heartbeatConnection:Disconnect()
-                heartbeatConnection = nil
-            end
-        end)
-
-        local CoordLabel = Instance.new("TextLabel")
-        CoordLabel.Name = "CoordText"
-        CoordLabel.Parent = MainFrame
-        CoordLabel.Size = UDim2.new(1, -30, 0, 40)
-        CoordLabel.Position = UDim2.new(0, 15, 0, 55)
-        CoordLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-        CoordLabel.BackgroundTransparency = 0.5
-        CoordLabel.Text = "X: 0.0, Y: 0.0, Z: 0.0"
-        CoordLabel.TextColor3 = Color3.new(0.8, 0.8, 1)
-        CoordLabel.TextScaled = true
-        CoordLabel.Font = Enum.Font.SourceSansBold
-        local coordCorner = Instance.new("UICorner")
-        coordCorner.CornerRadius = UDim.new(0, 8)
-        coordCorner.Parent = CoordLabel
-
-        local copyBtn = Instance.new("TextButton")
-        copyBtn.Parent = MainFrame
-        copyBtn.Size = UDim2.new(0, 100, 0, 32)
-        copyBtn.Position = UDim2.new(0, 15, 0, 105)
-        copyBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-        copyBtn.Text = "📋 复制坐标"
-        copyBtn.TextColor3 = Color3.new(1, 1, 1)
-        copyBtn.Font = Enum.Font.SourceSansBold
-        copyBtn.TextSize = 14
-        local copyCorner = Instance.new("UICorner")
-        copyCorner.CornerRadius = UDim.new(0, 6)
-        copyCorner.Parent = copyBtn
-        copyBtn.MouseButton1Click:Connect(function()
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local pos = char.HumanoidRootPart.Position
-                local coordText = string.format("%.2f,%.2f,%.2f", pos.X, pos.Y, pos.Z)
-                copyToClipboard(coordText)
-            end
-        end)
-
-        local inputBox = Instance.new("TextBox")
-        inputBox.Parent = MainFrame
-        inputBox.Size = UDim2.new(0, 200, 0, 32)
-        inputBox.Position = UDim2.new(0, 15, 0, 148)
-        inputBox.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-        inputBox.PlaceholderText = "输入坐标 X Y Z 或 X,Y,Z"
-        inputBox.Text = ""
-        inputBox.TextColor3 = Color3.new(1, 1, 1)
-        inputBox.Font = Enum.Font.SourceSans
-        inputBox.TextSize = 14
-        local inputCorner = Instance.new("UICorner")
-        inputCorner.CornerRadius = UDim.new(0, 6)
-        inputCorner.Parent = inputBox
-
-        local teleportBtn = Instance.new("TextButton")
-        teleportBtn.Parent = MainFrame
-        teleportBtn.Size = UDim2.new(0, 100, 0, 32)
-        teleportBtn.Position = UDim2.new(0, 225, 0, 148)
-        teleportBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 80)
-        teleportBtn.Text = "🚀 传送"
-        teleportBtn.TextColor3 = Color3.new(1, 1, 1)
-        teleportBtn.Font = Enum.Font.SourceSansBold
-        teleportBtn.TextSize = 14
-        local teleportCorner = Instance.new("UICorner")
-        teleportCorner.CornerRadius = UDim.new(0, 6)
-        teleportCorner.Parent = teleportBtn
-        teleportBtn.MouseButton1Click:Connect(function()
-            local input = inputBox.Text
-            if input == "" or input:match("^%s*$") then
-                WindUI:Notify({Title = "传送失败", Content = "请输入坐标", Duration = 2, Icon = "alert"})
-                return
-            end
-            local x, y, z = parseCoords(input)
-            if not x or not y or not z then
-                WindUI:Notify({Title = "传送失败", Content = "坐标格式错误，请用空格或逗号分隔", Duration = 2, Icon = "alert"})
-                return
-            end
-            teleportTo(Vector3.new(x, y, z))
-        end)
-
-        inputBox.FocusLost:Connect(function(enterPressed)
-            if enterPressed then
-                teleportBtn.MouseButton1Click:Fire()
-            end
-        end)
-
-        local function updateCoordDisplay()
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local pos = char.HumanoidRootPart.Position
-                CoordLabel.Text = string.format("📍 X: %.2f  Y: %.2f  Z: %.2f", pos.X, pos.Y, pos.Z)
-            end
+    local dragging = false
+    local dragStart, startPos
+    MainFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = MainFrame.Position
         end
+    end)
+    MainFrame.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    MainFrame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
 
-        updateCoordDisplay()
-        if heartbeatConnection then heartbeatConnection:Disconnect() end
-        heartbeatConnection = RunService.Heartbeat:Connect(function()
-            if coordGui and coordGui.Parent then
-                updateCoordDisplay()
-            else
-                heartbeatConnection:Disconnect()
-                heartbeatConnection = nil
-            end
-        end)
-
-        local dragging = false
-        local dragStart, startPos
-        MainFrame.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                dragging = true
-                dragStart = input.Position
-                startPos = MainFrame.Position
-            end
-        end)
-        MainFrame.InputChanged:Connect(function(input)
-            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                local delta = input.Position - dragStart
-                MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-            end
-        end)
-        MainFrame.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                dragging = false
-            end
-        end)
-
-        coordPanel = MainFrame
-    end
-
-    tab:Button({
-        Title = "查询坐标传送",
-        Icon = "map-pin",
-        Callback = function()
-            createCoordPanel()
-        end,
-    })
-
-    tab:Button({
-        Title = "传送平台",
-        Icon = "map-pin",
-        Callback = function()
-            teleportTo(Vector3.new(-273, 179.5, 394))
-        end,
-    })
-
-    tab:Button({
-        Title = "传送小岛",
-        Icon = "map-pin",
-        Callback = function()
-            teleportTo(Vector3.new(-115.6, 48.6, 6.9))
-        end,
-    })
-
-    tab:Button({
-        Title = "传送彩蛋",
-        Icon = "star",
-        Callback = function()
-            teleportTo(Vector3.new(-5059.2, 264.0, 6078.0))
-        end,
-    })
-
-    tab:Button({
-        Title = "传送虚空",
-        Icon = "skull",
-        Callback = function()
-            teleportTo(Vector3.new(0, 1000000000, 0))
-        end,
-    })
-
-    return tab
+    coordPanel = MainFrame
 end
