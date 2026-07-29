@@ -1,0 +1,592 @@
+return function(Window, WindUI)
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local Lighting = game:GetService("Lighting")
+    local Workspace = game:GetService("Workspace")
+    local Terrain = workspace.Terrain
+    local MaterialService = game:GetService("MaterialService")
+    local LocalPlayer = Players.LocalPlayer
+
+    local tab = Window:Tab({Title = "光影", Icon = "sun"})
+
+    local section = tab:Section({Title = "光影效果"})
+
+    local originalLighting = {}
+    local originalTerrain = {}
+    local createdEffects = {}
+    local runningConnections = {}
+    local effectObjects = {}
+
+    local function clearEffects()
+        for _, effect in ipairs(createdEffects) do
+            pcall(function() effect:Destroy() end)
+        end
+        createdEffects = {}
+        for _, conn in ipairs(runningConnections) do
+            pcall(function() conn:Disconnect() end)
+        end
+        runningConnections = {}
+        for _, obj in ipairs(effectObjects) do
+            pcall(function() obj:Destroy() end)
+        end
+        effectObjects = {}
+    end
+
+    local function saveLighting()
+        originalLighting = {
+            Brightness = Lighting.Brightness,
+            Ambient = Lighting.Ambient,
+            OutdoorAmbient = Lighting.OutdoorAmbient,
+            GlobalShadows = Lighting.GlobalShadows,
+            ShadowSoftness = Lighting.ShadowSoftness,
+            FogColor = Lighting.FogColor,
+            FogEnd = Lighting.FogEnd,
+            FogStart = Lighting.FogStart,
+            ClockTime = Lighting.ClockTime,
+            GeographicLatitude = Lighting.GeographicLatitude,
+            ExposureCompensation = Lighting.ExposureCompensation,
+            EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale,
+            EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale
+        }
+        originalTerrain = {
+            WaterReflectance = Terrain.WaterReflectance,
+            WaterTransparency = Terrain.WaterTransparency,
+            WaterWaveSize = Terrain.WaterWaveSize,
+            WaterWaveSpeed = Terrain.WaterWaveSpeed,
+            WaterColor = Terrain.WaterColor
+        }
+    end
+
+    local function restoreLighting()
+        for key, value in pairs(originalLighting) do
+            pcall(function() Lighting[key] = value end)
+        end
+        for key, value in pairs(originalTerrain) do
+            pcall(function() Terrain[key] = value end)
+        end
+    end
+
+    local function createEffect(effectType, properties)
+        local effect = Instance.new(effectType)
+        for prop, value in pairs(properties) do
+            if effect[prop] ~= nil then
+                effect[prop] = value
+            end
+        end
+        effect.Parent = Lighting
+        table.insert(createdEffects, effect)
+        return effect
+    end
+
+    local realLightingEnabled = false
+    local realLightingConn = nil
+    local realLightingParts = {}
+    local realLightingCharConn = nil
+
+    section:Toggle({
+        Title = "真实光影",
+        Value = false,
+        Callback = function(val)
+            if val then
+                saveLighting()
+                clearEffects()
+
+                Lighting.Brightness = 0.2
+                Lighting.Ambient = Color3.new(0, 0, 0)
+                Lighting.OutdoorAmbient = Color3.new(0, 0, 0)
+                Lighting.GlobalShadows = false
+                Lighting.EnvironmentDiffuseScale = 0
+                Lighting.EnvironmentSpecularScale = 0
+
+                local camera = Workspace.CurrentCamera
+                local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local sunDirection = Vector3.new(1, -1, 1).Unit
+                local sunColor = Color3.fromRGB(255, 255, 224)
+                local sunIntensity = 100
+                local skyColor = Color3.fromRGB(135, 206, 235)
+                local skyIntensity = 0.5
+                local maxDistance = 50000
+                local gammaCorrection = 10
+                local maxRays = 100000
+                local minRays = 10000
+                local lodDistance = 200
+
+                local function getSurfaceNormal(part, position)
+                    if part:IsA("MeshPart") or part:IsA("UnionOperation") then
+                        return (position - part.Position).Unit
+                    else
+                        local relativePosition = part.CFrame:PointToObjectSpace(position)
+                        local halfSize = part.Size / 2
+                        local normals = {
+                            Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0),
+                            Vector3.new(0, 1, 0), Vector3.new(0, -1, 0),
+                            Vector3.new(0, 0, 1), Vector3.new(0, 0, -1)
+                        }
+                        local distances = {
+                            math.abs(halfSize.X - relativePosition.X),
+                            math.abs(-halfSize.X - relativePosition.X),
+                            math.abs(halfSize.Y - relativePosition.Y),
+                            math.abs(-halfSize.Y - relativePosition.Y),
+                            math.abs(halfSize.Z - relativePosition.Z),
+                            math.abs(-halfSize.Z - relativePosition.Z)
+                        }
+                        local minDistance = math.huge
+                        local normal = Vector3.new(0, 1, 0)
+                        for i = 1, 6 do
+                            if distances[i] < minDistance then
+                                minDistance = distances[i]
+                                normal = normals[i]
+                            end
+                        end
+                        return part.CFrame:VectorToWorldSpace(normal)
+                    end
+                end
+
+                local function computeLightingForPoint(part, position)
+                    local accumulatedColor = Color3.new(0, 0, 0)
+                    local surfaceNormal = getSurfaceNormal(part, position)
+                    local offsetPosition = position + surfaceNormal * 0.01
+                    local distanceFromCamera = (camera.CFrame.Position - position).Magnitude
+                    local numRays = maxRays
+                    if distanceFromCamera > lodDistance then
+                        numRays = math.max(minRays, math.floor(maxRays * (lodDistance / distanceFromCamera)))
+                    end
+                    local skySamples = 10000000
+                    local skyLight = Color3.new(0, 0, 0)
+                    for i = 1, numRays do
+                        local u = math.random()
+                        local v = math.random()
+                        local theta = math.acos(math.sqrt(1 - u))
+                        local phi = 2 * math.pi * v
+                        local x = math.sin(theta) * math.cos(phi)
+                        local y = math.cos(theta)
+                        local z = math.sin(theta) * math.sin(phi)
+                        local randomDirection = Vector3.new(x, y, z).Unit
+                        local up = Vector3.new(0, 1, 0)
+                        local rotation = CFrame.fromAxisAngle(up:Cross(surfaceNormal), math.acos(up:Dot(surfaceNormal)))
+                        randomDirection = rotation:VectorToWorldSpace(randomDirection)
+                        local rayParams = RaycastParams.new()
+                        rayParams.FilterDescendantsInstances = {part, character}
+                        rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+                        rayParams.IgnoreWater = true
+                        local result = Workspace:Raycast(offsetPosition, randomDirection * maxDistance, rayParams)
+                        if not result then
+                            skyLight += skyColor
+                            skySamples = skySamples + 1
+                        end
+                    end
+                    if skySamples > 0 then
+                        skyLight = (skyLight / skySamples) * skyIntensity
+                        accumulatedColor += skyLight
+                    end
+                    local normalDotLight = math.max(0, surfaceNormal:Dot(-sunDirection))
+                    local rayParams = RaycastParams.new()
+                    rayParams.FilterDescendantsInstances = {part, character}
+                    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+                    rayParams.IgnoreWater = true
+                    local sunOccluded = Workspace:Raycast(offsetPosition, -sunDirection * maxDistance, rayParams)
+                    local shadowFactor = sunOccluded and 0 or 1
+                    local materialReflectance = part.Reflectance
+                    local materialColor = part.Color
+                    local sunIntensityFactor = normalDotLight * sunIntensity * (1 - materialReflectance) * shadowFactor
+                    local sunLight = sunColor * sunIntensityFactor
+                    sunLight = Color3.new(
+                        sunLight.R * materialColor.R,
+                        sunLight.G * materialColor.G,
+                        sunLight.B * materialColor.B
+                    )
+                    accumulatedColor += sunLight
+                    accumulatedColor = Color3.new(
+                        accumulatedColor.R ^ (1 / gammaCorrection),
+                        accumulatedColor.G ^ (1 / gammaCorrection),
+                        accumulatedColor.B ^ (1 / gammaCorrection)
+                    )
+                    accumulatedColor = Color3.new(
+                        math.clamp(accumulatedColor.R, 0, 1),
+                        math.clamp(accumulatedColor.G, 0, 1),
+                        math.clamp(accumulatedColor.B, 0, 1)
+                    )
+                    return accumulatedColor
+                end
+
+                realLightingParts = {}
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if obj:IsA("BasePart") and obj.Transparency < 1 then
+                        obj.Material = Enum.Material.SmoothPlastic
+                        table.insert(realLightingParts, obj)
+                        obj.CastShadow = false
+                    end
+                end
+
+                local function addCharacterParts(character)
+                    for _, part in pairs(character:GetDescendants()) do
+                        if part:IsA("BasePart") and part.Transparency < 1 then
+                            table.insert(realLightingParts, part)
+                            part.CastShadow = false
+                        end
+                    end
+                end
+
+                addCharacterParts(character)
+
+                local function updateLighting()
+                    for _, part in ipairs(realLightingParts) do
+                        local color = computeLightingForPoint(part, part.Position)
+                        if color then
+                            part.Color = color
+                        end
+                    end
+                end
+
+                if realLightingConn then realLightingConn:Disconnect() end
+                realLightingConn = RunService.RenderStepped:Connect(updateLighting)
+
+                local partAddedConn = Workspace.DescendantAdded:Connect(function(descendant)
+                    if descendant:IsA("BasePart") and descendant.Transparency < 1 then
+                        descendant.Material = Enum.Material.SmoothPlastic
+                        table.insert(realLightingParts, descendant)
+                        descendant.CastShadow = false
+                    end
+                end)
+                table.insert(runningConnections, partAddedConn)
+
+                local partRemovedConn = Workspace.DescendantRemoving:Connect(function(descendant)
+                    if descendant:IsA("BasePart") then
+                        for i, part in ipairs(realLightingParts) do
+                            if part == descendant then
+                                table.remove(realLightingParts, i)
+                                break
+                            end
+                        end
+                    end
+                end)
+                table.insert(runningConnections, partRemovedConn)
+
+                if realLightingCharConn then realLightingCharConn:Disconnect() end
+                realLightingCharConn = LocalPlayer.CharacterAdded:Connect(function(newCharacter)
+                    character = newCharacter
+                    addCharacterParts(character)
+                end)
+
+                realLightingEnabled = true
+                WindUI:Notify({Title = "真实光影", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if realLightingConn then
+                    realLightingConn:Disconnect()
+                    realLightingConn = nil
+                end
+                if realLightingCharConn then
+                    realLightingCharConn:Disconnect()
+                    realLightingCharConn = nil
+                end
+                realLightingParts = {}
+                clearEffects()
+                restoreLighting()
+                realLightingEnabled = false
+                WindUI:Notify({Title = "真实光影", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end
+    })
+
+    local brightLightingEnabled = false
+    local brightClockConn = nil
+
+    section:Toggle({
+        Title = "明亮光影",
+        Value = false,
+        Callback = function(val)
+            if val then
+                saveLighting()
+                clearEffects()
+
+                Lighting.ClockTime = 12
+                Lighting.GeographicLatitude = 0
+
+                if brightClockConn then brightClockConn:Disconnect() end
+                brightClockConn = RunService.Heartbeat:Connect(function()
+                    Lighting.ClockTime = 12
+                    Lighting.GeographicLatitude = 0
+                end)
+                table.insert(runningConnections, brightClockConn)
+
+                Lighting.GlobalShadows = true
+                Lighting.ShadowSoftness = 0.3
+                Lighting.Brightness = 3
+                Lighting.OutdoorAmbient = Color3.new(0.8, 0.8, 0.8)
+                Lighting.Ambient = Color3.new(0.6, 0.6, 0.6)
+                Lighting.Technology = Enum.Technology.ShadowMap
+
+                local sunRays = createEffect("SunRaysEffect", {
+                    Intensity = 0.2,
+                    Spread = 0.5
+                })
+
+                local bloom = createEffect("BloomEffect", {
+                    Intensity = 0.3,
+                    Size = 10
+                })
+
+                local atmosphere = createEffect("Atmosphere", {
+                    Density = 0.1,
+                    Offset = 0.5,
+                    Color = Color3.new(0.9, 0.9, 0.9),
+                    Decay = Color3.new(0.9, 0.9, 0.9),
+                    Glare = 0,
+                    Haze = 0
+                })
+
+                local colorCorrection = createEffect("ColorCorrectionEffect", {
+                    Saturation = -0.1,
+                    Contrast = 0.1
+                })
+
+                local blur = createEffect("BlurEffect", {
+                    Size = 1
+                })
+
+                for _, part in ipairs(Workspace:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.Reflectance = 0
+                    end
+                end
+
+                local reflectConn = Workspace.DescendantAdded:Connect(function(part)
+                    if part:IsA("BasePart") then
+                        part.Reflectance = 0
+                    end
+                end)
+                table.insert(runningConnections, reflectConn)
+
+                for _, part in ipairs(Workspace:GetDescendants()) do
+                    if part:IsA("BasePart") and part.Material == Enum.Material.Glass then
+                        part.Transparency = 1
+                        part.Reflectance = 0
+                    end
+                end
+
+                local glassConn = Workspace.DescendantAdded:Connect(function(part)
+                    if part:IsA("BasePart") and part.Material == Enum.Material.Glass then
+                        part.Transparency = 1
+                        part.Reflectance = 0
+                    end
+                end)
+                table.insert(runningConnections, glassConn)
+
+                brightLightingEnabled = true
+                WindUI:Notify({Title = "明亮光影", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if brightClockConn then
+                    brightClockConn:Disconnect()
+                    brightClockConn = nil
+                end
+                clearEffects()
+                restoreLighting()
+                brightLightingEnabled = false
+                WindUI:Notify({Title = "明亮光影", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end
+    })
+
+    local proMaxEnabled = false
+    local proMaxConn = nil
+
+    section:Toggle({
+        Title = "画质增强Pro Max",
+        Value = false,
+        Callback = function(val)
+            if val then
+                saveLighting()
+                clearEffects()
+
+                for _, child in ipairs(Lighting:GetChildren()) do
+                    if child:IsA("PostEffect") or child:IsA("Sky") then
+                        child:Destroy()
+                    end
+                end
+
+                local colorCorrection = createEffect("ColorCorrectionEffect", {
+                    Contrast = 0.18,
+                    Brightness = 0.05,
+                    Saturation = 0.3,
+                    TintColor = Color3.fromRGB(255, 242, 230)
+                })
+
+                local bloom = createEffect("BloomEffect", {
+                    Intensity = 0.25,
+                    Size = 48,
+                    Threshold = 0.85
+                })
+
+                local sunRays = createEffect("SunRaysEffect", {
+                    Intensity = 0.25,
+                    Spread = 1.0
+                })
+
+                local atmosphere = createEffect("Atmosphere", {
+                    Density = 0.4,
+                    Offset = 0.25,
+                    Color = Color3.fromRGB(220, 220, 255),
+                    Decay = Color3.fromRGB(20, 25, 45),
+                    Glare = 0.15,
+                    Haze = 0.25
+                })
+
+                local sky = Instance.new("Sky")
+                sky.Parent = Lighting
+                sky.SkyboxBk = "rbxassetid://6444337006"
+                sky.SkyboxDn = "rbxassetid://6444336728"
+                sky.SkyboxFt = "rbxassetid://6444337006"
+                sky.SkyboxLf = "rbxassetid://6444337006"
+                sky.SkyboxRt = "rbxassetid://6444337006"
+                sky.SkyboxUp = "rbxassetid://6444336728"
+                sky.StarCount = 3000
+                table.insert(createdEffects, sky)
+
+                Lighting.GlobalShadows = true
+                Lighting.ShadowSoftness = 0.05
+                Lighting.Brightness = 2.8
+                Lighting.ExposureCompensation = 0.7
+                Lighting.FogColor = Color3.fromRGB(140, 158, 178)
+                Lighting.FogEnd = 3000
+
+                Terrain.WaterReflectance = 0.35
+                Terrain.WaterTransparency = 0.88
+                Terrain.WaterWaveSize = 0.15
+                Terrain.WaterWaveSpeed = 25
+                Terrain.WaterColor = Color3.fromRGB(72, 141, 202)
+
+                if proMaxConn then proMaxConn:Disconnect() end
+                proMaxConn = RunService.RenderStepped:Connect(function()
+                    Lighting.ClockTime = Lighting.ClockTime + 0.0005
+                    local timeFactor = math.sin(Lighting.ClockTime * math.pi / 12)
+                    bloom.Intensity = 0.2 + timeFactor * 0.1
+                    sunRays.Intensity = 0.2 + timeFactor * 0.1
+                end)
+                table.insert(runningConnections, proMaxConn)
+
+                proMaxEnabled = true
+                WindUI:Notify({Title = "画质增强Pro Max", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if proMaxConn then
+                    proMaxConn:Disconnect()
+                    proMaxConn = nil
+                end
+                clearEffects()
+                restoreLighting()
+                proMaxEnabled = false
+                WindUI:Notify({Title = "画质增强Pro Max", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end
+    })
+
+    local duskLightingEnabled = false
+    local duskConn = nil
+
+    section:Toggle({
+        Title = "固定黄昏光影",
+        Value = false,
+        Callback = function(val)
+            if val then
+                saveLighting()
+                clearEffects()
+
+                for _, child in ipairs(Lighting:GetChildren()) do
+                    if child:IsA("PostEffect") or child:IsA("Atmosphere") then
+                        child:Destroy()
+                    end
+                end
+
+                Lighting.GlobalShadows = true
+                Lighting.ShadowSoftness = 0.06
+                Lighting.Brightness = 3.5
+                Lighting.ExposureCompensation = 0.5
+                Lighting.EnvironmentSpecularScale = 1.2
+                Lighting.EnvironmentDiffuseScale = 0.5
+                Lighting.FogColor = Color3.fromRGB(130, 140, 160)
+                Lighting.FogEnd = 8000
+                Lighting.FogStart = 50
+                Lighting.OutdoorAmbient = Color3.fromRGB(120, 130, 150)
+                Lighting.GeographicLatitude = 40.0
+                Lighting.ClockTime = 16.5
+
+                local colorCorrection = createEffect("ColorCorrectionEffect", {
+                    Contrast = 0.15,
+                    Brightness = 0.04,
+                    Saturation = 0.25,
+                    TintColor = Color3.fromRGB(255, 245, 235)
+                })
+
+                local bloom = createEffect("BloomEffect", {
+                    Intensity = 0.08,
+                    Size = 40,
+                    Threshold = 0.95
+                })
+
+                local sunRays = createEffect("SunRaysEffect", {
+                    Intensity = 0.22,
+                    Spread = 0.8
+                })
+
+                local dof = createEffect("DepthOfFieldEffect", {
+                    FarIntensity = 0.1,
+                    FocusDistance = 35,
+                    InFocusRadius = 22,
+                    NearIntensity = 0.3
+                })
+
+                local atmosphere = createEffect("Atmosphere", {
+                    Density = 0.25,
+                    Offset = 0.25,
+                    Color = Color3.fromRGB(180, 190, 210),
+                    Decay = Color3.fromRGB(35, 40, 50),
+                    Haze = 0.12
+                })
+
+                Terrain.WaterReflectance = 0.2
+                Terrain.WaterTransparency = 0.93
+                Terrain.WaterWaveSize = 0.12
+                Terrain.WaterWaveSpeed = 16
+                Terrain.WaterColor = Color3.fromRGB(75, 135, 200)
+
+                local sky = Lighting:FindFirstChildOfClass("Sky") or Instance.new("Sky")
+                sky.Parent = Lighting
+                sky.CelestialBodiesShown = true
+                sky.StarCount = 3500
+                sky.SkyboxBk = "rbxassetid://2711140172"
+                sky.SkyboxDn = "rbxassetid://2711140372"
+                sky.SkyboxFt = "rbxassetid://2711140592"
+                sky.SkyboxLf = "rbxassetid://2711140792"
+                sky.SkyboxRt = "rbxassetid://2711141042"
+                sky.SkyboxUp = "rbxassetid://2711141282"
+                table.insert(createdEffects, sky)
+
+                Workspace.CurrentCamera.FieldOfView = 70
+
+                if duskConn then duskConn:Disconnect() end
+                duskConn = RunService.RenderStepped:Connect(function()
+                    local time = os.time()
+                    local subtleChange = math.sin(time * 0.1) * 0.03
+                    Lighting.ClockTime = (time / 3600) % 24
+                    local targetBrightness = 3.2 + math.sin(Lighting.ClockTime * math.pi / 12) * 0.3
+                    Lighting.Brightness = math.clamp(targetBrightness, 2.8, 3.5)
+                    bloom.Intensity = 0.08 + subtleChange * 0.02
+                end)
+                table.insert(runningConnections, duskConn)
+
+                duskLightingEnabled = true
+                WindUI:Notify({Title = "固定黄昏光影", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if duskConn then
+                    duskConn:Disconnect()
+                    duskConn = nil
+                end
+                clearEffects()
+                restoreLighting()
+                duskLightingEnabled = false
+                WindUI:Notify({Title = "固定黄昏光影", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end
+    })
+
+    return tab
+end
