@@ -20,7 +20,7 @@ return function(Window, WindUI)
                 dragStart = input.Position
                 startPos = guiObj.Position
                 input.Changed:Connect(function()
-                    if input.UserInputState == Enum.UserInputState.End then
+                    if input.UserInputState == Enum.InputUserState.End then
                         dragging = false
                     end
                 end)
@@ -398,7 +398,7 @@ return function(Window, WindUI)
                             startFramePos = Button.Position
 
                             input.Changed:Connect(function()
-                                if input.UserInputState == Enum.UserInputState.End then
+                                if input.UserInputState == Enum.InputUserState.End then
                                     dragging = false
                                 end
                             end)
@@ -747,7 +747,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 锁定视角
     local lockViewEnabled = false
     local lockViewConnection = nil
 
@@ -845,7 +844,7 @@ return function(Window, WindUI)
                     if espEnabled and player ~= LocalPlayer then
                         createESP(player)
                     end
-                end)
+                })
             else
                 if playerAddedConn then
                     playerAddedConn:Disconnect()
@@ -870,6 +869,93 @@ return function(Window, WindUI)
                 Duration = 2,
                 Icon = enabled and "check" or "x"
             })
+        end,
+    })
+
+    local flingEnabled = false
+    local flingThread = nil
+    local flingRunning = false
+
+    tab:Toggle({
+        Title = "碰飞",
+        Value = false,
+        Callback = function(val)
+            flingEnabled = val
+            
+            if val then
+                if flingRunning then
+                    flingRunning = false
+                    if flingThread then
+                        coroutine.close(flingThread)
+                        flingThread = nil
+                    end
+                end
+                
+                flingRunning = true
+                flingThread = coroutine.create(function()
+                    local movel = 0.1
+                    while flingRunning do
+                        RunService.Heartbeat:Wait()
+                        local c = LocalPlayer.Character
+                        local hrp = c and c:FindFirstChild("HumanoidRootPart")
+                        
+                        if hrp then
+                            local vel = hrp.Velocity
+                            hrp.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
+                            RunService.RenderStepped:Wait()
+                            hrp.Velocity = vel
+                            RunService.Stepped:Wait()
+                            hrp.Velocity = vel + Vector3.new(0, movel, 0)
+                            movel = -movel
+                        end
+                    end
+                end)
+                coroutine.resume(flingThread)
+                WindUI:Notify({Title = "碰飞", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                flingRunning = false
+                if flingThread then
+                    coroutine.close(flingThread)
+                    flingThread = nil
+                end
+                WindUI:Notify({Title = "碰飞", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
+    local xrayEnabled = false
+    local xrayConnection = nil
+
+    tab:Toggle({
+        Title = "透视",
+        Value = false,
+        Callback = function(val)
+            xrayEnabled = val
+            
+            if val then
+                if xrayConnection then xrayConnection:Disconnect() end
+                xrayConnection = RunService.Heartbeat:Connect(function()
+                    if not xrayEnabled then return end
+                    for _, v in pairs(workspace:GetDescendants()) do
+                        if v:IsA("BasePart") and not v.Parent:FindFirstChildWhichIsA("Humanoid") and
+                            not (v.Parent and v.Parent.Parent and v.Parent.Parent:FindFirstChildWhichIsA("Humanoid")) then
+                            v.LocalTransparencyModifier = 0.5
+                        end
+                    end
+                end)
+                WindUI:Notify({Title = "透视", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if xrayConnection then
+                    xrayConnection:Disconnect()
+                    xrayConnection = nil
+                end
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.LocalTransparencyModifier = 0
+                    end
+                end
+                WindUI:Notify({Title = "透视", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
         end,
     })
 
