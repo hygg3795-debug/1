@@ -598,6 +598,30 @@ local function createBlackholeH2()
     }
 end
 
+local function createBlackholeV1()
+    return createBlackholeH1()
+end
+
+local function createBlackholeV2()
+    return createBlackholeH1()
+end
+
+local function createBlackholeV3()
+    return createBlackholeH1()
+end
+
+local function createBlackholeV4()
+    return createBlackholeH1()
+end
+
+local function createBlackholeV5()
+    return createBlackholeH1()
+end
+
+local function createBlackholeV6()
+    return createBlackholeH1()
+end
+
 local blackholeTab = Window:Tab({Title = "黑洞", Icon = "circle"})
 
 local h1Running = false
@@ -621,52 +645,92 @@ local v6Api = nil
 local selectedBlackhole = "黑洞h1"
 local toggleControl = nil
 
+local function startV1()
+    if not v1Api then v1Api = createBlackholeV1() end
+    if v1Api then v1Api:start() v1Running = true end
+end
+
+local function stopV1(silent)
+    if v1Api then pcall(function() v1Api:stop() end) end
+    v1Running = false
+    if not silent then WindUI:Notify({Title = "黑洞V1", Content = "已关闭", Duration = 2, Icon = "x"}) end
+end
+
+local function startV2()
+    if not v2Api then v2Api = createBlackholeV2() end
+    if v2Api then v2Api:start() v2Running = true end
+end
+
+local function stopV2(silent)
+    if v2Api then pcall(function() v2Api:stop() end) end
+    v2Running = false
+    if not silent then WindUI:Notify({Title = "黑洞V2", Content = "已关闭", Duration = 2, Icon = "x"}) end
+end
+
+local function startV3()
+    if not v3Api then v3Api = createBlackholeV3() end
+    if v3Api then v3Api:start() v3Running = true end
+end
+
+local function stopV3(silent)
+    if v3Api then pcall(function() v3Api:stop() end) end
+    v3Running = false
+    if not silent then WindUI:Notify({Title = "黑洞V3", Content = "已关闭", Duration = 2, Icon = "x"}) end
+end
+
+local function startV4()
+    if not v4Api then v4Api = createBlackholeV4() end
+    if v4Api then v4Api:start() v4Running = true end
+end
+
+local function stopV4(silent)
+    if v4Api then pcall(function() v4Api:stop() end) end
+    v4Running = false
+    if not silent then WindUI:Notify({Title = "黑洞V4", Content = "已关闭", Duration = 2, Icon = "x"}) end
+end
+
+local function startV5()
+    if not v5Api then v5Api = createBlackholeV5() end
+    if v5Api then v5Api:start() v5Running = true end
+end
+
+local function stopV5(silent)
+    if v5Api then pcall(function() v5Api:stop() end) end
+    v5Running = false
+    if not silent then WindUI:Notify({Title = "黑洞V5", Content = "已关闭", Duration = 2, Icon = "x"}) end
+end
+
+local function startV6()
+    if not v6Api then v6Api = createBlackholeV6() end
+    if v6Api then v6Api:start() v6Running = true end
+end
+
+local function stopV6(silent)
+    if v6Api then pcall(function() v6Api:stop() end) end
+    v6Running = false
+    if not silent then WindUI:Notify({Title = "黑洞V6", Content = "已关闭", Duration = 2, Icon = "x"}) end
+end
+
 local function startH1()
-    if not h1Api then
-        local success = pcall(function()
-            h1Api = createBlackholeH1()
-        end)
-        if not success then
-            WindUI:Notify({Title = "黑洞h1", Content = "启动失败", Duration = 3, Icon = "alert"})
-        end
-    end
-    if h1Api then
-        h1Api:start()
-        h1Running = true
-        WindUI:Notify({Title = "黑洞h1", Content = "已开启", Duration = 2, Icon = "check"})
-    end
+    if not h1Api then h1Api = createBlackholeH1() end
+    if h1Api then h1Api:start() h1Running = true end
 end
 
 local function stopH1(silent)
     if h1Api then pcall(function() h1Api:stop() end) end
     h1Running = false
-    if not silent then
-        WindUI:Notify({Title = "黑洞h1", Content = "已关闭", Duration = 2, Icon = "x"})
-    end
+    if not silent then WindUI:Notify({Title = "黑洞h1", Content = "已关闭", Duration = 2, Icon = "x"}) end
 end
 
 local function startH2()
-    if not h2Api then
-        local success = pcall(function()
-            h2Api = createBlackholeH2()
-        end)
-        if not success then
-            WindUI:Notify({Title = "黑洞h2", Content = "启动失败", Duration = 3, Icon = "alert"})
-        end
-    end
-    if h2Api then
-        h2Api:start()
-        h2Running = true
-        WindUI:Notify({Title = "黑洞h2", Content = "已开启", Duration = 2, Icon = "check"})
-    end
+    if not h2Api then h2Api = createBlackholeH2() end
+    if h2Api then h2Api:start() h2Running = true end
 end
 
 local function stopH2(silent)
     if h2Api then pcall(function() h2Api:stop() end) end
     h2Running = false
-    if not silent then
-        WindUI:Notify({Title = "黑洞h2", Content = "已关闭", Duration = 2, Icon = "x"})
-    end
+    if not silent then WindUI:Notify({Title = "黑洞h2", Content = "已关闭", Duration = 2, Icon = "x"}) end
 end
 
 local function toggleBlackhole(val)
@@ -680,6 +744,7 @@ local function toggleBlackhole(val)
             if v5Running then stopV5(true) end
             if v6Running then stopV6(true) end
             startH1()
+            WindUI:Notify({Title = "黑洞h1", Content = "已开启", Duration = 2, Icon = "check"})
         elseif selectedBlackhole == "黑洞h2" then
             if h1Running then stopH1(true) end
             if v1Running then stopV1(true) end
@@ -689,6 +754,7 @@ local function toggleBlackhole(val)
             if v5Running then stopV5(true) end
             if v6Running then stopV6(true) end
             startH2()
+            WindUI:Notify({Title = "黑洞h2", Content = "已开启", Duration = 2, Icon = "check"})
         elseif selectedBlackhole == "黑洞V1" then
             if h1Running then stopH1(true) end
             if h2Running then stopH2(true) end
@@ -698,6 +764,7 @@ local function toggleBlackhole(val)
             if v5Running then stopV5(true) end
             if v6Running then stopV6(true) end
             startV1()
+            WindUI:Notify({Title = "黑洞V1", Content = "已开启", Duration = 2, Icon = "check"})
         elseif selectedBlackhole == "黑洞V2" then
             if h1Running then stopH1(true) end
             if h2Running then stopH2(true) end
@@ -707,6 +774,7 @@ local function toggleBlackhole(val)
             if v5Running then stopV5(true) end
             if v6Running then stopV6(true) end
             startV2()
+            WindUI:Notify({Title = "黑洞V2", Content = "已开启", Duration = 2, Icon = "check"})
         elseif selectedBlackhole == "黑洞V3" then
             if h1Running then stopH1(true) end
             if h2Running then stopH2(true) end
@@ -716,6 +784,7 @@ local function toggleBlackhole(val)
             if v5Running then stopV5(true) end
             if v6Running then stopV6(true) end
             startV3()
+            WindUI:Notify({Title = "黑洞V3", Content = "已开启", Duration = 2, Icon = "check"})
         elseif selectedBlackhole == "黑洞V4" then
             if h1Running then stopH1(true) end
             if h2Running then stopH2(true) end
@@ -725,6 +794,7 @@ local function toggleBlackhole(val)
             if v5Running then stopV5(true) end
             if v6Running then stopV6(true) end
             startV4()
+            WindUI:Notify({Title = "黑洞V4", Content = "已开启", Duration = 2, Icon = "check"})
         elseif selectedBlackhole == "黑洞V5" then
             if h1Running then stopH1(true) end
             if h2Running then stopH2(true) end
@@ -734,6 +804,7 @@ local function toggleBlackhole(val)
             if v4Running then stopV4(true) end
             if v6Running then stopV6(true) end
             startV5()
+            WindUI:Notify({Title = "黑洞V5", Content = "已开启", Duration = 2, Icon = "check"})
         elseif selectedBlackhole == "黑洞V6" then
             if h1Running then stopH1(true) end
             if h2Running then stopH2(true) end
@@ -743,6 +814,7 @@ local function toggleBlackhole(val)
             if v4Running then stopV4(true) end
             if v5Running then stopV5(true) end
             startV6()
+            WindUI:Notify({Title = "黑洞V6", Content = "已开启", Duration = 2, Icon = "check"})
         end
     else
         if h1Running then stopH1() end
@@ -753,7 +825,8 @@ local function toggleBlackhole(val)
         if v4Running then stopV4() end
         if v5Running then stopV5() end
         if v6Running then stopV6() end
-    endend
+    end
+end
 
 _G.HyggUI = _G.HyggUI or {}
 _G.HyggUI.toggleBlackholeH1 = function(val)
