@@ -47,7 +47,7 @@ return function(Window, WindUI)
         Title = "传送虚空",
         Icon = "skull",
         Callback = function()
-            teleportTo(Vector3.new(0, -100000, 0))
+            teleportTo(Vector3.new(0, 1000000000, 0))
         end,
     })
 
