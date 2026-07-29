@@ -8,11 +8,6 @@ return function(Window, WindUI)
             local success, err = pcall(function()
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/homelander-by-GioBolqv1-/refs/heads/main/homelander.lua"))()
             end)
-            if success then
-                WindUI:Notify({Title = "祖国人", Content = "已加载", Duration = 2, Icon = "check"})
-            else
-                WindUI:Notify({Title = "加载失败", Content = tostring(err), Duration = 3, Icon = "alert"})
-            end
         end,
     })
 
@@ -23,11 +18,6 @@ return function(Window, WindUI)
             local success, err = pcall(function()
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/invincible-characters-animations-by-GioBolqv1-/refs/heads/main/universal.lua"))()
             end)
-            if success then
-                WindUI:Notify({Title = "无敌少侠", Content = "已加载", Duration = 2, Icon = "check"})
-            else
-                WindUI:Notify({Title = "加载失败", Content = tostring(err), Duration = 3, Icon = "alert"})
-            end
         end,
     })
 
@@ -38,11 +28,6 @@ return function(Window, WindUI)
             local success, err = pcall(function()
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/A-Train-by-GioBolqv1-/refs/heads/main/train.lua"))()
             end)
-            if success then
-                WindUI:Notify({Title = "火车头", Content = "已加载", Duration = 2, Icon = "check"})
-            else
-                WindUI:Notify({Title = "加载失败", Content = tostring(err), Duration = 3, Icon = "alert"})
-            end
         end,
     })
 
