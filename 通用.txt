@@ -46,10 +46,8 @@ return function(Window, WindUI)
         end)
     end
 
-    ------------------ 建议开 分组 ------------------
     local suggestSection = tab:Section({Title = "建议开"})
 
-    -- 防踢
     local antiAFKEnabled = false
     suggestSection:Toggle({
         Title = "防踢",
@@ -73,10 +71,10 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 水上行走
     local waterCollisionEnabled = false
     local originalWaterSize = nil
     local originalWaterCollide = nil
+    local waterFollowConnection = nil
 
     suggestSection:Toggle({
         Title = "水上行走",
@@ -91,11 +89,27 @@ return function(Window, WindUI)
             if val then
                 originalWaterSize = water.Size
                 originalWaterCollide = water.CanCollide
+
                 water.CanCollide = true
                 water.Size = Vector3.new(1000, 1, 1000)
                 waterCollisionEnabled = true
-                WindUI:Notify({Title = "水上行走", Content = "已开启 (水面可站立)", Duration = 2, Icon = "check"})
+
+                if waterFollowConnection then waterFollowConnection:Disconnect() end
+                waterFollowConnection = RunService.Heartbeat:Connect(function()
+                    local char = LocalPlayer.Character
+                    local root = char and char:FindFirstChild("HumanoidRootPart")
+                    if root and water then
+                        water.Position = Vector3.new(root.Position.X, water.Position.Y, root.Position.Z)
+                    end
+                end)
+
+                WindUI:Notify({Title = "水上行走", Content = "已开启", Duration = 2, Icon = "check"})
             else
+                if waterFollowConnection then
+                    waterFollowConnection:Disconnect()
+                    waterFollowConnection = nil
+                end
+
                 if originalWaterSize then
                     water.Size = originalWaterSize
                 else
@@ -107,12 +121,12 @@ return function(Window, WindUI)
                     water.CanCollide = false
                 end
                 waterCollisionEnabled = false
+
                 WindUI:Notify({Title = "水上行走", Content = "已关闭", Duration = 2, Icon = "x"})
             end
         end,
     })
 
-    -- 防甩飞
     local antiPushConn = nil
     suggestSection:Toggle({
         Title = "防甩飞",
@@ -147,7 +161,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 防摔
     local function createNoFall()
         local con = nil
         local charCon = nil
@@ -205,7 +218,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 无限跳
     suggestSection:Toggle({
         Title = "无限跳",
         Value = false,
@@ -229,7 +241,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 去雾
     local originalLighting = {}
     local originalAtmosphere = {}
     suggestSection:Toggle({
@@ -285,7 +296,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 点击传送工具
     local tpTool = nil
     suggestSection:Toggle({
         Title = "点击传送工具",
@@ -346,7 +356,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 一键清屏
     suggestSection:Toggle({
         Title = "一键清屏",
         Value = false,
@@ -486,7 +495,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 岩石实体化
     suggestSection:Toggle({
         Title = "岩石实体化",
         Value = false,
@@ -516,7 +524,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 放置方块
     local blockGui = nil
     local autoPlace = false
     local autoPlacing = false
@@ -645,7 +652,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 移除灾害视角
     local disasterConn = nil
     suggestSection:Toggle({
         Title = "移除灾害视角",
@@ -683,11 +689,9 @@ return function(Window, WindUI)
         end,
     })
 
-    ------------------ 分割线 & 独立功能区 ------------------
     tab:Divider()
     tab:Section({Title = "独立功能"})
 
-    -- 穿墙 (已移至建议开下方)
     local NoclipEnabled = false
     local noclipConnection = nil
     local lastGroundY = 0
@@ -743,7 +747,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 透视玩家
     local espEnabled = false
     local espConnections = {}
     local playerAddedConn = nil
@@ -830,7 +833,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 飞行
     local flyEnabled = false
     local flyConnections = {}
     local flyBody = {}
@@ -906,7 +908,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 自动存活
     local tpConnection = nil
     tab:Toggle({
         Title = "自动存活",
@@ -930,7 +931,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 地图投票
     tab:Toggle({
         Title = "地图投票",
         Value = false,
@@ -958,7 +958,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 隐身
     local function playActionSound()
         local sound = Instance.new("Sound", LocalPlayer:WaitForChild("PlayerGui"))
         sound.SoundId = "rbxassetid://942127495"
@@ -1020,7 +1019,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 偷取所有物品
     local stealLoop = false
     local function stealAllItems()
         local count = 0
@@ -1070,7 +1068,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 移速跳高调整
     local speedJumpGuiObj = nil
     local speedHeartbeat = nil
     local jumpHeartbeat = nil
@@ -1411,7 +1408,6 @@ return function(Window, WindUI)
         end,
     })
 
-    -- 自杀按钮
     tab:Button({
         Title = "自杀",
         Callback = function()
