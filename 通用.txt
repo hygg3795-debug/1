@@ -747,6 +747,46 @@ return function(Window, WindUI)
         end,
     })
 
+    -- 锁定视角
+    local lockViewEnabled = false
+    local lockViewConnection = nil
+
+    tab:Toggle({
+        Title = "锁定视角",
+        Value = false,
+        Callback = function(val)
+            lockViewEnabled = val
+            
+            if val then
+                if lockViewConnection then 
+                    RunService:UnbindFromRenderStep("LockView")
+                    lockViewConnection = nil
+                end
+                
+                lockViewConnection = RunService:BindToRenderStep("LockView", Enum.RenderPriority.Camera.Value + 1, function()
+                    if not lockViewEnabled then return end
+                    local char = LocalPlayer.Character
+                    if not char then return end
+                    local root = char:FindFirstChild("HumanoidRootPart")
+                    if not root then return end
+                    local camDir = workspace.CurrentCamera.CFrame.LookVector
+                    local flatDir = Vector3.new(camDir.X, 0, camDir.Z)
+                    if flatDir.Magnitude > 0.01 then
+                        root.CFrame = CFrame.new(root.Position, root.Position + flatDir)
+                    end
+                end)
+                
+                WindUI:Notify({Title = "锁定视角", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                if lockViewConnection then
+                    RunService:UnbindFromRenderStep("LockView")
+                    lockViewConnection = nil
+                end
+                WindUI:Notify({Title = "锁定视角", Content = "已关闭", Duration = 2, Icon = "x"})
+            end
+        end,
+    })
+
     local espEnabled = false
     local espConnections = {}
     local playerAddedConn = nil
