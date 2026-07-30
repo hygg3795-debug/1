@@ -1,125 +1,151 @@
 return function(Window, WindUI)
-    local tab = Window:Tab({Title = "玩家", Icon = "users"})
-
-    local Players = game:GetService("Players")
-    local RunService = game:GetService("RunService")
-    local LocalPlayer = Players.LocalPlayer
-
-    local Module = {
-        state = {
-            smoothFollowEnabled = false,
-            targetPlayer = nil
-        }
-    }
-
-    local playerMap = {}
-    local function getPlayerNames()
-        local names = {}
-        playerMap = {}
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer then
-                local label = p.DisplayName .. " (@" .. p.Name .. ")"
-                table.insert(names, label)
-                playerMap[label] = p
+    local success, err = pcall(function()
+        print("玩家模块开始执行")
+        
+        -- 尝试多种方式创建Tab
+        local tab = nil
+        local createMethods = {"Tab", "AddTab", "CreateTab", "NewTab"}
+        
+        for _, method in ipairs(createMethods) do
+            if Window[method] then
+                tab = Window[method](Window, {Title = "玩家", Icon = "users"})
+                if tab then 
+                    print("Tab创建成功，使用方式: " .. method)
+                    break 
+                end
             end
         end
-        return names
-    end
-
-    local section = tab:Section({Title = "玩家控制", Box = true})
-
-    local playerDropdown = section:Dropdown({
-        Title = "选择目标玩家",
-        Values = getPlayerNames(),
-        Callback = function(selected)
-            Module.state.targetPlayer = playerMap[selected]
-        end,
-    })
-
-    local function refreshDropdown()
-        if playerDropdown and playerDropdown.SetValues then
-            playerDropdown:SetValues(getPlayerNames())
+        
+        if not tab then
+            error("无法创建玩家Tab，请检查WindUI版本")
         end
-    end
-    Players.PlayerAdded:Connect(refreshDropdown)
-    Players.PlayerRemoving:Connect(refreshDropdown)
 
-    local smoothFollowConnection = nil
-    local function startSmoothFollow()
-        if smoothFollowConnection then 
-            smoothFollowConnection:Disconnect()
-            smoothFollowConnection = nil
-        end
-        if not Module.state.smoothFollowEnabled then return end
-        if not Module.state.targetPlayer then
-            Module.state.smoothFollowEnabled = false
-            return
-        end
-        smoothFollowConnection = RunService.Heartbeat:Connect(function()
-            if not Module.state.smoothFollowEnabled then
-                if smoothFollowConnection then
-                    smoothFollowConnection:Disconnect()
-                    smoothFollowConnection = nil
+        local Players = game:GetService("Players")
+        local RunService = game:GetService("RunService")
+        local LocalPlayer = Players.LocalPlayer
+
+        local Module = {
+            state = {
+                smoothFollowEnabled = false,
+                targetPlayer = nil
+            }
+        }
+
+        local playerMap = {}
+        local function getPlayerNames()
+            local names = {}
+            playerMap = {}
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer then
+                    local label = p.DisplayName .. " (@" .. p.Name .. ")"
+                    table.insert(names, label)
+                    playerMap[label] = p
                 end
+            end
+            return names
+        end
+
+        local section = tab:Section({Title = "玩家控制", Box = true})
+
+        local playerDropdown = section:Dropdown({
+            Title = "选择目标玩家",
+            Values = getPlayerNames(),
+            Callback = function(selected)
+                Module.state.targetPlayer = playerMap[selected]
+            end,
+        })
+
+        local function refreshDropdown()
+            if playerDropdown and playerDropdown.SetValues then
+                playerDropdown:SetValues(getPlayerNames())
+            end
+        end
+        Players.PlayerAdded:Connect(refreshDropdown)
+        Players.PlayerRemoving:Connect(refreshDropdown)
+
+        local smoothFollowConnection = nil
+        local function startSmoothFollow()
+            if smoothFollowConnection then 
+                smoothFollowConnection:Disconnect()
+                smoothFollowConnection = nil
+            end
+            if not Module.state.smoothFollowEnabled then return end
+            if not Module.state.targetPlayer then
+                Module.state.smoothFollowEnabled = false
                 return
             end
-            local myChar = LocalPlayer.Character
-            if not myChar then return end
-            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-            if not myRoot then return end
-            local target = Module.state.targetPlayer
-            if not target or not target.Character then return end
-            local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
-            if not targetRoot then return end
-            local offset = targetRoot.CFrame.LookVector * -2.5
-            myRoot.CFrame = CFrame.new(targetRoot.Position + offset, targetRoot.Position)
-        end)
-    end
-
-    local function stopSmoothFollow()
-        Module.state.smoothFollowEnabled = false
-        if smoothFollowConnection then
-            smoothFollowConnection:Disconnect()
-            smoothFollowConnection = nil
+            smoothFollowConnection = RunService.Heartbeat:Connect(function()
+                if not Module.state.smoothFollowEnabled then
+                    if smoothFollowConnection then
+                        smoothFollowConnection:Disconnect()
+                        smoothFollowConnection = nil
+                    end
+                    return
+                end
+                local myChar = LocalPlayer.Character
+                if not myChar then return end
+                local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+                if not myRoot then return end
+                local target = Module.state.targetPlayer
+                if not target or not target.Character then return end
+                local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
+                if not targetRoot then return end
+                local offset = targetRoot.CFrame.LookVector * -2.5
+                myRoot.CFrame = CFrame.new(targetRoot.Position + offset, targetRoot.Position)
+            end)
         end
-    end
 
-    section:Toggle({
-        Title = "平滑跟随",
-        Value = false,
-        Callback = function(val)
-            if val then
+        local function stopSmoothFollow()
+            Module.state.smoothFollowEnabled = false
+            if smoothFollowConnection then
+                smoothFollowConnection:Disconnect()
+                smoothFollowConnection = nil
+            end
+        end
+
+        section:Toggle({
+            Title = "平滑跟随",
+            Value = false,
+            Callback = function(val)
+                if val then
+                    if not Module.state.targetPlayer then
+                        WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+                        return
+                    end
+                    Module.state.smoothFollowEnabled = true
+                    startSmoothFollow()
+                else
+                    stopSmoothFollow()
+                end
+            end,
+        })
+
+        section:Button({
+            Title = "传送至选中玩家",
+            Callback = function()
                 if not Module.state.targetPlayer then
                     WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
                     return
                 end
-                Module.state.smoothFollowEnabled = true
-                startSmoothFollow()
-            else
-                stopSmoothFollow()
-            end
-        end,
-    })
-
-    section:Button({
-        Title = "传送至选中玩家",
-        Callback = function()
-            if not Module.state.targetPlayer then
-                WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
-                return
-            end
-            local target = Module.state.targetPlayer
-            if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then
-                return
-            end
-            local myChar = LocalPlayer.Character
-            if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then
-                return
-            end
-            local targetPos = target.Character.HumanoidRootPart.Position
-            myChar.HumanoidRootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 0, 3))
-        end,
-    })
-
-    return tab
+                local target = Module.state.targetPlayer
+                if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then
+                    return
+                end
+                local myChar = LocalPlayer.Character
+                if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then
+                    return
+                end
+                local targetPos = target.Character.HumanoidRootPart.Position
+                myChar.HumanoidRootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 0, 3))
+            end,
+        })
+        
+        print("玩家模块加载完成 ✅")
+        return tab
+    end)
+    
+    if not success then
+        WindUI:Notify({Title = "玩家模块错误", Content = tostring(err), Duration = 3, Icon = "alert"})
+        print("玩家模块错误:", err)
+    end
 end
