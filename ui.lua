@@ -169,10 +169,10 @@ topbar.Position = UDim2.fromScale(Pos, 0.1)
 topbar.Size = UDim2.fromOffset(225, 38)
 topbar.Parent = revenant
 
--- ====== 彩虹边框部分 (粗细1.5) ======
+-- ====== 🌈 彩虹边框 (粗细1.5) ======
 local rainbowStroke = Instance.new("UIStroke")
 rainbowStroke.Name = "RainbowBorder"
-rainbowStroke.Thickness = 1.5  -- 👈 粗细设为1.5
+rainbowStroke.Thickness = 1.5
 rainbowStroke.Color = Color3.new(1, 1, 1)
 rainbowStroke.LineJoinMode = Enum.LineJoinMode.Round
 rainbowStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -190,6 +190,15 @@ rainbowGradient.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
 })
 rainbowGradient.Parent = rainbowStroke
+
+-- 彩虹旋转动画
+local currentAngle = 0
+game:GetService("RunService").RenderStepped:Connect(function(dt)
+    if rainbowStroke and rainbowStroke.Parent then
+        currentAngle = (currentAngle + dt * 150) % 360
+        rainbowGradient.Rotation = currentAngle
+    end
+end)
 -- ==================================
 
 local dragging
@@ -228,16 +237,6 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- ====== 彩虹边框动画 (旋转) ======
-local currentAngle = 0
-game:GetService("RunService").RenderStepped:Connect(function(dt)
-    if rainbowStroke and rainbowStroke.Parent then
-        currentAngle = (currentAngle + dt * 150) % 360
-        rainbowGradient.Rotation = currentAngle
-    end
-end)
--- ==================================
-
 local uICorner = Instance.new("UICorner")
 uICorner.Name = "UICorner"
 uICorner.CornerRadius = UDim.new(0, 4)
@@ -254,7 +253,7 @@ backgroundFrame.Position = UDim2.fromScale(0, 1)
 backgroundFrame.Size = UDim2.fromOffset(225, 0)
 backgroundFrame.Parent = topbar
 
--- 添加背景图片 (hygg风格)
+-- 🖼️ 背景图片 (hygg风格)
 local backgroundImage = Instance.new("ImageLabel")
 backgroundImage.Name = "BackgroundImage"
 backgroundImage.Image = "rbxassetid://84674071500810"
