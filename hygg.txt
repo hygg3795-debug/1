@@ -112,7 +112,6 @@ task.spawn(function()
     end)
 end)
 
--- 安全加载模块的函数
 local function safeLoadModule(url, moduleName)
     local success, result = pcall(function()
         local code = game:HttpGet(url)
@@ -124,7 +123,9 @@ local function safeLoadModule(url, moduleName)
     end)
     
     if success and result then
-        local execSuccess, execErr = pcall(result, Window, WindUI)
+        local execSuccess, execErr = pcall(function()
+            result(Window, WindUI)
+        end)
         if not execSuccess then
             WindUI:Notify({Title = moduleName .. "模块执行失败", Content = tostring(execErr), Duration = 3, Icon = "alert"})
             print(moduleName .. "模块执行错误:", execErr)
@@ -138,7 +139,6 @@ local function safeLoadModule(url, moduleName)
     end
 end
 
--- 加载所有模块
 safeLoadModule("https://hygg3795-debug.github.io/1/通用.txt", "通用")
 safeLoadModule("https://hygg3795-debug.github.io/1/传送.txt", "传送")
 safeLoadModule("https://hygg3795-debug.github.io/1/玩家.txt", "玩家")
