@@ -23,145 +23,274 @@ return function(Window, WindUI)
         local RunService = game:GetService("RunService")
         local Workspace = game:GetService("Workspace")
         local LocalPlayer = Players.LocalPlayer
-
-        local section = blackholeTab:Section({Title = "黑洞控制", Box = true})
+        local UserInputService = game:GetService("UserInputService")
 
         local parts = {}
-        local enabled = false
-        local con = nil
-        local partCon = nil
-        local removeCon = nil
-
-        local config = {
+        local enabled1 = false
+        local con1 = nil
+        local partCon1 = nil
+        local removeCon1 = nil
+        local config1 = {
             radius = 50,
             height = 100,
             rotationSpeed = 10,
             attractionStrength = 1000
         }
 
-        local function retainPart(part)
-            if part:IsA("BasePart") and not part.Anchored and part:IsDescendantOf(Workspace) then
-                if part.Parent == LocalPlayer.Character or part:IsDescendantOf(LocalPlayer.Character) then return false end
+        local hrPart = nil
+        local folder = nil
+        local part = nil
+        local attachment1 = nil
+        local enabled2 = false
+        local heartbeatCon2 = nil
+
+        local function retainPart1(p)
+            if p:IsA("BasePart") and not p.Anchored and p:IsDescendantOf(Workspace) then
+                if p.Parent == LocalPlayer.Character or p:IsDescendantOf(LocalPlayer.Character) then return false end
                 pcall(function()
-                    part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
-                    part.CanCollide = false
+                    p.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+                    p.CanCollide = false
                 end)
                 return true
             end
             return false
         end
 
-        local function addPart(part)
-            if retainPart(part) and not table.find(parts, part) then
-                table.insert(parts, part)
+        local function addPart1(p)
+            if retainPart1(p) and not table.find(parts, p) then
+                table.insert(parts, p)
             end
         end
 
-        local function removePart(part)
-            local idx = table.find(parts, part)
+        local function removePart1(p)
+            local idx = table.find(parts, p)
             if idx then table.remove(parts, idx) end
         end
 
-        local function refreshParts()
+        local function refreshParts1()
             parts = {}
-            for _, part in pairs(Workspace:GetDescendants()) do
-                addPart(part)
+            for _, p in pairs(Workspace:GetDescendants()) do
+                addPart1(p)
             end
         end
 
-        local function startBlackhole()
-            if con then return end
-            enabled = true
-            refreshParts()
+        local function startH1()
+            if con1 then return end
+            enabled1 = true
+            refreshParts1()
             
-            if partCon then partCon:Disconnect() end
-            partCon = Workspace.DescendantAdded:Connect(addPart)
+            if partCon1 then partCon1:Disconnect() end
+            partCon1 = Workspace.DescendantAdded:Connect(addPart1)
             
-            if removeCon then removeCon:Disconnect() end
-            removeCon = Workspace.DescendantRemoving:Connect(removePart)
+            if removeCon1 then removeCon1:Disconnect() end
+            removeCon1 = Workspace.DescendantRemoving:Connect(removePart1)
 
-            con = RunService.Heartbeat:Connect(function()
-                if not enabled then return end
+            con1 = RunService.Heartbeat:Connect(function()
+                if not enabled1 then return end
                 local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
                 if not root then return end
                 local center = root.Position
-                for _, part in pairs(parts) do
-                    if part.Parent and not part.Anchored then
-                        local pos = part.Position
+                for _, p in pairs(parts) do
+                    if p.Parent and not p.Anchored then
+                        local pos = p.Position
                         local dist = (Vector3.new(pos.X, center.Y, pos.Z) - center).Magnitude
                         local angle = math.atan2(pos.Z - center.Z, pos.X - center.X)
-                        local newAngle = angle + math.rad(config.rotationSpeed)
+                        local newAngle = angle + math.rad(config1.rotationSpeed)
                         local targetPos = Vector3.new(
-                            center.X + math.cos(newAngle) * math.min(config.radius, dist),
-                            center.Y + (config.height * (math.abs(math.sin((pos.Y - center.Y) / config.height)))),
-                            center.Z + math.sin(newAngle) * math.min(config.radius, dist)
+                            center.X + math.cos(newAngle) * math.min(config1.radius, dist),
+                            center.Y + (config1.height * (math.abs(math.sin((pos.Y - center.Y) / config1.height)))),
+                            center.Z + math.sin(newAngle) * math.min(config1.radius, dist)
                         )
-                        local dir = (targetPos - part.Position).unit
-                        part.Velocity = dir * config.attractionStrength
+                        local dir = (targetPos - p.Position).unit
+                        p.Velocity = dir * config1.attractionStrength
                     end
                 end
             end)
         end
 
-        local function stopBlackhole()
-            enabled = false
-            if con then con:Disconnect() con = nil end
-            if partCon then partCon:Disconnect() partCon = nil end
-            if removeCon then removeCon:Disconnect() removeCon = nil end
+        local function stopH1()
+            enabled1 = false
+            if con1 then con1:Disconnect() con1 = nil end
+            if partCon1 then partCon1:Disconnect() partCon1 = nil end
+            if removeCon1 then removeCon1:Disconnect() removeCon1 = nil end
             parts = {}
         end
 
-        local toggleControl = section:Toggle({
-            Title = "开启黑洞",
+        local function setupH2()
+            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            hrPart = character:WaitForChild("HumanoidRootPart")
+            
+            folder = Instance.new("Folder", Workspace)
+            part = Instance.new("Part", folder)
+            attachment1 = Instance.new("Attachment", part)
+            part.Anchored = true
+            part.CanCollide = false
+            part.Transparency = 1
+            
+            if not getgenv().Network then
+                getgenv().Network = {
+                    BaseParts = {},
+                    Velocity = Vector3.new(14.46262424, 14.46262424, 14.46262424)
+                }
+
+                Network.RetainPart = function(p)
+                    if typeof(p) == "Instance" and p:IsA("BasePart") and p:IsDescendantOf(Workspace) then
+                        table.insert(Network.BaseParts, p)
+                        p.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+                        p.CanCollide = false
+                    end
+                end
+
+                local function EnablePartControl()
+                    LocalPlayer.ReplicationFocus = Workspace
+                    RunService.Heartbeat:Connect(function()
+                        sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
+                        for _, p in pairs(Network.BaseParts) do
+                            if p:IsDescendantOf(Workspace) then
+                                p.Velocity = Network.Velocity
+                            end
+                        end
+                    end)
+                end
+
+                EnablePartControl()
+            end
+        end
+
+        local function ForcePart(v)
+            if v:IsA("Part") and not v.Anchored and not v.Parent:FindFirstChild("Humanoid") and not v.Parent:FindFirstChild("Head") and v.Name ~= "Handle" then
+                for _, x in next, v:GetChildren() do
+                    if x:IsA("BodyAngularVelocity") or x:IsA("BodyForce") or x:IsA("BodyGyro") or x:IsA("BodyPosition") or x:IsA("BodyThrust") or x:IsA("BodyVelocity") or x:IsA("RocketPropulsion") then
+                        x:Destroy()
+                    end
+                end
+                if v:FindFirstChild("Attachment") then
+                    v:FindFirstChild("Attachment"):Destroy()
+                end
+                if v:FindFirstChild("AlignPosition") then
+                    v:FindFirstChild("AlignPosition"):Destroy()
+                end
+                if v:FindFirstChild("Torque") then
+                    v:FindFirstChild("Torque"):Destroy()
+                end
+                v.CanCollide = false
+                local Torque = Instance.new("Torque", v)
+                Torque.Torque = Vector3.new(100000, 100000, 100000)
+                local AlignPosition = Instance.new("AlignPosition", v)
+                local Attachment2 = Instance.new("Attachment", v)
+                Torque.Attachment0 = Attachment2
+                AlignPosition.MaxForce = 9999999999999999
+                AlignPosition.MaxVelocity = math.huge
+                AlignPosition.Responsiveness = 200
+                AlignPosition.Attachment0 = Attachment2
+                AlignPosition.Attachment1 = attachment1
+            end
+        end
+
+        local function startH2()
+            if enabled2 then return end
+            enabled2 = true
+            setupH2()
+            
+            for _, v in next, Workspace:GetDescendants() do
+                ForcePart(v)
+            end
+
+            Workspace.DescendantAdded:Connect(function(v)
+                if enabled2 then
+                    ForcePart(v)
+                end
+            end)
+
+            heartbeatCon2 = RunService.Heartbeat:Connect(function()
+                if enabled2 and attachment1 and hrPart then
+                    attachment1.WorldCFrame = hrPart.CFrame
+                end
+            end)
+        end
+
+        local function stopH2()
+            enabled2 = false
+            if heartbeatCon2 then
+                heartbeatCon2:Disconnect()
+                heartbeatCon2 = nil
+            end
+            if folder then
+                folder:Destroy()
+                folder = nil
+            end
+            hrPart = nil
+            attachment1 = nil
+            part = nil
+        end
+
+        local list = blackholeTab:List({Title = "黑洞列表", Box = true})
+
+        local h1Item = list:Item({Title = "H1"})
+        local h1Toggle = h1Item:Toggle({
+            Title = "开启H1",
             Value = false,
             Callback = function(val)
                 if val then
-                    startBlackhole()
-                    WindUI:Notify({Title = "黑洞", Content = "已开启", Duration = 2, Icon = "check"})
+                    startH1()
+                    WindUI:Notify({Title = "H1", Content = "已开启", Duration = 2, Icon = "check"})
+                    local settingsTab = Window:AddTab({Title = "H1设置", Icon = "settings"})
+                    local settingsSection = settingsTab:Section({Title = "H1参数", Box = true})
+                    settingsSection:Slider({
+                        Title = "半径",
+                        Value = config1.radius,
+                        Min = 0,
+                        Max = 500,
+                        Callback = function(val)
+                            config1.radius = val
+                        end,
+                    })
+                    settingsSection:Slider({
+                        Title = "高度",
+                        Value = config1.height,
+                        Min = 0,
+                        Max = 500,
+                        Callback = function(val)
+                            config1.height = val
+                        end,
+                    })
+                    settingsSection:Slider({
+                        Title = "转速",
+                        Value = config1.rotationSpeed,
+                        Min = 0,
+                        Max = 200,
+                        Callback = function(val)
+                            config1.rotationSpeed = val
+                        end,
+                    })
+                    settingsSection:Slider({
+                        Title = "吸力",
+                        Value = config1.attractionStrength,
+                        Min = 0,
+                        Max = 50000,
+                        Callback = function(val)
+                            config1.attractionStrength = val
+                        end,
+                    })
                 else
-                    stopBlackhole()
-                    WindUI:Notify({Title = "黑洞", Content = "已关闭", Duration = 2, Icon = "x"})
+                    stopH1()
+                    WindUI:Notify({Title = "H1", Content = "已关闭", Duration = 2, Icon = "x"})
                 end
             end,
         })
 
-        section:Slider({
-            Title = "半径",
-            Value = 50,
-            Min = 0,
-            Max = 500,
+        local h2Item = list:Item({Title = "H2"})
+        local h2Toggle = h2Item:Toggle({
+            Title = "开启H2",
+            Value = false,
             Callback = function(val)
-                config.radius = val
-            end,
-        })
-
-        section:Slider({
-            Title = "高度",
-            Value = 100,
-            Min = 0,
-            Max = 500,
-            Callback = function(val)
-                config.height = val
-            end,
-        })
-
-        section:Slider({
-            Title = "转速",
-            Value = 10,
-            Min = 0,
-            Max = 200,
-            Callback = function(val)
-                config.rotationSpeed = val
-            end,
-        })
-
-        section:Slider({
-            Title = "吸力",
-            Value = 1000,
-            Min = 0,
-            Max = 50000,
-            Callback = function(val)
-                config.attractionStrength = val
+                if val then
+                    startH2()
+                    WindUI:Notify({Title = "H2", Content = "已开启", Duration = 2, Icon = "check"})
+                else
+                    stopH2()
+                    WindUI:Notify({Title = "H2", Content = "已关闭", Duration = 2, Icon = "x"})
+                end
             end,
         })
 
