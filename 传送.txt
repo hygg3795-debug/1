@@ -1,97 +1,122 @@
 return function(Window, WindUI)
-    local Players = game:GetService("Players")
-    local RunService = game:GetService("RunService")
-    local UserInputService = game:GetService("UserInputService")
-    local LocalPlayer = Players.LocalPlayer
-
-    local teleportTab = Window:Tab({Title = "传送", Icon = "map-pin"})
-    local section = teleportTab:Section({Title = "坐标传送", Box = true})
-
-    local coordLabel = nil
-    local inputBox = nil
-    local heartbeatConnection = nil
-    local coordGui = nil
-
-    local function parseCoords(input)
-        local parts = {}
-        for part in input:gmatch("[^,，%s]+") do
-            local num = tonumber(part)
-            if num then table.insert(parts, num) end
+    local success, err = pcall(function()
+        print("传送模块开始执行")
+        
+        local teleportTab = nil
+        local createMethods = {"Tab", "AddTab", "CreateTab", "NewTab"}
+        
+        for _, method in ipairs(createMethods) do
+            if Window[method] then
+                teleportTab = Window[method](Window, {Title = "传送", Icon = "map-pin"})
+                if teleportTab then 
+                    print("传送Tab创建成功，使用方式: " .. method)
+                    break 
+                end
+            end
         end
-        if #parts >= 3 then
-            return parts[1], parts[2], parts[3]
+        
+        if not teleportTab then
+            error("无法创建传送Tab，请检查WindUI版本")
         end
-        return nil, nil, nil
-    end
 
-    local function teleportTo(pos)
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            char.HumanoidRootPart.CFrame = CFrame.new(pos)
+        local Players = game:GetService("Players")
+        local RunService = game:GetService("RunService")
+        local UserInputService = game:GetService("UserInputService")
+        local LocalPlayer = Players.LocalPlayer
+
+        local section = teleportTab:Section({Title = "坐标传送", Box = true})
+
+        local coordLabel = nil
+        local inputBox = nil
+        local heartbeatConnection = nil
+        local inputValue = ""
+
+        local function parseCoords(input)
+            local parts = {}
+            for part in input:gmatch("[^,，%s]+") do
+                local num = tonumber(part)
+                if num then table.insert(parts, num) end
+            end
+            if #parts >= 3 then
+                return parts[1], parts[2], parts[3]
+            end
+            return nil, nil, nil
         end
-    end
 
-    local function copyToClipboard(text)
-        if setclipboard then
-            setclipboard(text)
-            WindUI:Notify({Title = "复制成功", Content = text, Duration = 2, Icon = "check"})
-        else
-            WindUI:Notify({Title = "复制失败", Content = "当前环境不支持复制", Duration = 2, Icon = "x"})
+        local function teleportTo(pos)
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = CFrame.new(pos)
+            end
         end
-    end
 
-    local function updateCoordDisplay()
-        if not coordLabel then return end
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            local pos = char.HumanoidRootPart.Position
-            coordLabel.Text = string.format("X: %.2f  Y: %.2f  Z: %.2f", pos.X, pos.Y, pos.Z)
+        local function copyToClipboard(text)
+            if setclipboard then
+                setclipboard(text)
+                WindUI:Notify({Title = "复制成功", Content = text, Duration = 2, Icon = "check"})
+            else
+                WindUI:Notify({Title = "复制失败", Content = "当前环境不支持复制", Duration = 2, Icon = "x"})
+            end
         end
-    end
 
-    coordLabel = section:Label({
-        Title = "X: 0.00  Y: 0.00  Z: 0.00",
-    })
-
-    inputBox = section:Input({
-        Title = "输入坐标",
-        Placeholder = "例如: 100, 200, 300",
-        Callback = function(text)
-        end
-    })
-
-    section:Button({
-        Title = "复制坐标",
-        Callback = function()
+        local function updateCoordDisplay()
+            if not coordLabel then return end
             local char = LocalPlayer.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
                 local pos = char.HumanoidRootPart.Position
-                local coordText = string.format("%.2f,%.2f,%.2f", pos.X, pos.Y, pos.Z)
-                copyToClipboard(coordText)
+                coordLabel.Text = string.format("X: %.2f  Y: %.2f  Z: %.2f", pos.X, pos.Y, pos.Z)
             end
-        end,
-    })
+        end
 
-    section:Button({
-        Title = "传送",
-        Callback = function()
-            if not inputBox then return end
-            local text = inputBox:GetValue() or ""
-            if text == "" then
-                WindUI:Notify({Title = "提示", Content = "请先输入坐标", Duration = 2, Icon = "alert"})
-                return
+        coordLabel = section:Label({
+            Title = "X: 0.00  Y: 0.00  Z: 0.00",
+        })
+
+        inputBox = section:Input({
+            Title = "输入坐标",
+            Placeholder = "例如: 100, 200, 300",
+            Callback = function(text)
+                inputValue = text
             end
-            local x, y, z = parseCoords(text)
-            if not x or not y or not z then
-                WindUI:Notify({Title = "格式错误", Content = "请输入如: 100,200,300", Duration = 2, Icon = "alert"})
-                return
-            end
-            teleportTo(Vector3.new(x, y, z))
-        end,
-    })
+        })
 
-    if heartbeatConnection then heartbeatConnection:Disconnect() end
-    heartbeatConnection = RunService.Heartbeat:Connect(updateCoordDisplay)
+        section:Button({
+            Title = "复制坐标",
+            Callback = function()
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local pos = char.HumanoidRootPart.Position
+                    local coordText = string.format("%.2f,%.2f,%.2f", pos.X, pos.Y, pos.Z)
+                    copyToClipboard(coordText)
+                end
+            end,
+        })
 
-    return teleportTab
+        section:Button({
+            Title = "传送",
+            Callback = function()
+                if inputValue == "" then
+                    WindUI:Notify({Title = "提示", Content = "请先输入坐标", Duration = 2, Icon = "alert"})
+                    return
+                end
+                local x, y, z = parseCoords(inputValue)
+                if not x or not y or not z then
+                    WindUI:Notify({Title = "格式错误", Content = "请输入如: 100,200,300", Duration = 2, Icon = "alert"})
+                    return
+                end
+                teleportTo(Vector3.new(x, y, z))
+            end,
+        })
+
+        if heartbeatConnection then heartbeatConnection:Disconnect() end
+        heartbeatConnection = RunService.Heartbeat:Connect(updateCoordDisplay)
+
+        print("传送模块加载完成 ✅")
+        return teleportTab
+    end)
+    
+    if not success then
+        WindUI:Notify({Title = "传送模块错误", Content = tostring(err), Duration = 3, Icon = "alert"})
+        print("传送模块错误:", err)
+    end
 end
