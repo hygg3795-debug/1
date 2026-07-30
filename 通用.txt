@@ -323,7 +323,6 @@ return function(Window, WindUI)
                 end)
 
                 if not ok then
-                    -- Silent error
                 end
             else
                 if tpTool then
@@ -463,7 +462,6 @@ return function(Window, WindUI)
                 end)
 
                 if not ok then
-                    -- Silent error
                 end
             else
                 local PlayerGui = LocalPlayer:FindFirstChild("PlayerGui")
@@ -1444,6 +1442,187 @@ return function(Window, WindUI)
                 if speedJumpGuiObj then
                     speedJumpGuiObj:Destroy()
                     speedJumpGuiObj = nil
+                end
+            end
+        end,
+    })
+
+    local carFlyEnabled = false
+    local carFlyUI = nil
+    local carFlyBodyVelocity = nil
+    local carFlyBodyGyro = nil
+    local carFlyBodyPosition = nil
+    local carFlyMoveConnection = nil
+    local carFlyUpPressed = false
+    local carFlyDownPressed = false
+    local carFlySpeed = 100
+    local carFlyUpDownConnection = nil
+
+    local function createCarFlyUI()
+        if carFlyUI then return end
+        
+        local screenGui = Instance.new("ScreenGui")
+        screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+        screenGui.Name = "CarFlyGui"
+        screenGui.ResetOnSpawn = false
+        carFlyUI = screenGui
+        
+        local frame = Instance.new("Frame")
+        frame.Parent = screenGui
+        frame.Size = UDim2.new(0, 125, 0, 100)
+        frame.Position = UDim2.new(0.5, -62, 0.5, -50)
+        frame.BackgroundTransparency = 1
+        frame.Active = true
+        frame.Draggable = true
+        
+        local function createButton(text, xPos, yPos, color, w, h)
+            local btn = Instance.new("TextButton")
+            btn.Parent = frame
+            btn.Size = UDim2.new(0, w or 50, 0, h or 30)
+            btn.Position = UDim2.new(0, xPos, 0, yPos)
+            btn.BackgroundColor3 = color
+            btn.Text = text
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.Font = Enum.Font.GothamBold
+            btn.TextSize = 15
+            btn.AutoButtonColor = false
+            local c = Instance.new("UICorner")
+            c.CornerRadius = UDim.new(0, 6)
+            c.Parent = btn
+            return btn
+        end
+        
+        local flyBtn = createButton("飞", 0, 5, Color3.fromRGB(0, 180, 0), 48, 28)
+        local stopBtn = createButton("停", 0, 36, Color3.fromRGB(180, 0, 0), 48, 28)
+        local closeBtn = createButton("关", 0, 67, Color3.fromRGB(200, 50, 50), 48, 28)
+        local upBtn = createButton("↑", 77, 5, Color3.fromRGB(0, 100, 255), 48, 42)
+        local downBtn = createButton("↓", 77, 50, Color3.fromRGB(0, 100, 255), 48, 42)
+        
+        local function startCarFly()
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+            
+            if carFlyBodyVelocity then carFlyBodyVelocity:Destroy() end
+            if carFlyBodyGyro then carFlyBodyGyro:Destroy() end
+            if carFlyBodyPosition then carFlyBodyPosition:Destroy() end
+            if carFlyMoveConnection then carFlyMoveConnection:Disconnect() end
+            
+            carFlyBodyVelocity = Instance.new("BodyVelocity", root)
+            carFlyBodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            carFlyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            
+            carFlyBodyGyro = Instance.new("BodyGyro", root)
+            carFlyBodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+            carFlyBodyGyro.D = 5000
+            carFlyBodyGyro.P = 50000
+            carFlyBodyGyro.CFrame = workspace.CurrentCamera.CFrame
+            
+            carFlyBodyPosition = Instance.new("BodyPosition", root)
+            carFlyBodyPosition.MaxForce = Vector3.new(0, math.huge, 0)
+            carFlyBodyPosition.Position = root.Position
+            carFlyBodyPosition.D = 20000
+            carFlyBodyPosition.P = 200000
+            
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            
+            carFlyMoveConnection = RunService.Heartbeat:Connect(function()
+                if not carFlyEnabled or not carFlyBodyVelocity then return end
+                local charNow = LocalPlayer.Character
+                local rootNow = charNow and charNow:FindFirstChild("HumanoidRootPart")
+                local humNow = charNow and charNow:FindFirstChildOfClass("Humanoid")
+                if not rootNow or not humNow then return end
+                
+                local moveDir = humNow.MoveDirection
+                if moveDir.Magnitude > 0 then
+                    rootNow.Anchored = false
+                    carFlyBodyVelocity.Velocity = moveDir * carFlySpeed
+                else
+                    carFlyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+                end
+            end)
+        end
+        
+        local function stopCarFly()
+            if carFlyBodyVelocity then carFlyBodyVelocity:Destroy() carFlyBodyVelocity = nil end
+            if carFlyBodyGyro then carFlyBodyGyro:Destroy() carFlyBodyGyro = nil end
+            if carFlyBodyPosition then carFlyBodyPosition:Destroy() carFlyBodyPosition = nil end
+            if carFlyMoveConnection then carFlyMoveConnection:Disconnect() carFlyMoveConnection = nil end
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if root then root.Anchored = false end
+        end
+        
+        local function closeCarFlyUI()
+            stopCarFly()
+            if carFlyUI then
+                carFlyUI:Destroy()
+                carFlyUI = nil
+            end
+            carFlyEnabled = false
+        end
+        
+        flyBtn.MouseButton1Click:Connect(startCarFly)
+        stopBtn.MouseButton1Click:Connect(stopCarFly)
+        closeBtn.MouseButton1Click:Connect(closeCarFlyUI)
+        
+        upBtn.MouseButton1Down:Connect(function()
+            carFlyUpPressed = true
+        end)
+        upBtn.MouseButton1Up:Connect(function()
+            carFlyUpPressed = false
+        end)
+        upBtn.MouseLeave:Connect(function()
+            carFlyUpPressed = false
+        end)
+        
+        downBtn.MouseButton1Down:Connect(function()
+            carFlyDownPressed = true
+        end)
+        downBtn.MouseButton1Up:Connect(function()
+            carFlyDownPressed = false
+        end)
+        downBtn.MouseLeave:Connect(function()
+            carFlyDownPressed = false
+        end)
+        
+        if carFlyUpDownConnection then carFlyUpDownConnection:Disconnect() end
+        carFlyUpDownConnection = RunService.RenderStepped:Connect(function()
+            if not carFlyEnabled or not carFlyBodyPosition then return end
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+            
+            local pos = root.Position
+            if carFlyUpPressed then
+                carFlyBodyPosition.Position = Vector3.new(pos.X, pos.Y + carFlySpeed * 2.5, pos.Z)
+            elseif carFlyDownPressed then
+                carFlyBodyPosition.Position = Vector3.new(pos.X, pos.Y - carFlySpeed * 2.5, pos.Z)
+            else
+                carFlyBodyPosition.Position = Vector3.new(pos.X, pos.Y, pos.Z)
+            end
+        end)
+    end
+
+    tab:Toggle({
+        Title = "飞车",
+        Value = false,
+        Callback = function(val)
+            carFlyEnabled = val
+            if val then
+                createCarFlyUI()
+            else
+                if carFlyBodyVelocity then carFlyBodyVelocity:Destroy() carFlyBodyVelocity = nil end
+                if carFlyBodyGyro then carFlyBodyGyro:Destroy() carFlyBodyGyro = nil end
+                if carFlyBodyPosition then carFlyBodyPosition:Destroy() carFlyBodyPosition = nil end
+                if carFlyMoveConnection then carFlyMoveConnection:Disconnect() carFlyMoveConnection = nil end
+                if carFlyUpDownConnection then carFlyUpDownConnection:Disconnect() carFlyUpDownConnection = nil end
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if root then root.Anchored = false end
+                if carFlyUI then
+                    carFlyUI:Destroy()
+                    carFlyUI = nil
                 end
             end
         end,
