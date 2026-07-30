@@ -49,6 +49,9 @@ return function(Window, WindUI)
                 targetPlayer = playerMap[selected]
                 print("已选择目标:", targetPlayer and targetPlayer.Name or "无")
             end,
+            OnOpen = function()
+                playerDropdown:SetValues(getPlayerNames())
+            end
         })
 
         local function refreshDropdown()
@@ -122,6 +125,13 @@ return function(Window, WindUI)
                 local targetPos = target.Character.HumanoidRootPart.Position
                 myChar.HumanoidRootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 0, 3))
             end,
+        })
+
+        section:Button({
+            Title = "r15道馆",
+            Callback = function()
+                SafeLoad("https://pastefy.app/YZoglOyJ/raw", "r15道馆")
+            end
         })
 
         local suckConnection = nil
