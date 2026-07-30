@@ -752,4 +752,438 @@ dropdownButton.MouseButton1Click:Connect(function()
     TweenService:Create(dropdownContainerButton, TweenInfo.new(.1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Rotation = Opened and 180 or 0}):Play()
     
     backgroundFrame.ClipsDescendants = false
-    TweenService:Create(dropdownContainerBackground, TweenInfo.new(.15, Enum.EasingStyle.Linear, Enum.Easing
+    TweenService:Create(dropdownContainerBackground, TweenInfo.new(.15, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {Size = Opened and UDim2.new(0, 225,0,DropdownSize) or UDim2.new(0, 225, 0, 0)}):Play()
+    TweenService:Create(dropdownContainer, TweenInfo.new(.15, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {Size = Opened and UDim2.new(0, 225,0,DropdownSize) or UDim2.new(0, 225, 0, 0)}):Play()
+    dropdownFixLine1.Visible = Opened
+end)
+
+function insidedropdown:Button(Info2)
+Info2.Text = Info2.Text or "Option"
+
+local buttonDropdown = Instance.new("Frame")
+buttonDropdown.Name = "ButtonDropdown"
+buttonDropdown.BackgroundColor3 = Color3.fromRGB(36, 36, 36)
+buttonDropdown.Size = UDim2.fromOffset(225, 27)
+buttonDropdown.ZIndex = 3
+buttonDropdown.Parent = dropdownContainer
+
+local dropdownButtonTextButton = Instance.new("TextButton")
+dropdownButtonTextButton.Name = "DropdownButtonTextButton"
+dropdownButtonTextButton.Font = Enum.Font.SourceSans
+dropdownButtonTextButton.Text = ""
+dropdownButtonTextButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+dropdownButtonTextButton.TextSize = 14
+dropdownButtonTextButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+dropdownButtonTextButton.BackgroundTransparency = 1
+dropdownButtonTextButton.Size = UDim2.fromOffset(225, 27)
+dropdownButtonTextButton.ZIndex = 2
+dropdownButtonTextButton.Parent = buttonDropdown
+
+local dropdown2Text = Instance.new("TextLabel")
+dropdown2Text.Name = "DropdownText"
+dropdown2Text.Font = Enum.Font.GothamBold
+dropdown2Text.Text = Info2.Text
+dropdown2Text.TextColor3 = Color3.fromRGB(214, 214, 214)
+dropdown2Text.TextSize = 12
+dropdown2Text.TextXAlignment = Enum.TextXAlignment.Left
+dropdown2Text.Active = true
+dropdown2Text.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+dropdown2Text.BackgroundTransparency = 1
+dropdown2Text.Position = UDim2.fromScale(0.0489, 0)
+dropdown2Text.Size = UDim2.fromOffset(214, 27)
+dropdown2Text.ZIndex = 3
+dropdown2Text.Parent = buttonDropdown
+
+local dropdownButtonUICorner = Instance.new("UICorner")
+dropdownButtonUICorner.Name = "DropdownButtonUICorner"
+dropdownButtonUICorner.CornerRadius = UDim.new(0, 4)
+dropdownButtonUICorner.Parent = buttonDropdown
+
+buttonDropdown.MouseEnter:Connect(function()
+    buttonDropdown.BackgroundColor3 = Color3.fromRGB(44, 44, 44)
+end)
+
+buttonDropdown.MouseLeave:Connect(function()
+    buttonDropdown.BackgroundColor3 = Color3.fromRGB(36, 36, 36)
+end)
+
+WindowOpened:GetPropertyChangedSignal("Value"):Connect(function()
+    if not WindowOpened.Value and dropdownContainerBackground.Visible then
+    Opened = false
+    
+    dropdownContainerButton.Rotation = 0
+    
+    dropdownContainerBackground.Size = UDim2.new(0,225,0,0)
+    dropdownContainer.Size = UDim2.new(0,225,0,0)
+    backgroundFrame.ClipsDescendants = false
+    dropdownFixLine1.Visible = false
+    end
+end)
+
+dropdownButtonTextButton.MouseButton1Click:Connect(function()
+    pcall(Info.Callback, Info2.Text)
+    dropdownText.Text = Info2.Text
+    
+    Opened = false
+    
+    TweenService:Create(dropdownContainerButton, TweenInfo.new(.15, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {Rotation = 0}):Play()
+    TweenService:Create(dropdownContainerBackground, TweenInfo.new(.15, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {Size = UDim2.new(0, 225, 0, 0)}):Play()
+    TweenService:Create(dropdownContainer, TweenInfo.new(.15, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {Size = UDim2.new(0, 225, 0, 0)}):Play()
+    dropdownFixLine1.Visible = false
+end)
+end
+
+dropdownContainer.ChildAdded:Connect(function(v)
+    if v.ClassName ~= "UIListLayout" then
+        DropdownSize = DropdownSize + 27
+    end
+end)
+
+for _,item in pairs(Info.List) do
+    insidedropdown:Button({
+        Text = item
+    })
+end
+
+return insidedropdown
+end
+
+function insidewindow:Keybind(Info)
+Info.Text = Info.Text or "Keybind"
+Info.Default = Info.Default or Enum.KeyCode.LeftAlt
+Info.Callback = Info.Callback or function() end
+
+local PressKey = Info.Default
+    
+local keybind = Instance.new("Frame")
+keybind.Name = "Keybind"
+keybind.BackgroundColor3 = Color3.fromRGB(36, 36, 36)
+keybind.Size = UDim2.fromOffset(225, 38)
+keybind.Parent = itemContainer
+
+local keybindUICorner = Instance.new("UICorner")
+keybindUICorner.Name = "KeybindUICorner"
+keybindUICorner.CornerRadius = UDim.new(0, 4)
+keybindUICorner.Parent = keybind
+
+local keybindFixLine = Instance.new("Frame")
+keybindFixLine.Name = "KeybindFixLine"
+keybindFixLine.AnchorPoint = Vector2.new(0.5, 1)
+keybindFixLine.BackgroundColor3 = Color3.fromRGB(36, 36, 36)
+keybindFixLine.BorderSizePixel = 0
+keybindFixLine.Position = UDim2.fromScale(0.5, 0.0526)
+keybindFixLine.Size = UDim2.fromOffset(225, 4)
+keybindFixLine.Parent = keybind
+
+local keybindButton = Instance.new("TextButton")
+keybindButton.Name = "KeybindButton"
+keybindButton.Font = Enum.Font.GothamBold
+keybindButton.Text = ""
+keybindButton.TextColor3 = Color3.fromRGB(214, 214, 214)
+keybindButton.TextSize = 13
+keybindButton.AutoButtonColor = false
+keybindButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+keybindButton.BackgroundTransparency = 1
+keybindButton.Size = UDim2.fromOffset(225, 38)
+keybindButton.Parent = keybind
+
+local keybindTextLabel = Instance.new("TextLabel")
+keybindTextLabel.Name = "KeybindTextLabel"
+keybindTextLabel.Font = Enum.Font.GothamBold
+keybindTextLabel.Text = Info.Text
+keybindTextLabel.TextColor3 = Color3.fromRGB(214, 214, 214)
+keybindTextLabel.TextSize = 13
+keybindTextLabel.TextXAlignment = Enum.TextXAlignment.Left
+keybindTextLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+keybindTextLabel.BackgroundTransparency = 1
+keybindTextLabel.Position = UDim2.fromScale(0.0489, 0)
+keybindTextLabel.Size = UDim2.fromOffset(214, 38)
+keybindTextLabel.Parent = keybind
+
+local keybindFixHolder = Instance.new("Frame")
+keybindFixHolder.Name = "KeybindFixHolder"
+keybindFixHolder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+keybindFixHolder.BackgroundTransparency = 1
+keybindFixHolder.Position = UDim2.fromScale(0, 0.263)
+keybindFixHolder.Size = UDim2.fromOffset(214, 17)
+keybindFixHolder.Parent = keybind
+
+local keybindHolder = Instance.new("Frame")
+keybindHolder.Name = "KeybindHolder"
+keybindHolder.AnchorPoint = Vector2.new(1, 0.5)
+keybindHolder.BackgroundColor3 = Color3.fromRGB(62, 62, 62)
+keybindHolder.BorderSizePixel = 0
+keybindHolder.Position = UDim2.fromScale(1, 0.5)
+keybindHolder.Size = UDim2.fromOffset(38, 17)
+keybindHolder.Parent = keybindFixHolder
+
+local keybindHolderUICorner = Instance.new("UICorner")
+keybindHolderUICorner.Name = "KeybindHolderUICorner"
+keybindHolderUICorner.CornerRadius = UDim.new(0, 4)
+keybindHolderUICorner.Parent = keybindHolder
+
+local keybindText = Instance.new("TextLabel")
+keybindText.Name = "KeybindText"
+keybindText.Font = Enum.Font.GothamBold
+keybindText.Text = PressKey.Name
+keybindText.TextColor3 = Color3.fromRGB(214, 214, 214)
+keybindText.TextSize = 12
+keybindText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+keybindText.BackgroundTransparency = 1
+keybindText.Size = UDim2.fromOffset(38, 17)
+keybindText.Parent = keybindHolder
+
+keybind.MouseEnter:Connect(function()
+    keybindFixLine.BackgroundColor3 = Color3.fromRGB(44, 44, 44)
+    keybind.BackgroundColor3 = Color3.fromRGB(44, 44, 44)
+end)
+
+keybind.MouseLeave:Connect(function()
+    keybindFixLine.BackgroundColor3 = Color3.fromRGB(36, 36, 36)
+    keybind.BackgroundColor3 = Color3.fromRGB(36, 36, 36)
+end)
+
+local TextBounds = keybindText.TextBounds
+
+keybindHolder.Size = UDim2.new(0, TextBounds.X + 15, 0, 17)
+keybindText.Size = UDim2.new(0, TextBounds.X + 15, 0, 17)
+
+keybindText:GetPropertyChangedSignal("Text"):Connect(function()
+    TextBounds = keybindText.TextBounds
+    
+    keybindHolder.Size = UDim2.new(0, TextBounds.X + 15, 0, 17)
+    keybindText.Size = UDim2.new(0, TextBounds.X + 15, 0, 17)
+end)
+
+local KeybindConnection
+local Changing = false
+
+keybindButton.MouseButton1Click:Connect(function()
+    if KeybindConnection then KeybindConnection:Disconnect() end
+    Changing = true
+    keybindText.Text = "..."
+    KeybindConnection = UserInputService.InputBegan:Connect(function(Key, gameProcessed)
+        if not table.find(Blacklist, Key.KeyCode) and not gameProcessed then
+            KeybindConnection:Disconnect()
+            keybindText.Text = Key.KeyCode.Name
+            PressKey = Key.KeyCode
+            wait(.1)
+            Changing = false
+        end
+    end)
+end)
+
+UserInputService.InputBegan:Connect(function(Key, gameProcessed)
+    if not Changing and Key.KeyCode == PressKey and not gameProcessed then
+        pcall(Info.Callback)
+    end
+end)
+
+end
+
+function insidewindow:Slider(Info)
+Info.Text = Info.Text or "Slider"
+Info.Flag = Info.Flag or Info.Text
+Info.Postfix = Info.Postfix or ""
+Info.Minimum = Info.Minimum or 1
+Info.Default = Info.Default or 5
+Info.Maximum = Info.Maximum or 100
+Info.Callback = Info.Callback or function() end
+    
+if Info.Minimum > Info.Maximum then
+local ValueBefore = Info.Minimum
+Info.Minimum, Info.Maximum = Info.Maximum, ValueBefore
+end
+
+Info.Default = math.clamp(Info.Default, Info.Minimum, Info.Maximum)
+local DefaultScale = (Info.Default - Info.Minimum) / (Info.Maximum - Info.Minimum)
+
+local insideslider = {}
+    
+local slider = Instance.new("Frame")
+slider.Name = "Slider"
+slider.BackgroundColor3 = Color3.fromRGB(36, 36, 36)
+slider.Size = UDim2.fromOffset(225, 38)
+slider.Parent = itemContainer
+
+local sliderUICorner = Instance.new("UICorner")
+sliderUICorner.Name = "SliderUICorner"
+sliderUICorner.CornerRadius = UDim.new(0, 4)
+sliderUICorner.Parent = slider
+
+local sliderFixLine = Instance.new("Frame")
+sliderFixLine.Name = "SliderFixLine"
+sliderFixLine.AnchorPoint = Vector2.new(0.5, 1)
+sliderFixLine.BackgroundColor3 = Color3.fromRGB(36, 36, 36)
+sliderFixLine.BorderSizePixel = 0
+sliderFixLine.Position = UDim2.fromScale(0.5, 0.0526)
+sliderFixLine.Size = UDim2.fromOffset(225, 4)
+sliderFixLine.Parent = slider
+
+local sliderText = Instance.new("TextLabel")
+sliderText.Name = "SliderText"
+sliderText.Font = Enum.Font.GothamBold
+sliderText.Text = Info.Text
+sliderText.TextColor3 = Color3.fromRGB(214, 214, 214)
+sliderText.TextSize = 13
+sliderText.TextXAlignment = Enum.TextXAlignment.Left
+sliderText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+sliderText.BackgroundTransparency = 1
+sliderText.Position = UDim2.fromScale(0.0489, 0)
+sliderText.Size = UDim2.fromOffset(214, 19)
+sliderText.Parent = slider
+
+local sliderFrames = Instance.new("Frame")
+sliderFrames.Name = "SliderFrames"
+sliderFrames.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+sliderFrames.BackgroundTransparency = 1
+sliderFrames.Position = UDim2.fromScale(0.0489, 0.5)
+sliderFrames.Size = UDim2.fromOffset(199, 10)
+sliderFrames.Parent = slider
+
+local outerSlider = Instance.new("Frame")
+outerSlider.Name = "OuterSlider"
+outerSlider.BackgroundColor3 = Color3.fromRGB(62, 62, 62)
+outerSlider.BorderSizePixel = 0
+outerSlider.Position = UDim2.fromScale(-0.001, 0.458)
+outerSlider.Size = UDim2.new(1, 0, 0, 4)
+outerSlider.Parent = sliderFrames
+
+local outerSliderUICorner = Instance.new("UICorner")
+outerSliderUICorner.Name = "OuterSliderUICorner"
+outerSliderUICorner.CornerRadius = UDim.new(0, 100)
+outerSliderUICorner.Parent = outerSlider
+
+local innerSlider = Instance.new("Frame")
+innerSlider.Name = "InnerSlider"
+innerSlider.BackgroundColor3 = library.DefaultColor
+innerSlider.BorderSizePixel = 0
+innerSlider.Position = UDim2.fromScale(-0.001, 0.458)
+innerSlider.Size = UDim2.new(DefaultScale, 0, 0, 4)
+innerSlider.ZIndex = 2
+innerSlider.Parent = sliderFrames
+
+local outerSliderUICorner1 = Instance.new("UICorner")
+outerSliderUICorner1.Name = "OuterSliderUICorner"
+outerSliderUICorner1.CornerRadius = UDim.new(0, 100)
+outerSliderUICorner1.Parent = innerSlider
+
+local dragSlider = Instance.new("Frame")
+dragSlider.Name = "DragSlider"
+dragSlider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+dragSlider.Position = UDim2.new(DefaultScale, -4, 0, 2)
+dragSlider.Size = UDim2.fromOffset(9, 9)
+dragSlider.ZIndex = 2
+dragSlider.Parent = sliderFrames
+
+local dragSliderUICorner = Instance.new("UICorner")
+dragSliderUICorner.Name = "DragSliderUICorner"
+dragSliderUICorner.CornerRadius = UDim.new(0, 100)
+dragSliderUICorner.Parent = dragSlider
+
+local dragSliderButton = Instance.new("TextButton")
+dragSliderButton.Name = "DragSliderButton"
+dragSliderButton.Font = Enum.Font.SourceSans
+dragSliderButton.Text = ""
+dragSliderButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+dragSliderButton.TextSize = 14
+dragSliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+dragSliderButton.BackgroundTransparency = 1
+dragSliderButton.Size = UDim2.fromOffset(9, 9)
+dragSliderButton.Parent = dragSlider
+
+local sliderValueText = Instance.new("TextLabel")
+sliderValueText.Name = "SliderValueText"
+sliderValueText.Font = Enum.Font.GothamBold
+sliderValueText.Text = tostring(Info.Default)..Info.Postfix
+sliderValueText.TextColor3 = Color3.fromRGB(214, 214, 214)
+sliderValueText.TextSize = 13
+sliderValueText.TextXAlignment = Enum.TextXAlignment.Right
+sliderValueText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+sliderValueText.BackgroundTransparency = 1
+sliderValueText.Position = UDim2.fromScale(0.0489, 0)
+sliderValueText.Size = UDim2.fromOffset(198, 19)
+sliderValueText.Parent = slider
+
+pcall(Info.Callback, Info.Default)
+
+slider.MouseEnter:Connect(function()
+    sliderFixLine.BackgroundColor3 = Color3.fromRGB(44, 44, 44)
+    slider.BackgroundColor3 = Color3.fromRGB(44, 44, 44)
+end)
+
+slider.MouseLeave:Connect(function()
+    sliderFixLine.BackgroundColor3 = Color3.fromRGB(36, 36, 36)
+    slider.BackgroundColor3 = Color3.fromRGB(36, 36, 36)
+end)
+
+local MinSize = 0
+local MaxSize = 1
+
+local SizeFromScale = (MinSize +  (MaxSize - MinSize)) * DefaultScale
+SizeFromScale = SizeFromScale - (SizeFromScale % 2)
+
+dragSliderButton.MouseButton1Down:Connect(function()
+	local MouseMove, MouseKill
+	MouseMove = Mouse.Move:Connect(function()
+		local Px = library:GetXY(outerSlider)
+		local SizeFromScale = (MinSize +  (MaxSize - MinSize)) * Px
+		local Value = math.floor(Info.Minimum + ((Info.Maximum - Info.Minimum) * Px))
+		SizeFromScale = SizeFromScale - (SizeFromScale % 2)
+		TweenService:Create(innerSlider, TweenInfo.new(0.1), {Size = UDim2.new(Px,0,0,4)}):Play()
+		TweenService:Create(dragSlider, TweenInfo.new(0.1), {Position = UDim2.new(Px,-4,0,2)}):Play()
+		sliderValueText.Text = tostring(Value)..Info.Postfix
+		pcall(Info.Callback, Value)
+	end)
+	MouseKill = UserInputService.InputEnded:Connect(function(UserInput)
+		if UserInput.UserInputType == Enum.UserInputType.MouseButton1 then
+			MouseMove:Disconnect()
+			MouseKill:Disconnect()
+		end
+	end)
+end)
+end
+
+local fixLine2 = Instance.new("Frame")
+fixLine2.Name = "FixLine"
+fixLine2.AnchorPoint = Vector2.new(0.5, 1)
+fixLine2.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+fixLine2.BorderSizePixel = 0
+fixLine2.Position = UDim2.fromScale(0.5, 1)
+fixLine2.Size = UDim2.fromOffset(225, 2)
+fixLine2.ZIndex = 2
+fixLine2.Parent = topbar
+
+local windowText = Instance.new("TextLabel")
+windowText.Name = "WindowText"
+windowText.Font = Enum.Font.GothamBold
+windowText.Text = Info.Text
+windowText.TextColor3 = Color3.fromRGB(214, 214, 214)
+windowText.TextSize = 14
+windowText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+windowText.BackgroundTransparency = 1
+windowText.Size = UDim2.fromOffset(225, 38)
+windowText.Parent = topbar
+
+local close = Instance.new("ImageButton")
+close.Name = "Close"
+close.Image = "rbxassetid://131315997498301"
+close.Active = true
+close.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+close.BackgroundTransparency = 1
+close.Position = UDim2.fromScale(0.876, 0.263)
+close.Selectable = false
+close.Size = UDim2.fromOffset(17, 17)
+close.Parent = topbar
+
+close.MouseButton1Click:Connect(function()
+    WindowOpened.Value = not WindowOpened.Value
+    
+    backgroundFrame.ClipsDescendants = WindowOpened.Value and false or true
+    TweenService:Create(backgroundFrame, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = WindowOpened.Value and UDim2.new(0, 225, 0, BackgroundSize) or UDim2.new(0, 225, 0, 0)}):Play()
+    TweenService:Create(close, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Rotation = WindowOpened.Value and 0 or 180}):Play()
+end)
+
+return insidewindow
+end
+return library
