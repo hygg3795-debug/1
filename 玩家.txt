@@ -129,7 +129,7 @@ return function(Window, WindUI)
         local suckToggle = false
 
         section:Toggle({
-            Title = "Suck",
+            Title = "口人",
             Value = false,
             Callback = function(val)
                 suckToggle = val
@@ -191,7 +191,7 @@ return function(Window, WindUI)
         local bangToggle = false
 
         section:Toggle({
-            Title = "Bang V2",
+            Title = "配人",
             Value = false,
             Callback = function(val)
                 bangToggle = val
@@ -264,7 +264,7 @@ return function(Window, WindUI)
         local susToggle = false
 
         section:Toggle({
-            Title = "Sus R15",
+            Title = "被配",
             Value = false,
             Callback = function(val)
                 susToggle = val
@@ -338,7 +338,7 @@ return function(Window, WindUI)
         local getSuckedRunning = false
 
         section:Toggle({
-            Title = "Get Sucked",
+            Title = "人口",
             Value = false,
             Callback = function(val)
                 getSuckedToggle = val
