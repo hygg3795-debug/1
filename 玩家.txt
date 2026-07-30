@@ -7,7 +7,7 @@ return function(Window, WindUI)
         
         for _, method in ipairs(createMethods) do
             if Window[method] then
-                tab = Window[method](Window, {Title = "玩家控制", Icon = "users"})
+                tab = Window[method](Window, {Title = "玩家", Icon = "users"})
                 if tab then 
                     print("Tab创建成功，使用方式: " .. method)
                     break 
@@ -24,17 +24,6 @@ return function(Window, WindUI)
         local TweenService = game:GetService("TweenService")
         local LocalPlayer = Players.LocalPlayer
 
-        local Module = {
-            state = {
-                smoothFollowEnabled = false,
-                targetPlayer = nil,
-                suckEnabled = false,
-                bangEnabled = false,
-                susEnabled = false,
-                getSuckedEnabled = false
-            }
-        }
-
         local playerMap = {}
         local function getPlayerNames()
             local names = {}
@@ -49,13 +38,13 @@ return function(Window, WindUI)
             return names
         end
 
-        local section = tab:Section({Title = "玩家控制", Box = true})
+        local section = tab:Section({Title = "玩家", Box = true})
 
         local playerDropdown = section:Dropdown({
             Title = "选择目标玩家",
             Values = getPlayerNames(),
             Callback = function(selected)
-                Module.state.targetPlayer = playerMap[selected]
+                targetPlayer = playerMap[selected]
             end,
         })
 
@@ -67,59 +56,49 @@ return function(Window, WindUI)
         Players.PlayerAdded:Connect(refreshDropdown)
         Players.PlayerRemoving:Connect(refreshDropdown)
 
+        local targetPlayer = nil
+
         local smoothFollowConnection = nil
-        local function startSmoothFollow()
-            if smoothFollowConnection then 
-                smoothFollowConnection:Disconnect()
-                smoothFollowConnection = nil
-            end
-            if not Module.state.smoothFollowEnabled then return end
-            if not Module.state.targetPlayer then
-                Module.state.smoothFollowEnabled = false
-                return
-            end
-            smoothFollowConnection = RunService.Heartbeat:Connect(function()
-                if not Module.state.smoothFollowEnabled then
-                    if smoothFollowConnection then
-                        smoothFollowConnection:Disconnect()
-                        smoothFollowConnection = nil
-                    end
-                    return
-                end
-                local myChar = LocalPlayer.Character
-                if not myChar then return end
-                local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-                if not myRoot then return end
-                local target = Module.state.targetPlayer
-                if not target or not target.Character then return end
-                local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
-                if not targetRoot then return end
-                local offset = targetRoot.CFrame.LookVector * -2.5
-                myRoot.CFrame = CFrame.new(targetRoot.Position + offset, targetRoot.Position)
-            end)
-        end
-
-        local function stopSmoothFollow()
-            Module.state.smoothFollowEnabled = false
-            if smoothFollowConnection then
-                smoothFollowConnection:Disconnect()
-                smoothFollowConnection = nil
-            end
-        end
-
+        local smoothFollowToggle = false
         section:Toggle({
             Title = "平滑跟随",
             Value = false,
             Callback = function(val)
+                smoothFollowToggle = val
                 if val then
-                    if not Module.state.targetPlayer then
+                    if not targetPlayer then
                         WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+                        smoothFollowToggle = false
                         return
                     end
-                    Module.state.smoothFollowEnabled = true
-                    startSmoothFollow()
+                    if smoothFollowConnection then 
+                        smoothFollowConnection:Disconnect()
+                        smoothFollowConnection = nil
+                    end
+                    smoothFollowConnection = RunService.Heartbeat:Connect(function()
+                        if not smoothFollowToggle then
+                            if smoothFollowConnection then
+                                smoothFollowConnection:Disconnect()
+                                smoothFollowConnection = nil
+                            end
+                            return
+                        end
+                        local myChar = LocalPlayer.Character
+                        if not myChar then return end
+                        local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+                        if not myRoot then return end
+                        local target = targetPlayer
+                        if not target or not target.Character then return end
+                        local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
+                        if not targetRoot then return end
+                        local offset = targetRoot.CFrame.LookVector * -2.5
+                        myRoot.CFrame = CFrame.new(targetRoot.Position + offset, targetRoot.Position)
+                    end)
                 else
-                    stopSmoothFollow()
+                    if smoothFollowConnection then
+                        smoothFollowConnection:Disconnect()
+                        smoothFollowConnection = nil
+                    end
                 end
             end,
         })
@@ -127,11 +106,11 @@ return function(Window, WindUI)
         section:Button({
             Title = "传送至选中玩家",
             Callback = function()
-                if not Module.state.targetPlayer then
+                if not targetPlayer then
                     WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
                     return
                 end
-                local target = Module.state.targetPlayer
+                local target = targetPlayer
                 if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then
                     return
                 end
@@ -147,18 +126,20 @@ return function(Window, WindUI)
         local suckConnection = nil
         local suckAnimation = nil
         local originalGravity = nil
+        local suckToggle = false
 
         section:Toggle({
-            Title = "Suck (吸)",
+            Title = "Suck",
             Value = false,
             Callback = function(val)
+                suckToggle = val
                 if val then
-                    if not Module.state.targetPlayer then
+                    if not targetPlayer then
                         WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+                        suckToggle = false
                         return
                     end
-                    Module.state.suckEnabled = true
-                    local target = Module.state.targetPlayer
+                    local target = targetPlayer
                     local myChar = LocalPlayer.Character
                     if not myChar then return end
                     local myRoot = myChar:FindFirstChild("HumanoidRootPart")
@@ -182,13 +163,13 @@ return function(Window, WindUI)
                     local targetTorso = targetChar:FindFirstChild("LowerTorso") or targetChar:FindFirstChild("UpperTorso")
                     if targetTorso then
                         suckConnection = RunService.Heartbeat:Connect(function()
-                            if Module.state.suckEnabled and myRoot and targetTorso then
+                            if suckToggle and myRoot and targetTorso then
                                 myRoot.CFrame = targetTorso.CFrame * CFrame.new(0, -2.3, -1.0) * CFrame.Angles(0, math.pi, 0)
                             end
                         end)
                     end
                 else
-                    Module.state.suckEnabled = false
+                    suckToggle = false
                     if suckConnection then
                         suckConnection:Disconnect()
                         suckConnection = nil
@@ -207,18 +188,20 @@ return function(Window, WindUI)
 
         local bangConnection = nil
         local bangAnimation = nil
+        local bangToggle = false
 
         section:Toggle({
-            Title = "Bang V2 (撞击)",
+            Title = "Bang V2",
             Value = false,
             Callback = function(val)
+                bangToggle = val
                 if val then
-                    if not Module.state.targetPlayer then
+                    if not targetPlayer then
                         WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+                        bangToggle = false
                         return
                     end
-                    Module.state.bangEnabled = true
-                    local target = Module.state.targetPlayer
+                    local target = targetPlayer
                     local myChar = LocalPlayer.Character
                     if not myChar then return end
                     local myRoot = myChar:FindFirstChild("HumanoidRootPart")
@@ -234,10 +217,10 @@ return function(Window, WindUI)
                     end
                     
                     bangConnection = RunService.Heartbeat:Connect(function()
-                        if not Module.state.bangEnabled then return end
+                        if not bangToggle then return end
                         local targetChar = target.Character
                         if not targetChar then
-                            Module.state.bangEnabled = false
+                            bangToggle = false
                             return
                         end
                         local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
@@ -263,7 +246,7 @@ return function(Window, WindUI)
                         tweenBackward.Completed:Wait()
                     end)
                 else
-                    Module.state.bangEnabled = false
+                    bangToggle = false
                     if bangConnection then
                         bangConnection:Disconnect()
                         bangConnection = nil
@@ -278,18 +261,20 @@ return function(Window, WindUI)
 
         local susConnection = nil
         local susAnimation = nil
+        local susToggle = false
 
         section:Toggle({
-            Title = "Sus R15 (可疑)",
+            Title = "Sus R15",
             Value = false,
             Callback = function(val)
+                susToggle = val
                 if val then
-                    if not Module.state.targetPlayer then
+                    if not targetPlayer then
                         WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+                        susToggle = false
                         return
                     end
-                    Module.state.susEnabled = true
-                    local target = Module.state.targetPlayer
+                    local target = targetPlayer
                     local myChar = LocalPlayer.Character
                     if not myChar then return end
                     local myRoot = myChar:FindFirstChild("HumanoidRootPart")
@@ -304,10 +289,10 @@ return function(Window, WindUI)
                     end
                     
                     susConnection = RunService.Heartbeat:Connect(function()
-                        if not Module.state.susEnabled then return end
+                        if not susToggle then return end
                         local targetChar = target.Character
                         if not targetChar then
-                            Module.state.susEnabled = false
+                            susToggle = false
                             return
                         end
                         local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
@@ -333,7 +318,7 @@ return function(Window, WindUI)
                         tweenBackward.Completed:Wait()
                     end)
                 else
-                    Module.state.susEnabled = false
+                    susToggle = false
                     if susConnection then
                         susConnection:Disconnect()
                         susConnection = nil
@@ -349,20 +334,22 @@ return function(Window, WindUI)
         local getSuckedConnection = nil
         local getSuckedAnimation = nil
         local getSuckedGravity = nil
+        local getSuckedToggle = false
         local getSuckedRunning = false
 
         section:Toggle({
-            Title = "Get Sucked (被吸)",
+            Title = "Get Sucked",
             Value = false,
             Callback = function(val)
+                getSuckedToggle = val
                 if val then
-                    if not Module.state.targetPlayer then
+                    if not targetPlayer then
                         WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+                        getSuckedToggle = false
                         return
                     end
-                    Module.state.getSuckedEnabled = true
                     getSuckedRunning = true
-                    local target = Module.state.targetPlayer
+                    local target = targetPlayer
                     local myChar = LocalPlayer.Character
                     if not myChar then return end
                     local myRoot = myChar:FindFirstChild("HumanoidRootPart")
@@ -400,7 +387,7 @@ return function(Window, WindUI)
                         end
                     end)()
                 else
-                    Module.state.getSuckedEnabled = false
+                    getSuckedToggle = false
                     getSuckedRunning = false
                     if getSuckedConnection then
                         getSuckedConnection:Disconnect()
