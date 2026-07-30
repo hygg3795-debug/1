@@ -1,31 +1,29 @@
 return function(Window, WindUI)
     local superTab = Window:Tab({Title = "超人", Icon = "zap"})
+    local section = superTab:Section({Title = "加载超人脚本", Box = true})
 
-    superTab:Button({
+    section:Button({
         Title = "祖国人",
-        Desc = "点击加载祖国人脚本",
         Callback = function()
-            local success, err = pcall(function()
+            pcall(function()
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/homelander-by-GioBolqv1-/refs/heads/main/homelander.lua"))()
             end)
         end,
     })
 
-    superTab:Button({
+    section:Button({
         Title = "无敌少侠",
-        Desc = "点击加载无敌少侠脚本",
         Callback = function()
-            local success, err = pcall(function()
+            pcall(function()
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/invincible-characters-animations-by-GioBolqv1-/refs/heads/main/universal.lua"))()
             end)
         end,
     })
 
-    superTab:Button({
+    section:Button({
         Title = "火车头",
-        Desc = "点击加载火车头脚本",
         Callback = function()
-            local success, err = pcall(function()
+            pcall(function()
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/A-Train-by-GioBolqv1-/refs/heads/main/train.lua"))()
             end)
         end,
