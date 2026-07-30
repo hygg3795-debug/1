@@ -2,13 +2,12 @@ return function(Window, WindUI)
     local success, err = pcall(function()
         print("玩家模块开始执行")
         
-        -- 尝试多种方式创建Tab
         local tab = nil
         local createMethods = {"Tab", "AddTab", "CreateTab", "NewTab"}
         
         for _, method in ipairs(createMethods) do
             if Window[method] then
-                tab = Window[method](Window, {Title = "玩家", Icon = "users"})
+                tab = Window[method](Window, {Title = "玩家控制", Icon = "users"})
                 if tab then 
                     print("Tab创建成功，使用方式: " .. method)
                     break 
@@ -22,12 +21,17 @@ return function(Window, WindUI)
 
         local Players = game:GetService("Players")
         local RunService = game:GetService("RunService")
+        local TweenService = game:GetService("TweenService")
         local LocalPlayer = Players.LocalPlayer
 
         local Module = {
             state = {
                 smoothFollowEnabled = false,
-                targetPlayer = nil
+                targetPlayer = nil,
+                suckEnabled = false,
+                bangEnabled = false,
+                susEnabled = false,
+                getSuckedEnabled = false
             }
         }
 
@@ -137,6 +141,280 @@ return function(Window, WindUI)
                 end
                 local targetPos = target.Character.HumanoidRootPart.Position
                 myChar.HumanoidRootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 0, 3))
+            end,
+        })
+
+        local suckConnection = nil
+        local suckAnimation = nil
+        local originalGravity = nil
+
+        section:Toggle({
+            Title = "Suck (吸)",
+            Value = false,
+            Callback = function(val)
+                if val then
+                    if not Module.state.targetPlayer then
+                        WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+                        return
+                    end
+                    Module.state.suckEnabled = true
+                    local target = Module.state.targetPlayer
+                    local myChar = LocalPlayer.Character
+                    if not myChar then return end
+                    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+                    local targetChar = target.Character
+                    if not targetChar then return end
+                    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+                    if not myRoot or not targetRoot then return end
+                    
+                    originalGravity = workspace.Gravity
+                    workspace.Gravity = 0
+                    
+                    local animation = Instance.new("Animation")
+                    animation.AnimationId = "rbxassetid://5918726674"
+                    local humanoid = myChar:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        suckAnimation = humanoid:LoadAnimation(animation)
+                        suckAnimation:Play()
+                        suckAnimation:AdjustSpeed(1)
+                    end
+                    
+                    local targetTorso = targetChar:FindFirstChild("LowerTorso") or targetChar:FindFirstChild("UpperTorso")
+                    if targetTorso then
+                        suckConnection = RunService.Heartbeat:Connect(function()
+                            if Module.state.suckEnabled and myRoot and targetTorso then
+                                myRoot.CFrame = targetTorso.CFrame * CFrame.new(0, -2.3, -1.0) * CFrame.Angles(0, math.pi, 0)
+                            end
+                        end)
+                    end
+                else
+                    Module.state.suckEnabled = false
+                    if suckConnection then
+                        suckConnection:Disconnect()
+                        suckConnection = nil
+                    end
+                    if suckAnimation then
+                        suckAnimation:Stop()
+                        suckAnimation = nil
+                    end
+                    if originalGravity then
+                        workspace.Gravity = originalGravity
+                        originalGravity = nil
+                    end
+                end
+            end,
+        })
+
+        local bangConnection = nil
+        local bangAnimation = nil
+
+        section:Toggle({
+            Title = "Bang V2 (撞击)",
+            Value = false,
+            Callback = function(val)
+                if val then
+                    if not Module.state.targetPlayer then
+                        WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+                        return
+                    end
+                    Module.state.bangEnabled = true
+                    local target = Module.state.targetPlayer
+                    local myChar = LocalPlayer.Character
+                    if not myChar then return end
+                    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+                    if not myRoot then return end
+                    
+                    local animation = Instance.new("Animation")
+                    animation.AnimationId = "rbxassetid://10714068222"
+                    local humanoid = myChar:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        bangAnimation = humanoid:LoadAnimation(animation)
+                        bangAnimation:Play()
+                        bangAnimation:AdjustSpeed(2)
+                    end
+                    
+                    bangConnection = RunService.Heartbeat:Connect(function()
+                        if not Module.state.bangEnabled then return end
+                        local targetChar = target.Character
+                        if not targetChar then
+                            Module.state.bangEnabled = false
+                            return
+                        end
+                        local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+                        if not targetHRP or not myRoot then return end
+                        
+                        local forwardCFrame = targetHRP.CFrame * CFrame.new(0, 0, 1)
+                        local backwardCFrame = targetHRP.CFrame * CFrame.new(0, 0, 2.5)
+                        
+                        local tweenForward = TweenService:Create(
+                            myRoot,
+                            TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
+                            {CFrame = forwardCFrame}
+                        )
+                        tweenForward:Play()
+                        tweenForward.Completed:Wait()
+                        
+                        local tweenBackward = TweenService:Create(
+                            myRoot,
+                            TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
+                            {CFrame = backwardCFrame}
+                        )
+                        tweenBackward:Play()
+                        tweenBackward.Completed:Wait()
+                    end)
+                else
+                    Module.state.bangEnabled = false
+                    if bangConnection then
+                        bangConnection:Disconnect()
+                        bangConnection = nil
+                    end
+                    if bangAnimation then
+                        bangAnimation:Stop()
+                        bangAnimation = nil
+                    end
+                end
+            end,
+        })
+
+        local susConnection = nil
+        local susAnimation = nil
+
+        section:Toggle({
+            Title = "Sus R15 (可疑)",
+            Value = false,
+            Callback = function(val)
+                if val then
+                    if not Module.state.targetPlayer then
+                        WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+                        return
+                    end
+                    Module.state.susEnabled = true
+                    local target = Module.state.targetPlayer
+                    local myChar = LocalPlayer.Character
+                    if not myChar then return end
+                    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+                    if not myRoot then return end
+                    
+                    local animation = Instance.new("Animation")
+                    animation.AnimationId = "rbxassetid://10714360343"
+                    local humanoid = myChar:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        susAnimation = humanoid:LoadAnimation(animation)
+                        susAnimation:Play()
+                    end
+                    
+                    susConnection = RunService.Heartbeat:Connect(function()
+                        if not Module.state.susEnabled then return end
+                        local targetChar = target.Character
+                        if not targetChar then
+                            Module.state.susEnabled = false
+                            return
+                        end
+                        local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+                        if not targetHRP or not myRoot then return end
+                        
+                        local forwardCFrame = targetHRP.CFrame * CFrame.new(0, 0, -1.5)
+                        local backwardCFrame = targetHRP.CFrame * CFrame.new(0, 0, -1.1)
+                        
+                        local tweenForward = TweenService:Create(
+                            myRoot,
+                            TweenInfo.new(0.15, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
+                            {CFrame = forwardCFrame}
+                        )
+                        tweenForward:Play()
+                        tweenForward.Completed:Wait()
+                        
+                        local tweenBackward = TweenService:Create(
+                            myRoot,
+                            TweenInfo.new(0.15, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
+                            {CFrame = backwardCFrame}
+                        )
+                        tweenBackward:Play()
+                        tweenBackward.Completed:Wait()
+                    end)
+                else
+                    Module.state.susEnabled = false
+                    if susConnection then
+                        susConnection:Disconnect()
+                        susConnection = nil
+                    end
+                    if susAnimation then
+                        susAnimation:Stop()
+                        susAnimation = nil
+                    end
+                end
+            end,
+        })
+
+        local getSuckedConnection = nil
+        local getSuckedAnimation = nil
+        local getSuckedGravity = nil
+        local getSuckedRunning = false
+
+        section:Toggle({
+            Title = "Get Sucked (被吸)",
+            Value = false,
+            Callback = function(val)
+                if val then
+                    if not Module.state.targetPlayer then
+                        WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+                        return
+                    end
+                    Module.state.getSuckedEnabled = true
+                    getSuckedRunning = true
+                    local target = Module.state.targetPlayer
+                    local myChar = LocalPlayer.Character
+                    if not myChar then return end
+                    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+                    local targetChar = target.Character
+                    if not targetChar then return end
+                    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+                    if not myRoot or not targetRoot then return end
+                    
+                    getSuckedGravity = workspace.Gravity
+                    workspace.Gravity = 0
+                    
+                    coroutine.wrap(function()
+                        while getSuckedRunning and myRoot and targetRoot and myRoot.Position.Y <= 44 do
+                            wait()
+                            myRoot.CFrame = myRoot.CFrame * CFrame.new(0, 1.5, 0)
+                        end
+                        wait(1)
+                        
+                        if getSuckedRunning then
+                            local animation = Instance.new("Animation")
+                            animation.AnimationId = "rbxassetid://5918726674"
+                            local humanoid = myChar:FindFirstChildOfClass("Humanoid")
+                            if humanoid then
+                                getSuckedAnimation = humanoid:LoadAnimation(animation)
+                                getSuckedAnimation:Play()
+                                getSuckedAnimation:AdjustSpeed(1)
+                            end
+                            
+                            getSuckedConnection = RunService.Stepped:Connect(function()
+                                if getSuckedRunning and myRoot and targetRoot then
+                                    myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 2.3, -1.1) * CFrame.Angles(0, math.pi, 0)
+                                    myRoot.Velocity = Vector3.new(0, 0, 0)
+                                end
+                            end)
+                        end
+                    end)()
+                else
+                    Module.state.getSuckedEnabled = false
+                    getSuckedRunning = false
+                    if getSuckedConnection then
+                        getSuckedConnection:Disconnect()
+                        getSuckedConnection = nil
+                    end
+                    if getSuckedAnimation then
+                        getSuckedAnimation:Stop()
+                        getSuckedAnimation = nil
+                    end
+                    if getSuckedGravity then
+                        workspace.Gravity = getSuckedGravity
+                        getSuckedGravity = nil
+                    end
+                end
             end,
         })
         
