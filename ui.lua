@@ -126,20 +126,13 @@ notificationText:Destroy()
 end)()
 end
 
-local Request = syn and syn.request or http and http.request or http_request or request or httprequest
+-- ====== 删掉了下载代码 ======
+-- 直接使用Roblox自带图标
 local getcustomasset = getcustomasset or getsynasset
 
 if not isfolder("Revenant") then
     makefolder("Revenant")
-    local Circle = Request({
-	Url = "https://github.com/Rain-Design/Libraries/blob/main/Icon/Circle.png?raw=true",
-	Method = "GET"
-	})
-	writefile("Revenant/Circle.png", Circle.Body)
-	library:Notification({
-        Text = "Downloaded Toggle Asset.",
-        Duration = 3
-    })
+    writefile("Revenant/Circle.png", "")  -- 创建空文件占位
 end
 
 function library:Window(Info)
@@ -169,7 +162,7 @@ topbar.Position = UDim2.fromScale(Pos, 0.1)
 topbar.Size = UDim2.fromOffset(225, 38)
 topbar.Parent = revenant
 
--- ====== 🌈 彩虹边框 (粗细1.5) ======
+-- ====== 彩虹边框 (粗细1.5) ======
 local rainbowStroke = Instance.new("UIStroke")
 rainbowStroke.Name = "RainbowBorder"
 rainbowStroke.Thickness = 1.5
@@ -191,7 +184,6 @@ rainbowGradient.Color = ColorSequence.new({
 })
 rainbowGradient.Parent = rainbowStroke
 
--- 彩虹旋转动画
 local currentAngle = 0
 game:GetService("RunService").RenderStepped:Connect(function(dt)
     if rainbowStroke and rainbowStroke.Parent then
@@ -199,7 +191,6 @@ game:GetService("RunService").RenderStepped:Connect(function(dt)
         rainbowGradient.Rotation = currentAngle
     end
 end)
--- ==================================
 
 local dragging
 local dragInput
@@ -253,7 +244,7 @@ backgroundFrame.Position = UDim2.fromScale(0, 1)
 backgroundFrame.Size = UDim2.fromOffset(225, 0)
 backgroundFrame.Parent = topbar
 
--- 🖼️ 背景图片 (hygg风格)
+-- 背景图片 (hygg风格)
 local backgroundImage = Instance.new("ImageLabel")
 backgroundImage.Name = "BackgroundImage"
 backgroundImage.Image = "rbxassetid://84674071500810"
@@ -581,10 +572,10 @@ uICorner1.Name = "UICorner"
 uICorner1.CornerRadius = UDim.new(1, 0)
 uICorner1.Parent = outerFrame
 
+-- 使用Roblox自带图片 (不用下载)
 local innerFrame = Instance.new("ImageLabel")
 innerFrame.Name = "InnerFrame"
-innerFrame.Image = getcustomasset("Revenant/Circle.png")
-innerFrame.ResampleMode = "Pixelated"
+innerFrame.Image = "rbxassetid://6031094678"
 innerFrame.ImageColor3 = Color3.fromRGB(255, 255, 255)
 innerFrame.BackgroundTransparency = 1
 innerFrame.Position = UDim2.fromOffset(3, 2)
