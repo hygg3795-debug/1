@@ -1,21 +1,28 @@
 return function(Window, WindUI)
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local Workspace = game:GetService("Workspace")
+    local LocalPlayer = Players.LocalPlayer
 
-local function createBlackholeH1()
-    local plr = game.Players.LocalPlayer
-    local enabled = false
+    local blackholeTab = Window:Tab({Title = "黑洞", Icon = "circle"})
+    local section = blackholeTab:Section({Title = "黑洞控制", Box = true})
+
     local parts = {}
-    local config = {radius = 50, height = 100, rotationSpeed = 10, attractionStrength = 1000}
+    local enabled = false
     local con = nil
     local partCon = nil
     local removeCon = nil
-    local screenGui = nil
-    local mainFrame = nil
-    local minimized = false
-    local controls = {}
+
+    local config = {
+        radius = 50,
+        height = 100,
+        rotationSpeed = 10,
+        attractionStrength = 1000
+    }
 
     local function retainPart(part)
-        if part:IsA("BasePart") and not part.Anchored and part:IsDescendantOf(workspace) then
-            if part.Parent == plr.Character or part:IsDescendantOf(plr.Character) then return false end
+        if part:IsA("BasePart") and not part.Anchored and part:IsDescendantOf(Workspace) then
+            if part.Parent == LocalPlayer.Character or part:IsDescendantOf(LocalPlayer.Character) then return false end
             pcall(function()
                 part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
                 part.CanCollide = false
@@ -36,231 +43,27 @@ local function createBlackholeH1()
         if idx then table.remove(parts, idx) end
     end
 
-    for _, part in pairs(workspace:GetDescendants()) do addPart(part) end
-    if partCon then partCon:Disconnect() end
-    partCon = workspace.DescendantAdded:Connect(addPart)
-    if removeCon then removeCon:Disconnect() end
-    removeCon = workspace.DescendantRemoving:Connect(removePart)
-
-    local function toggleMinimize()
-        minimized = not minimized
-        for _, c in pairs(controls) do
-            c.Visible = not minimized
-        end
-        if minimized then
-            mainFrame.Size = UDim2.new(0, 300, 0, 40)
-        else
-            mainFrame.Size = UDim2.new(0, 300, 0, 500)
+    local function refreshParts()
+        parts = {}
+        for _, part in pairs(Workspace:GetDescendants()) do
+            addPart(part)
         end
     end
 
-    local function createGUI()
-        if screenGui then return end
-        screenGui = Instance.new("ScreenGui")
-        screenGui.Name = "BlackholeH1GUI"
-        screenGui.ResetOnSpawn = false
-        screenGui.Parent = plr:WaitForChild("PlayerGui")
-
-        mainFrame = Instance.new("Frame")
-        mainFrame.Size = UDim2.new(0, 300, 0, 500)
-        mainFrame.Position = UDim2.new(0.5, -150, 0.5, -250)
-        mainFrame.BorderSizePixel = 0
-        mainFrame.Parent = screenGui
-        mainFrame.Active = true
-        mainFrame.Draggable = true
-
-        local uiCorner = Instance.new("UICorner")
-        uiCorner.CornerRadius = UDim.new(0, 20)
-        uiCorner.Parent = mainFrame
-
-        local title = Instance.new("TextLabel")
-        title.Size = UDim2.new(1, 0, 0, 40)
-        title.Text = "黑洞h1"
-        title.TextColor3 = Color3.fromRGB(0, 0, 0)
-        title.BackgroundColor3 = Color3.fromRGB(0, 204, 204)
-        title.Font = Enum.Font.Fondamento
-        title.TextSize = 22
-        title.Parent = mainFrame
-        local titleCorner = Instance.new("UICorner")
-        titleCorner.CornerRadius = UDim.new(0, 20)
-        titleCorner.Parent = title
-
-        local closeBtn = Instance.new("TextButton")
-        closeBtn.Size = UDim2.new(0, 30, 0, 30)
-        closeBtn.Position = UDim2.new(1, -35, 0, 5)
-        closeBtn.Text = "✕"
-        closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        closeBtn.Font = Enum.Font.Fondamento
-        closeBtn.TextSize = 15
-        closeBtn.Parent = mainFrame
-        local closeCorner = Instance.new("UICorner")
-        closeCorner.CornerRadius = UDim.new(0, 15)
-        closeCorner.Parent = closeBtn
-        closeBtn.MouseButton1Click:Connect(function()
-            if screenGui then screenGui:Destroy() screenGui = nil end
-            if _G.HyggUI and _G.HyggUI.toggleBlackholeH1 then
-                _G.HyggUI.toggleBlackholeH1(false)
-            end
-        end)
-
-        local minBtn = Instance.new("TextButton")
-        minBtn.Size = UDim2.new(0, 30, 0, 30)
-        minBtn.Position = UDim2.new(1, -70, 0, 5)
-        minBtn.Text = "－"
-        minBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-        minBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 200)
-        minBtn.Font = Enum.Font.Fondamento
-        minBtn.TextSize = 20
-        minBtn.Parent = mainFrame
-        local minCorner = Instance.new("UICorner")
-        minCorner.CornerRadius = UDim.new(0, 15)
-        minCorner.Parent = minBtn
-        minBtn.MouseButton1Click:Connect(toggleMinimize)
-
-        local function createControl(labelText, configKey, posY, color, step, minVal, maxVal)
-            step = step or 10
-            minVal = minVal or 0
-            maxVal = maxVal or 10000
-
-            local bg = Instance.new("Frame")
-            bg.Size = UDim2.new(0.9, 0, 0, 42)
-            bg.Position = UDim2.new(0.05, 0, posY, 0)
-            bg.BackgroundColor3 = color
-            bg.BorderSizePixel = 0
-            bg.Parent = mainFrame
-            table.insert(controls, bg)
-            local bgCorner = Instance.new("UICorner")
-            bgCorner.CornerRadius = UDim.new(0, 8)
-            bgCorner.Parent = bg
-
-            local label = Instance.new("TextLabel")
-            label.Size = UDim2.new(0.45, 0, 1, 0)
-            label.Position = UDim2.new(0.02, 0, 0, 0)
-            label.Text = labelText
-            label.TextColor3 = Color3.fromRGB(0, 0, 0)
-            label.BackgroundTransparency = 1
-            label.Font = Enum.Font.Fondamento
-            label.TextSize = 18
-            label.TextXAlignment = Enum.TextXAlignment.Left
-            label.Parent = bg
-
-            local display = Instance.new("TextLabel")
-            display.Size = UDim2.new(0.2, 0, 1, 0)
-            display.Position = UDim2.new(0.42, 0, 0, 0)
-            display.Text = tostring(tonumber(config[configKey]) or 0)
-            display.TextColor3 = Color3.fromRGB(0, 0, 0)
-            display.BackgroundTransparency = 1
-            display.Font = Enum.Font.Fondamento
-            display.TextSize = 18
-            display.Parent = bg
-
-            local minusBtn = Instance.new("TextButton")
-            minusBtn.Size = UDim2.new(0, 30, 0, 30)
-            minusBtn.Position = UDim2.new(0.7, 0, 0.5, -15)
-            minusBtn.Text = "-"
-            minusBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-            minusBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-            minusBtn.Font = Enum.Font.Fondamento
-            minusBtn.TextSize = 20
-            minusBtn.Parent = bg
-            local mc = Instance.new("UICorner")
-            mc.CornerRadius = UDim.new(0, 8)
-            mc.Parent = minusBtn
-
-            local plusBtn = Instance.new("TextButton")
-            plusBtn.Size = UDim2.new(0, 30, 0, 30)
-            plusBtn.Position = UDim2.new(0.82, 0, 0.5, -15)
-            plusBtn.Text = "+"
-            plusBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-            plusBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-            plusBtn.Font = Enum.Font.Fondamento
-            plusBtn.TextSize = 20
-            plusBtn.Parent = bg
-            local pc = Instance.new("UICorner")
-            pc.CornerRadius = UDim.new(0, 8)
-            pc.Parent = plusBtn
-
-            local inputBox = Instance.new("TextBox")
-            inputBox.Size = UDim2.new(0.2, 0, 0, 30)
-            inputBox.Position = UDim2.new(0.42, 0, 0.5, -15)
-            inputBox.Text = tostring(tonumber(config[configKey]) or 0)
-            inputBox.TextColor3 = Color3.fromRGB(0, 0, 0)
-            inputBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            inputBox.Font = Enum.Font.Fondamento
-            inputBox.TextSize = 16
-            inputBox.TextXAlignment = Enum.TextXAlignment.Center
-            inputBox.PlaceholderText = "数值"
-            inputBox.ClearTextOnFocus = false
-            inputBox.Parent = bg
-            local ibCorner = Instance.new("UICorner")
-            ibCorner.CornerRadius = UDim.new(0, 6)
-            ibCorner.Parent = inputBox
-
-            local function updateDisplay()
-                local val = tonumber(config[configKey]) or 0
-                display.Text = tostring(val)
-                inputBox.Text = tostring(val)
-                local method = "set" .. configKey:gsub("^%l", string.upper)
-                if enabled and _G.RingControl and _G.RingControl[method] then
-                    _G.RingControl[method](val)
-                end
-            end
-
-            minusBtn.MouseButton1Click:Connect(function()
-                local newVal = math.max(minVal, (tonumber(config[configKey]) or 0) - step)
-                config[configKey] = newVal
-                updateDisplay()
-            end)
-
-            plusBtn.MouseButton1Click:Connect(function()
-                local newVal = math.min(maxVal, (tonumber(config[configKey]) or 0) + step)
-                config[configKey] = newVal
-                updateDisplay()
-            end)
-
-            inputBox.FocusLost:Connect(function(enterPressed)
-                if enterPressed then
-                    local newVal = tonumber(inputBox.Text)
-                    if newVal then
-                        newVal = math.clamp(newVal, minVal, maxVal)
-                        config[configKey] = newVal
-                        updateDisplay()
-                    else
-                        local val = tonumber(config[configKey]) or 0
-                        inputBox.Text = tostring(val)
-                    end
-                end
-            end)
-        end
-
-        createControl("半径", "radius", 0.08, Color3.fromRGB(153, 153, 0), 10, 0, 1000)
-        createControl("高度", "height", 0.22, Color3.fromRGB(153, 0, 153), 10, 0, 1000)
-        createControl("转速", "rotationSpeed", 0.36, Color3.fromRGB(0, 153, 153), 1, 0, 200)
-        createControl("吸力", "attractionStrength", 0.50, Color3.fromRGB(153, 0, 0), 100, 0, 50000)
-
-        local hue = 0
-        game:GetService("RunService").Heartbeat:Connect(function()
-            if not mainFrame or not mainFrame.Parent then return end
-            hue = (hue + 0.01) % 1
-            mainFrame.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
-        end)
-
-        local textHue = 0
-        game:GetService("RunService").Heartbeat:Connect(function()
-            if not title or not title.Parent then return end
-            textHue = (textHue + 0.01) % 1
-            title.TextColor3 = Color3.fromHSV(textHue, 1, 1)
-        end)
-    end
-
-    local function start()
+    local function startBlackhole()
         if con then return end
         enabled = true
-        createGUI()
-        con = game:GetService("RunService").Heartbeat:Connect(function()
+        refreshParts()
+        
+        if partCon then partCon:Disconnect() end
+        partCon = Workspace.DescendantAdded:Connect(addPart)
+        
+        if removeCon then removeCon:Disconnect() end
+        removeCon = Workspace.DescendantRemoving:Connect(removePart)
+
+        con = RunService.Heartbeat:Connect(function()
             if not enabled then return end
-            local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+            local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if not root then return end
             local center = root.Position
             for _, part in pairs(parts) do
@@ -281,406 +84,67 @@ local function createBlackholeH1()
         end)
     end
 
-    local function stop()
+    local function stopBlackhole()
         enabled = false
         if con then con:Disconnect() con = nil end
-        if screenGui then screenGui:Destroy() screenGui = nil end
-        mainFrame = nil
-        controls = {}
+        if partCon then partCon:Disconnect() partCon = nil end
+        if removeCon then removeCon:Disconnect() removeCon = nil end
+        parts = {}
     end
 
-    return {
-        start = start,
-        stop = stop,
-        setRadius = function(v) config.radius = tonumber(v) or 50 end,
-        setHeight = function(v) config.height = tonumber(v) or 100 end,
-        setSpeed = function(v) config.rotationSpeed = tonumber(v) or 10 end,
-        setStrength = function(v) config.attractionStrength = tonumber(v) or 1000 end,
-    }
-end
-
-local function createBlackholeH2()
-    local plr = game.Players.LocalPlayer
-    local enabled = false
-    local parts = {}
-    local config = {radius = 50, height = 100, rotationSpeed = 10, attractionStrength = 1000}
-    local con = nil
-    local partCon = nil
-    local removeCon = nil
-    local screenGui = nil
-    local mainFrame = nil
-    local minimized = false
-    local controls = {}
-
-    local function retainPart(part)
-        if part:IsA("BasePart") and not part.Anchored and part:IsDescendantOf(workspace) then
-            if part.Parent == plr.Character or part:IsDescendantOf(plr.Character) then return false end
-            pcall(function()
-                part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
-                part.CanCollide = false
-            end)
-            return true
-        end
-        return false
-    end
-
-    local function addPart(part)
-        if retainPart(part) and not table.find(parts, part) then
-            table.insert(parts, part)
-        end
-    end
-
-    local function removePart(part)
-        local idx = table.find(parts, part)
-        if idx then table.remove(parts, idx) end
-    end
-
-    for _, part in pairs(workspace:GetDescendants()) do addPart(part) end
-    if partCon then partCon:Disconnect() end
-    partCon = workspace.DescendantAdded:Connect(addPart)
-    if removeCon then removeCon:Disconnect() end
-    removeCon = workspace.DescendantRemoving:Connect(removePart)
-
-    local function toggleMinimize()
-        minimized = not minimized
-        for _, c in pairs(controls) do
-            c.Visible = not minimized
-        end
-        if minimized then
-            mainFrame.Size = UDim2.new(0, 300, 0, 40)
-        else
-            mainFrame.Size = UDim2.new(0, 300, 0, 500)
-        end
-    end
-
-    local function createGUI()
-        if screenGui then return end
-        screenGui = Instance.new("ScreenGui")
-        screenGui.Name = "BlackholeH2GUI"
-        screenGui.ResetOnSpawn = false
-        screenGui.Parent = plr:WaitForChild("PlayerGui")
-
-        mainFrame = Instance.new("Frame")
-        mainFrame.Size = UDim2.new(0, 300, 0, 500)
-        mainFrame.Position = UDim2.new(0.5, -150, 0.5, -250)
-        mainFrame.BorderSizePixel = 0
-        mainFrame.Parent = screenGui
-        mainFrame.Active = true
-        mainFrame.Draggable = true
-
-        local uiCorner = Instance.new("UICorner")
-        uiCorner.CornerRadius = UDim.new(0, 20)
-        uiCorner.Parent = mainFrame
-
-        local title = Instance.new("TextLabel")
-        title.Size = UDim2.new(1, 0, 0, 40)
-        title.Text = "黑洞h2"
-        title.TextColor3 = Color3.fromRGB(0, 0, 0)
-        title.BackgroundColor3 = Color3.fromRGB(0, 204, 204)
-        title.Font = Enum.Font.Fondamento
-        title.TextSize = 22
-        title.Parent = mainFrame
-        local titleCorner = Instance.new("UICorner")
-        titleCorner.CornerRadius = UDim.new(0, 20)
-        titleCorner.Parent = title
-
-        local closeBtn = Instance.new("TextButton")
-        closeBtn.Size = UDim2.new(0, 30, 0, 30)
-        closeBtn.Position = UDim2.new(1, -35, 0, 5)
-        closeBtn.Text = "✕"
-        closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        closeBtn.Font = Enum.Font.Fondamento
-        closeBtn.TextSize = 15
-        closeBtn.Parent = mainFrame
-        local closeCorner = Instance.new("UICorner")
-        closeCorner.CornerRadius = UDim.new(0, 15)
-        closeCorner.Parent = closeBtn
-        closeBtn.MouseButton1Click:Connect(function()
-            if screenGui then screenGui:Destroy() screenGui = nil end
-            if _G.HyggUI and _G.HyggUI.toggleBlackholeH2 then
-                _G.HyggUI.toggleBlackholeH2(false)
+    local toggleControl = section:Toggle({
+        Title = "开启黑洞",
+        Value = false,
+        Callback = function(val)
+            if val then
+                startBlackhole()
+                WindUI:Notify({Title = "黑洞", Content = "已开启", Duration = 2, Icon = "check"})
+            else
+                stopBlackhole()
+                WindUI:Notify({Title = "黑洞", Content = "已关闭", Duration = 2, Icon = "x"})
             end
-        end)
+        end,
+    })
 
-        local minBtn = Instance.new("TextButton")
-        minBtn.Size = UDim2.new(0, 30, 0, 30)
-        minBtn.Position = UDim2.new(1, -70, 0, 5)
-        minBtn.Text = "－"
-        minBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-        minBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 200)
-        minBtn.Font = Enum.Font.Fondamento
-        minBtn.TextSize = 20
-        minBtn.Parent = mainFrame
-        local minCorner = Instance.new("UICorner")
-        minCorner.CornerRadius = UDim.new(0, 15)
-        minCorner.Parent = minBtn
-        minBtn.MouseButton1Click:Connect(toggleMinimize)
+    section:Slider({
+        Title = "半径",
+        Value = 50,
+        Min = 0,
+        Max = 500,
+        Callback = function(val)
+            config.radius = val
+        end,
+    })
 
-        local function createControl(labelText, configKey, posY, color, step, minVal, maxVal)
-            step = step or 10
-            minVal = minVal or 0
-            maxVal = maxVal or 10000
+    section:Slider({
+        Title = "高度",
+        Value = 100,
+        Min = 0,
+        Max = 500,
+        Callback = function(val)
+            config.height = val
+        end,
+    })
 
-            local bg = Instance.new("Frame")
-            bg.Size = UDim2.new(0.9, 0, 0, 42)
-            bg.Position = UDim2.new(0.05, 0, posY, 0)
-            bg.BackgroundColor3 = color
-            bg.BorderSizePixel = 0
-            bg.Parent = mainFrame
-            table.insert(controls, bg)
-            local bgCorner = Instance.new("UICorner")
-            bgCorner.CornerRadius = UDim.new(0, 8)
-            bgCorner.Parent = bg
+    section:Slider({
+        Title = "转速",
+        Value = 10,
+        Min = 0,
+        Max = 200,
+        Callback = function(val)
+            config.rotationSpeed = val
+        end,
+    })
 
-            local label = Instance.new("TextLabel")
-            label.Size = UDim2.new(0.45, 0, 1, 0)
-            label.Position = UDim2.new(0.02, 0, 0, 0)
-            label.Text = labelText
-            label.TextColor3 = Color3.fromRGB(0, 0, 0)
-            label.BackgroundTransparency = 1
-            label.Font = Enum.Font.Fondamento
-            label.TextSize = 18
-            label.TextXAlignment = Enum.TextXAlignment.Left
-            label.Parent = bg
+    section:Slider({
+        Title = "吸力",
+        Value = 1000,
+        Min = 0,
+        Max = 50000,
+        Callback = function(val)
+            config.attractionStrength = val
+        end,
+    })
 
-            local display = Instance.new("TextLabel")
-            display.Size = UDim2.new(0.2, 0, 1, 0)
-            display.Position = UDim2.new(0.42, 0, 0, 0)
-            display.Text = tostring(tonumber(config[configKey]) or 0)
-            display.TextColor3 = Color3.fromRGB(0, 0, 0)
-            display.BackgroundTransparency = 1
-            display.Font = Enum.Font.Fondamento
-            display.TextSize = 18
-            display.Parent = bg
-
-            local minusBtn = Instance.new("TextButton")
-            minusBtn.Size = UDim2.new(0, 30, 0, 30)
-            minusBtn.Position = UDim2.new(0.7, 0, 0.5, -15)
-            minusBtn.Text = "-"
-            minusBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-            minusBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-            minusBtn.Font = Enum.Font.Fondamento
-            minusBtn.TextSize = 20
-            minusBtn.Parent = bg
-            local mc = Instance.new("UICorner")
-            mc.CornerRadius = UDim.new(0, 8)
-            mc.Parent = minusBtn
-
-            local plusBtn = Instance.new("TextButton")
-            plusBtn.Size = UDim2.new(0, 30, 0, 30)
-            plusBtn.Position = UDim2.new(0.82, 0, 0.5, -15)
-            plusBtn.Text = "+"
-            plusBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-            plusBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-            plusBtn.Font = Enum.Font.Fondamento
-            plusBtn.TextSize = 20
-            plusBtn.Parent = bg
-            local pc = Instance.new("UICorner")
-            pc.CornerRadius = UDim.new(0, 8)
-            pc.Parent = plusBtn
-
-            local inputBox = Instance.new("TextBox")
-            inputBox.Size = UDim2.new(0.2, 0, 0, 30)
-            inputBox.Position = UDim2.new(0.42, 0, 0.5, -15)
-            inputBox.Text = tostring(tonumber(config[configKey]) or 0)
-            inputBox.TextColor3 = Color3.fromRGB(0, 0, 0)
-            inputBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            inputBox.Font = Enum.Font.Fondamento
-            inputBox.TextSize = 16
-            inputBox.TextXAlignment = Enum.TextXAlignment.Center
-            inputBox.PlaceholderText = "数值"
-            inputBox.ClearTextOnFocus = false
-            inputBox.Parent = bg
-            local ibCorner = Instance.new("UICorner")
-            ibCorner.CornerRadius = UDim.new(0, 6)
-            ibCorner.Parent = inputBox
-
-            local function updateDisplay()
-                local val = tonumber(config[configKey]) or 0
-                display.Text = tostring(val)
-                inputBox.Text = tostring(val)
-                local method = "set" .. configKey:gsub("^%l", string.upper)
-                if enabled and _G.RingControl2 and _G.RingControl2[method] then
-                    _G.RingControl2[method](val)
-                end
-            end
-
-            minusBtn.MouseButton1Click:Connect(function()
-                local newVal = math.max(minVal, (tonumber(config[configKey]) or 0) - step)
-                config[configKey] = newVal
-                updateDisplay()
-            end)
-
-            plusBtn.MouseButton1Click:Connect(function()
-                local newVal = math.min(maxVal, (tonumber(config[configKey]) or 0) + step)
-                config[configKey] = newVal
-                updateDisplay()
-            end)
-
-            inputBox.FocusLost:Connect(function(enterPressed)
-                if enterPressed then
-                    local newVal = tonumber(inputBox.Text)
-                    if newVal then
-                        newVal = math.clamp(newVal, minVal, maxVal)
-                        config[configKey] = newVal
-                        updateDisplay()
-                    else
-                        local val = tonumber(config[configKey]) or 0
-                        inputBox.Text = tostring(val)
-                    end
-                end
-            end)
-        end
-
-        createControl("半径", "radius", 0.08, Color3.fromRGB(153, 153, 0), 10, 0, 10000)
-        createControl("高度", "height", 0.22, Color3.fromRGB(153, 0, 153), 10, 0, 10000)
-        createControl("转速", "rotationSpeed", 0.36, Color3.fromRGB(0, 153, 153), 1, 0, 10000)
-        createControl("吸力", "attractionStrength", 0.50, Color3.fromRGB(153, 0, 0), 100, 0, 10000)
-
-        local hue = 0
-        game:GetService("RunService").Heartbeat:Connect(function()
-            if not mainFrame or not mainFrame.Parent then return end
-            hue = (hue + 0.01) % 1
-            mainFrame.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
-        end)
-
-        local textHue = 0
-        game:GetService("RunService").Heartbeat:Connect(function()
-            if not title or not title.Parent then return end
-            textHue = (textHue + 0.01) % 1
-            title.TextColor3 = Color3.fromHSV(textHue, 1, 1)
-        end)
-    end
-
-    local function start()
-        if con then return end
-        enabled = true
-        createGUI()
-        con = game:GetService("RunService").Heartbeat:Connect(function()
-            if not enabled then return end
-            local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-            if not root then return end
-            local center = root.Position
-            for _, part in pairs(parts) do
-                if part.Parent and not part.Anchored then
-                    local pos = part.Position
-                    local dist = (Vector3.new(pos.X, center.Y, pos.Z) - center).Magnitude
-                    local angle = math.atan2(pos.Z - center.Z, pos.X - center.X)
-                    local newAngle = angle + math.rad(config.rotationSpeed)
-                    local targetPos = Vector3.new(
-                        center.X + math.cos(newAngle) * math.min(config.radius, dist),
-                        center.Y + (config.height * (math.abs(math.sin((pos.Y - center.Y) / config.height)))),
-                        center.Z + math.sin(newAngle) * math.min(config.radius, dist)
-                    )
-                    local dir = (targetPos - part.Position).unit
-                    part.Velocity = dir * config.attractionStrength
-                end
-            end
-        end)
-    end
-
-    local function stop()
-        enabled = false
-        if con then con:Disconnect() con = nil end
-        if screenGui then screenGui:Destroy() screenGui = nil end
-        mainFrame = nil
-        controls = {}
-    end
-
-    return {
-        start = start,
-        stop = stop,
-        setRadius = function(v) config.radius = tonumber(v) or 50 end,
-        setHeight = function(v) config.height = tonumber(v) or 100 end,
-        setSpeed = function(v) config.rotationSpeed = tonumber(v) or 10 end,
-        setStrength = function(v) config.attractionStrength = tonumber(v) or 1000 end,
-    }
-end
-
-local blackholeTab = Window:Tab({Title = "黑洞", Icon = "circle"})
-
-local h1Running = false
-local h2Running = false
-
-local h1Api = nil
-local h2Api = nil
-
-local selectedBlackhole = "黑洞h1"
-local toggleControl = nil
-
-local function startH1()
-    if not h1Api then h1Api = createBlackholeH1() end
-    if h1Api then h1Api:start() h1Running = true end
-end
-
-local function stopH1(silent)
-    if h1Api then pcall(function() h1Api:stop() end) end
-    h1Running = false
-    if not silent then WindUI:Notify({Title = "黑洞h1", Content = "已关闭", Duration = 2, Icon = "x"}) end
-end
-
-local function startH2()
-    if not h2Api then h2Api = createBlackholeH2() end
-    if h2Api then h2Api:start() h2Running = true end
-end
-
-local function stopH2(silent)
-    if h2Api then pcall(function() h2Api:stop() end) end
-    h2Running = false
-    if not silent then WindUI:Notify({Title = "黑洞h2", Content = "已关闭", Duration = 2, Icon = "x"}) end
-end
-
-local function toggleBlackhole(val)
-    if val then
-        if selectedBlackhole == "黑洞h1" then
-            if h2Running then stopH2(true) end
-            startH1()
-            WindUI:Notify({Title = "黑洞h1", Content = "已开启", Duration = 2, Icon = "check"})
-        elseif selectedBlackhole == "黑洞h2" then
-            if h1Running then stopH1(true) end
-            startH2()
-            WindUI:Notify({Title = "黑洞h2", Content = "已开启", Duration = 2, Icon = "check"})
-        end
-    else
-        if h1Running then stopH1() end
-        if h2Running then stopH2() end
-    end
-end
-
-_G.HyggUI = _G.HyggUI or {}
-_G.HyggUI.toggleBlackholeH1 = function(val)
-    if not val then stopH1() end
-    if toggleControl then pcall(function() toggleControl:Set(false) end) end
-end
-_G.HyggUI.toggleBlackholeH2 = function(val)
-    if not val then stopH2() end
-    if toggleControl then pcall(function() toggleControl:Set(false) end) end
-end
-
-local section = blackholeTab:Section({
-    Title = "黑洞",
-    Box = true,
-})
-
-section:Dropdown({
-    Title = "选择黑洞",
-    Values = {"黑洞h1", "黑洞h2"},
-    Value = "黑洞h1",
-    Callback = function(selected)
-        selectedBlackhole = selected
-        if h1Running or h2Running then
-            toggleBlackhole(true)
-        end
-    end,
-})
-
-toggleControl = section:Toggle({
-    Title = "开关",
-    Value = false,
-    Callback = function(val) toggleBlackhole(val) end,
-})
-
-return blackholeTab
-
+    return blackholeTab
 end
