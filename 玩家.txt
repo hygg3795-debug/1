@@ -24,6 +24,8 @@ return function(Window, WindUI)
         local TweenService = game:GetService("TweenService")
         local LocalPlayer = Players.LocalPlayer
 
+        local targetPlayer = nil
+
         local playerMap = {}
         local function getPlayerNames()
             local names = {}
@@ -45,6 +47,7 @@ return function(Window, WindUI)
             Values = getPlayerNames(),
             Callback = function(selected)
                 targetPlayer = playerMap[selected]
+                print("已选择目标:", targetPlayer and targetPlayer.Name or "无")
             end,
         })
 
@@ -55,8 +58,6 @@ return function(Window, WindUI)
         end
         Players.PlayerAdded:Connect(refreshDropdown)
         Players.PlayerRemoving:Connect(refreshDropdown)
-
-        local targetPlayer = nil
 
         local smoothFollowConnection = nil
         local smoothFollowToggle = false
