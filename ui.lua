@@ -94,6 +94,115 @@ local function createNoFall()
     return {start = start, stop = stop}
 end
 
+local function styleUI()
+    pcall(function()
+        local frosty = CoreGui:FindFirstChild("frosty")
+        if not frosty then return end
+        for _, obj in ipairs(frosty:GetDescendants()) do
+            if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+                obj.TextColor3 = Color3.fromRGB(255, 255, 255)
+                obj.TextSize = 16
+                if obj:IsA("TextButton") then
+                    obj.BackgroundTransparency = 0.3
+                    obj.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+                end
+                if obj:IsA("TextBox") then
+                    obj.BackgroundTransparency = 0.3
+                    obj.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+                end
+            end
+            if obj:IsA("Frame") and obj.Name == "ToggleDisable" then
+                obj.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+                obj.BackgroundTransparency = 0.2
+            end
+            if obj:IsA("Frame") and obj.Name == "ToggleSwitch" then
+                obj.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
+            end
+            if obj:IsA("Frame") and obj.Name == "ToggleBtn" then
+                obj.BackgroundTransparency = 0.2
+                obj.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+            end
+            if obj:IsA("Frame") and obj.Name == "SliderBack" then
+                obj.BackgroundTransparency = 0.2
+                obj.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+            end
+            if obj:IsA("Frame") and obj.Name == "SliderBar" then
+                obj.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+                obj.BackgroundTransparency = 0.3
+            end
+            if obj:IsA("Frame") and obj.Name == "SliderPart" then
+                obj.BackgroundColor3 = Color3.fromRGB(139, 0, 255)
+            end
+            if obj:IsA("Frame") and obj.Name == "BtnModule" then
+                obj.BackgroundTransparency = 0
+            end
+            if obj:IsA("Frame") and obj.Name == "Btn" then
+                obj.BackgroundTransparency = 0.2
+                obj.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+                obj.TextColor3 = Color3.fromRGB(255, 255, 255)
+            end
+            if obj:IsA("Frame") and obj.Name == "TextboxBack" then
+                obj.BackgroundTransparency = 0.2
+                obj.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+            end
+            if obj:IsA("Frame") and obj.Name == "KeybindBtn" then
+                obj.BackgroundTransparency = 0.2
+                obj.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+            end
+            if obj:IsA("Frame") and obj.Name == "DropdownTop" then
+                obj.BackgroundTransparency = 0.2
+                obj.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+            end
+            if obj:IsA("Frame") and obj.Name == "LabelModule" then
+                obj.BackgroundTransparency = 0
+            end
+            if obj:IsA("TextLabel") and obj.Name == "ScriptTitle" then
+                obj.TextColor3 = Color3.fromRGB(255, 255, 255)
+                obj.TextSize = 18
+            end
+            if obj:IsA("TextLabel") and obj.Name == "SectionText" then
+                obj.TextColor3 = Color3.fromRGB(255, 255, 255)
+                obj.TextSize = 17
+            end
+        end
+        local main = frosty:FindFirstChild("Main")
+        if main then
+            local corner = main:FindFirstChildOfClass("UICorner")
+            if not corner then
+                corner = Instance.new("UICorner")
+                corner.CornerRadius = UDim.new(0, 12)
+                corner.Parent = main
+            end
+            local stroke = main:FindFirstChildOfClass("UIStroke")
+            if not stroke then
+                stroke = Instance.new("UIStroke")
+                stroke.Thickness = 3.5
+                stroke.LineJoinMode = Enum.LineJoinMode.Round
+                stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                stroke.Parent = main
+                local gradient = Instance.new("UIGradient")
+                gradient.Color = ColorSequence.new({
+                    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+                    ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 255, 0)),
+                    ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
+                    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+                    ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
+                    ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+                })
+                gradient.Parent = stroke
+                local angle = 0
+                RunService.RenderStepped:Connect(function(dt)
+                    angle = (angle + dt * 150) % 360
+                    gradient.Rotation = angle
+                end)
+            end
+            main.BackgroundTransparency = 0.35
+            main.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
+        end
+    end)
+end
+
 local GeneralSection = GeneralTab:section("建议开", true)
 local antiAFKEnabled = false
 GeneralSection:Toggle("防踢", "AntiAFK", false, function(val)
@@ -253,6 +362,14 @@ GeneralSection:Toggle("去雾", "NoFog", false, function(enable)
             end
         end
         originalAtmosphere = {}
+    end
+end)
+
+GeneralSection:Toggle("岩石实体化", "RockSolid", false, function(val)
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v.Name == "LowerRocks" and v:IsA("BasePart") then
+            v.CanCollide = val
+        end
     end
 end)
 
@@ -1315,6 +1432,32 @@ TeleportSection:Button("传送", function()
         StarterGui:SetCore("SendNotification", {Title = "格式错误", Text = "请输入如: 100,200,300", Duration = 2})
     end
 end)
+
+local quickTeleportSection = TeleportTab:section("快速传送", true)
+local teleportToggleStates = {}
+
+local function createTeleportToggle(name, coords, desc)
+    local enabled = false
+    quickTeleportSection:Toggle(name, "TP_" .. name, false, function(val)
+        if val then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = CFrame.new(coords)
+                StarterGui:SetCore("SendNotification", {Title = name, Text = "已传送", Duration = 2})
+            end
+            task.wait(0.1)
+            local toggle = _G["TP_" .. name .. "_toggle"]
+            if toggle then
+                toggle:SetState(false)
+            end
+        end
+    end)
+end
+
+createTeleportToggle("传送出生岛", Vector3.new(-247.14, 180.45, 309.40))
+createTeleportToggle("传送岛屿", Vector3.new(-104.44, 48.65, 13.03))
+createTeleportToggle("传送虚空", Vector3.new(0, 100000000, 0))
+
 task.spawn(function()
     while true do
         local char = LocalPlayer.Character
@@ -1648,13 +1791,178 @@ PlayerSection:Toggle("人口", "GetSucked", false, function(val)
     end
 end)
 
-local BlackholeSection = BlackholeTab:section("H1", true)
+local BlackholeSection = BlackholeTab:section("h1", true)
 local parts = {}
 local enabled1 = false
 local con1 = nil
 local partCon1 = nil
 local removeCon1 = nil
 local config1 = {radius = 50, height = 100, rotationSpeed = 10, attractionStrength = 1000}
+
+local h1SettingsWindow = nil
+local function createH1SettingsWindow()
+    if h1SettingsWindow then
+        h1SettingsWindow.Enabled = true
+        h1SettingsWindow:Destroy()
+        h1SettingsWindow = nil
+        task.wait(0.1)
+    end
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "H1Settings"
+    sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    sg.ResetOnSpawn = false
+    h1SettingsWindow = sg
+    local frame = Instance.new("Frame")
+    frame.Parent = sg
+    frame.Size = UDim2.new(0, 300, 0, 280)
+    frame.Position = UDim2.new(0.5, -150, 0.5, -140)
+    frame.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
+    frame.BackgroundTransparency = 0.1
+    frame.ZIndex = 100
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = frame
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = 2
+    stroke.Color = Color3.fromRGB(139, 0, 255)
+    stroke.Parent = frame
+    local title = Instance.new("TextLabel")
+    title.Parent = frame
+    title.Size = UDim2.new(1, 0, 0, 35)
+    title.Position = UDim2.new(0, 0, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "h1 设置"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 18
+    title.TextXAlignment = Enum.TextXAlignment.Center
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Parent = frame
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -35, 0, 5)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 16
+    closeBtn.ZIndex = 102
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 6)
+    closeCorner.Parent = closeBtn
+    closeBtn.MouseButton1Click:Connect(function()
+        if h1SettingsWindow then
+            h1SettingsWindow:Destroy()
+            h1SettingsWindow = nil
+        end
+    end)
+    local function createSlider(name, label, minVal, maxVal, defaultVal, callback)
+        local labelObj = Instance.new("TextLabel")
+        labelObj.Parent = frame
+        labelObj.Size = UDim2.new(1, -20, 0, 20)
+        labelObj.Position = UDim2.new(0, 10, 0, 40 + #frame:GetChildren() * 30)
+        labelObj.BackgroundTransparency = 1
+        labelObj.Text = label
+        labelObj.TextColor3 = Color3.fromRGB(200, 200, 200)
+        labelObj.Font = Enum.Font.GothamBold
+        labelObj.TextSize = 13
+        labelObj.TextXAlignment = Enum.TextXAlignment.Left
+        local sliderFrame = Instance.new("Frame")
+        sliderFrame.Parent = frame
+        sliderFrame.Size = UDim2.new(1, -40, 0, 20)
+        sliderFrame.Position = UDim2.new(0, 20, 0, 65 + #frame:GetChildren() * 30)
+        sliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+        sliderFrame.BackgroundTransparency = 0.3
+        local sliderCorner = Instance.new("UICorner")
+        sliderCorner.CornerRadius = UDim.new(0, 4)
+        sliderCorner.Parent = sliderFrame
+        local fill = Instance.new("Frame")
+        fill.Parent = sliderFrame
+        fill.Size = UDim2.new(0, 0, 1, 0)
+        fill.BackgroundColor3 = Color3.fromRGB(139, 0, 255)
+        fill.BorderSizePixel = 0
+        local fillCorner = Instance.new("UICorner")
+        fillCorner.CornerRadius = UDim.new(0, 4)
+        fillCorner.Parent = fill
+        local knob = Instance.new("TextButton")
+        knob.Parent = sliderFrame
+        knob.Size = UDim2.new(0, 16, 0, 16)
+        knob.Position = UDim2.new(0, -8, 0.5, -8)
+        knob.Text = ""
+        knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        knob.AutoButtonColor = false
+        local knobCorner = Instance.new("UICorner")
+        knobCorner.CornerRadius = UDim.new(1, 0)
+        knobCorner.Parent = knob
+        local valueBox = Instance.new("TextBox")
+        valueBox.Parent = frame
+        valueBox.Size = UDim2.new(0, 50, 0, 22)
+        valueBox.Position = UDim2.new(1, -60, 0, 40 + #frame:GetChildren() * 30)
+        valueBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        valueBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+        valueBox.Font = Enum.Font.Gotham
+        valueBox.TextSize = 13
+        valueBox.Text = tostring(defaultVal)
+        local valueCorner = Instance.new("UICorner")
+        valueCorner.CornerRadius = UDim.new(0, 4)
+        valueCorner.Parent = valueBox
+        local dragging = false
+        local function updateValue(val)
+            val = math.clamp(val, minVal, maxVal)
+            local percent = (val - minVal) / (maxVal - minVal)
+            fill.Size = UDim2.new(percent, 0, 1, 0)
+            knob.Position = UDim2.new(percent, -8, 0.5, -8)
+            valueBox.Text = tostring(val)
+            callback(val)
+        end
+        knob.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+            end
+        end)
+        UserInputService.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                if dragging and sliderFrame then
+                    local mousePos = UserInputService:GetMouseLocation()
+                    local absPos = sliderFrame.AbsolutePosition
+                    local absSize = sliderFrame.AbsoluteSize
+                    local relX = math.clamp(mousePos.X - absPos.X, 0, absSize.X)
+                    local percent = relX / absSize.X
+                    local val = minVal + (maxVal - minVal) * percent
+                    updateValue(val)
+                end
+            end
+        end)
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = false
+            end
+        end)
+        valueBox.FocusLost:Connect(function()
+            local val = tonumber(valueBox.Text)
+            if val then
+                updateValue(val)
+            else
+                valueBox.Text = tostring(defaultVal)
+            end
+        end)
+        updateValue(defaultVal)
+        return {update = updateValue}
+    end
+    createSlider("radius", "半径", 0, 500, config1.radius, function(val)
+        config1.radius = val
+    end)
+    createSlider("height", "高度", 0, 500, config1.height, function(val)
+        config1.height = val
+    end)
+    createSlider("speed", "转速", 0, 200, config1.rotationSpeed, function(val)
+        config1.rotationSpeed = val
+    end)
+    createSlider("strength", "吸力", 0, 50000, config1.attractionStrength, function(val)
+        config1.attractionStrength = val
+    end)
+    makeDraggable(frame, frame)
+end
+
 local function retainPart1(p)
     if p:IsA("BasePart") and not p.Anchored and p:IsDescendantOf(Workspace) then
         if p.Parent == LocalPlayer.Character or p:IsDescendantOf(LocalPlayer.Character) then return false end
@@ -1718,35 +2026,188 @@ local function stopH1()
     if removeCon1 then removeCon1:Disconnect() removeCon1 = nil end
     parts = {}
 end
-BlackholeSection:Toggle("开启H1", "H1", false, function(val)
+BlackholeSection:Toggle("开启h1", "h1", false, function(val)
     if val then
         startH1()
-        StarterGui:SetCore("SendNotification", {Title = "H1", Text = "已开启", Duration = 2})
+        createH1SettingsWindow()
+        StarterGui:SetCore("SendNotification", {Title = "h1", Text = "已开启", Duration = 2})
     else
         stopH1()
-        StarterGui:SetCore("SendNotification", {Title = "H1", Text = "已关闭", Duration = 2})
+        if h1SettingsWindow then
+            h1SettingsWindow:Destroy()
+            h1SettingsWindow = nil
+        end
+        StarterGui:SetCore("SendNotification", {Title = "h1", Text = "已关闭", Duration = 2})
     end
 end)
-BlackholeSection:Slider("半径", "H1Radius", 50, 0, 500, false, function(val)
-    config1.radius = val
-end)
-BlackholeSection:Slider("高度", "H1Height", 100, 0, 500, false, function(val)
-    config1.height = val
-end)
-BlackholeSection:Slider("转速", "H1Speed", 10, 0, 200, false, function(val)
-    config1.rotationSpeed = val
-end)
-BlackholeSection:Slider("吸力", "H1Strength", 1000, 0, 50000, false, function(val)
-    config1.attractionStrength = val
-end)
 
-local H2Section = BlackholeTab:section("H2", true)
+local H2Section = BlackholeTab:section("h2", true)
 local hrPart = nil
 local folder = nil
 local part = nil
 local attachment1 = nil
 local enabled2 = false
 local heartbeatCon2 = nil
+local config2 = {velocity = 14.46262424}
+
+local h2SettingsWindow = nil
+local function createH2SettingsWindow()
+    if h2SettingsWindow then
+        h2SettingsWindow.Enabled = true
+        h2SettingsWindow:Destroy()
+        h2SettingsWindow = nil
+        task.wait(0.1)
+    end
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "H2Settings"
+    sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    sg.ResetOnSpawn = false
+    h2SettingsWindow = sg
+    local frame = Instance.new("Frame")
+    frame.Parent = sg
+    frame.Size = UDim2.new(0, 280, 0, 160)
+    frame.Position = UDim2.new(0.5, -140, 0.5, -80)
+    frame.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
+    frame.BackgroundTransparency = 0.1
+    frame.ZIndex = 100
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = frame
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = 2
+    stroke.Color = Color3.fromRGB(139, 0, 255)
+    stroke.Parent = frame
+    local title = Instance.new("TextLabel")
+    title.Parent = frame
+    title.Size = UDim2.new(1, 0, 0, 35)
+    title.Position = UDim2.new(0, 0, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "h2 设置"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 18
+    title.TextXAlignment = Enum.TextXAlignment.Center
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Parent = frame
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -35, 0, 5)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 16
+    closeBtn.ZIndex = 102
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 6)
+    closeCorner.Parent = closeBtn
+    closeBtn.MouseButton1Click:Connect(function()
+        if h2SettingsWindow then
+            h2SettingsWindow:Destroy()
+            h2SettingsWindow = nil
+        end
+    end)
+    local function createSlider(name, label, minVal, maxVal, defaultVal, callback)
+        local labelObj = Instance.new("TextLabel")
+        labelObj.Parent = frame
+        labelObj.Size = UDim2.new(1, -20, 0, 20)
+        labelObj.Position = UDim2.new(0, 10, 0, 40 + #frame:GetChildren() * 30)
+        labelObj.BackgroundTransparency = 1
+        labelObj.Text = label
+        labelObj.TextColor3 = Color3.fromRGB(200, 200, 200)
+        labelObj.Font = Enum.Font.GothamBold
+        labelObj.TextSize = 13
+        labelObj.TextXAlignment = Enum.TextXAlignment.Left
+        local sliderFrame = Instance.new("Frame")
+        sliderFrame.Parent = frame
+        sliderFrame.Size = UDim2.new(1, -40, 0, 20)
+        sliderFrame.Position = UDim2.new(0, 20, 0, 65 + #frame:GetChildren() * 30)
+        sliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+        sliderFrame.BackgroundTransparency = 0.3
+        local sliderCorner = Instance.new("UICorner")
+        sliderCorner.CornerRadius = UDim.new(0, 4)
+        sliderCorner.Parent = sliderFrame
+        local fill = Instance.new("Frame")
+        fill.Parent = sliderFrame
+        fill.Size = UDim2.new(0, 0, 1, 0)
+        fill.BackgroundColor3 = Color3.fromRGB(139, 0, 255)
+        fill.BorderSizePixel = 0
+        local fillCorner = Instance.new("UICorner")
+        fillCorner.CornerRadius = UDim.new(0, 4)
+        fillCorner.Parent = fill
+        local knob = Instance.new("TextButton")
+        knob.Parent = sliderFrame
+        knob.Size = UDim2.new(0, 16, 0, 16)
+        knob.Position = UDim2.new(0, -8, 0.5, -8)
+        knob.Text = ""
+        knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        knob.AutoButtonColor = false
+        local knobCorner = Instance.new("UICorner")
+        knobCorner.CornerRadius = UDim.new(1, 0)
+        knobCorner.Parent = knob
+        local valueBox = Instance.new("TextBox")
+        valueBox.Parent = frame
+        valueBox.Size = UDim2.new(0, 50, 0, 22)
+        valueBox.Position = UDim2.new(1, -60, 0, 40 + #frame:GetChildren() * 30)
+        valueBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        valueBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+        valueBox.Font = Enum.Font.Gotham
+        valueBox.TextSize = 13
+        valueBox.Text = tostring(defaultVal)
+        local valueCorner = Instance.new("UICorner")
+        valueCorner.CornerRadius = UDim.new(0, 4)
+        valueCorner.Parent = valueBox
+        local dragging = false
+        local function updateValue(val)
+            val = math.clamp(val, minVal, maxVal)
+            local percent = (val - minVal) / (maxVal - minVal)
+            fill.Size = UDim2.new(percent, 0, 1, 0)
+            knob.Position = UDim2.new(percent, -8, 0.5, -8)
+            valueBox.Text = tostring(val)
+            callback(val)
+        end
+        knob.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+            end
+        end)
+        UserInputService.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                if dragging and sliderFrame then
+                    local mousePos = UserInputService:GetMouseLocation()
+                    local absPos = sliderFrame.AbsolutePosition
+                    local absSize = sliderFrame.AbsoluteSize
+                    local relX = math.clamp(mousePos.X - absPos.X, 0, absSize.X)
+                    local percent = relX / absSize.X
+                    local val = minVal + (maxVal - minVal) * percent
+                    updateValue(val)
+                end
+            end
+        end)
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = false
+            end
+        end)
+        valueBox.FocusLost:Connect(function()
+            local val = tonumber(valueBox.Text)
+            if val then
+                updateValue(val)
+            else
+                valueBox.Text = tostring(defaultVal)
+            end
+        end)
+        updateValue(defaultVal)
+        return {update = updateValue}
+    end
+    createSlider("velocity", "速度", 1, 100, config2.velocity, function(val)
+        config2.velocity = val
+        if getgenv().Network then
+            getgenv().Network.Velocity = Vector3.new(val, val, val)
+        end
+    end)
+    makeDraggable(frame, frame)
+end
+
 local function setupH2()
     local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     hrPart = character:WaitForChild("HumanoidRootPart")
@@ -1759,7 +2220,7 @@ local function setupH2()
     if not getgenv().Network then
         getgenv().Network = {
             BaseParts = {},
-            Velocity = Vector3.new(14.46262424, 14.46262424, 14.46262424)
+            Velocity = Vector3.new(config2.velocity, config2.velocity, config2.velocity)
         }
         Network.RetainPart = function(p)
             if typeof(p) == "Instance" and p:IsA("BasePart") and p:IsDescendantOf(Workspace) then
@@ -1843,13 +2304,18 @@ local function stopH2()
     attachment1 = nil
     part = nil
 end
-H2Section:Toggle("开启H2", "H2", false, function(val)
+H2Section:Toggle("开启h2", "h2", false, function(val)
     if val then
         startH2()
-        StarterGui:SetCore("SendNotification", {Title = "H2", Text = "已开启", Duration = 2})
+        createH2SettingsWindow()
+        StarterGui:SetCore("SendNotification", {Title = "h2", Text = "已开启", Duration = 2})
     else
         stopH2()
-        StarterGui:SetCore("SendNotification", {Title = "H2", Text = "已关闭", Duration = 2})
+        if h2SettingsWindow then
+            h2SettingsWindow:Destroy()
+            h2SettingsWindow = nil
+        end
+        StarterGui:SetCore("SendNotification", {Title = "h2", Text = "已关闭", Duration = 2})
     end
 end)
 
@@ -2348,47 +2814,8 @@ LightingSection:Toggle("固定黄昏光影", "DuskLighting", false, function(val
 end)
 
 task.spawn(function()
-    task.wait(0.5)
-    pcall(function()
-        local frosty = CoreGui:FindFirstChild("frosty")
-        if frosty then
-            local main = frosty:FindFirstChild("Main")
-            if main then
-                local corner = main:FindFirstChildOfClass("UICorner")
-                if not corner then
-                    corner = Instance.new("UICorner")
-                    corner.CornerRadius = UDim.new(0, 12)
-                    corner.Parent = main
-                end
-                local stroke = main:FindFirstChildOfClass("UIStroke")
-                if not stroke then
-                    stroke = Instance.new("UIStroke")
-                    stroke.Thickness = 3.5
-                    stroke.LineJoinMode = Enum.LineJoinMode.Round
-                    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-                    stroke.Parent = main
-                    local gradient = Instance.new("UIGradient")
-                    gradient.Color = ColorSequence.new({
-                        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-                        ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 255, 0)),
-                        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
-                        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
-                        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
-                        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
-                        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
-                    })
-                    gradient.Parent = stroke
-                    local angle = 0
-                    RunService.RenderStepped:Connect(function(dt)
-                        angle = (angle + dt * 150) % 360
-                        gradient.Rotation = angle
-                    end)
-                end
-                main.BackgroundTransparency = 0.4
-                main.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-            end
-        end
-    end)
+    task.wait(0.8)
+    styleUI()
 end)
 
 StarterGui:SetCore("SendNotification", {
