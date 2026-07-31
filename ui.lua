@@ -1,4 +1,4 @@
-local HyggUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/xiaopi77/xiaopi77/main/%E7%9A%AE%E8%84%9A%E6%9C%ACUI%E6%BA%90%E7%A0%81.lua"))():new("hygg")
+local HyggUI = loadstring(game:HttpGet("https://hygg3795-debug.github.io/1/ui.lua"))():new("hygg")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
