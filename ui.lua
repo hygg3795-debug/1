@@ -98,81 +98,19 @@ local function styleUI()
     pcall(function()
         local frosty = CoreGui:FindFirstChild("frosty")
         if not frosty then return end
-        for _, obj in ipairs(frosty:GetDescendants()) do
-            if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
-                obj.TextColor3 = Color3.fromRGB(255, 255, 255)
-                obj.TextSize = 16
-                if obj:IsA("TextButton") then
-                    obj.BackgroundTransparency = 0.3
-                    obj.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-                end
-                if obj:IsA("TextBox") then
-                    obj.BackgroundTransparency = 0.3
-                    obj.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-                end
-            end
-            if obj:IsA("Frame") and obj.Name == "ToggleDisable" then
-                obj.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-                obj.BackgroundTransparency = 0.2
-            end
-            if obj:IsA("Frame") and obj.Name == "ToggleSwitch" then
-                obj.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
-            end
-            if obj:IsA("Frame") and obj.Name == "ToggleBtn" then
-                obj.BackgroundTransparency = 0.2
-                obj.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-            end
-            if obj:IsA("Frame") and obj.Name == "SliderBack" then
-                obj.BackgroundTransparency = 0.2
-                obj.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-            end
-            if obj:IsA("Frame") and obj.Name == "SliderBar" then
-                obj.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-                obj.BackgroundTransparency = 0.3
-            end
-            if obj:IsA("Frame") and obj.Name == "SliderPart" then
-                obj.BackgroundColor3 = Color3.fromRGB(139, 0, 255)
-            end
-            if obj:IsA("Frame") and obj.Name == "BtnModule" then
-                obj.BackgroundTransparency = 0
-            end
-            if obj:IsA("Frame") and obj.Name == "Btn" then
-                obj.BackgroundTransparency = 0.2
-                obj.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-                obj.TextColor3 = Color3.fromRGB(255, 255, 255)
-            end
-            if obj:IsA("Frame") and obj.Name == "TextboxBack" then
-                obj.BackgroundTransparency = 0.2
-                obj.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-            end
-            if obj:IsA("Frame") and obj.Name == "KeybindBtn" then
-                obj.BackgroundTransparency = 0.2
-                obj.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-            end
-            if obj:IsA("Frame") and obj.Name == "DropdownTop" then
-                obj.BackgroundTransparency = 0.2
-                obj.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-            end
-            if obj:IsA("Frame") and obj.Name == "LabelModule" then
-                obj.BackgroundTransparency = 0
-            end
-            if obj:IsA("TextLabel") and obj.Name == "ScriptTitle" then
-                obj.TextColor3 = Color3.fromRGB(255, 255, 255)
-                obj.TextSize = 18
-            end
-            if obj:IsA("TextLabel") and obj.Name == "SectionText" then
-                obj.TextColor3 = Color3.fromRGB(255, 255, 255)
-                obj.TextSize = 17
-            end
-        end
+        
         local main = frosty:FindFirstChild("Main")
         if main then
+            main.BackgroundTransparency = 0.35
+            main.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+            
             local corner = main:FindFirstChildOfClass("UICorner")
             if not corner then
                 corner = Instance.new("UICorner")
                 corner.CornerRadius = UDim.new(0, 12)
                 corner.Parent = main
             end
+            
             local stroke = main:FindFirstChildOfClass("UIStroke")
             if not stroke then
                 stroke = Instance.new("UIStroke")
@@ -197,8 +135,152 @@ local function styleUI()
                     gradient.Rotation = angle
                 end)
             end
-            main.BackgroundTransparency = 0.35
-            main.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
+            
+            local dropShadow = main:FindFirstChild("DropShadowHolder")
+            if dropShadow then
+                local shadow = dropShadow:FindFirstChild("DropShadow")
+                if shadow then
+                    shadow.ImageTransparency = 0.4
+                end
+            end
+        end
+
+        local side = frosty:FindFirstChild("Main"):FindFirstChild("SB"):FindFirstChild("Side")
+        if side then
+            side.BackgroundTransparency = 0.3
+            side.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
+        end
+
+        for _, obj in ipairs(frosty:GetDescendants()) do
+            if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+                obj.TextColor3 = Color3.fromRGB(255, 255, 255)
+                obj.TextSize = 16
+                obj.BackgroundTransparency = 0.3
+                if obj:IsA("TextLabel") and obj.Name == "SectionText" then
+                    obj.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    obj.TextSize = 17
+                end
+                if obj:IsA("TextLabel") and obj.Name == "ScriptTitle" then
+                    obj.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    obj.TextSize = 18
+                end
+                if obj:IsA("TextButton") then
+                    obj.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+                    obj.BackgroundTransparency = 0.25
+                end
+                if obj:IsA("TextBox") then
+                    obj.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+                    obj.BackgroundTransparency = 0.25
+                end
+            end
+            
+            if obj:IsA("Frame") and obj.Name == "ToggleBtn" then
+                obj.BackgroundTransparency = 0.2
+                obj.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+                local btn = obj:FindFirstChildWhichIsA("TextButton")
+                if btn then
+                    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    btn.BackgroundTransparency = 0
+                end
+            end
+            
+            if obj:IsA("Frame") and obj.Name == "ToggleDisable" then
+                obj.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+                obj.BackgroundTransparency = 0.2
+            end
+            
+            if obj:IsA("Frame") and obj.Name == "ToggleSwitch" then
+                obj.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+            end
+            
+            if obj:IsA("Frame") and obj.Name == "SliderBack" then
+                obj.BackgroundTransparency = 0.15
+                obj.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+            end
+            
+            if obj:IsA("Frame") and obj.Name == "SliderBar" then
+                obj.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+                obj.BackgroundTransparency = 0.2
+            end
+            
+            if obj:IsA("Frame") and obj.Name == "SliderPart" then
+                obj.BackgroundColor3 = Color3.fromRGB(139, 0, 255)
+            end
+            
+            if obj:IsA("Frame") and obj.Name == "BtnModule" then
+                obj.BackgroundTransparency = 0
+            end
+            
+            if obj:IsA("Frame") and obj.Name == "Btn" then
+                obj.BackgroundTransparency = 0.15
+                obj.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+                local btn = obj:FindFirstChildWhichIsA("TextButton")
+                if btn then
+                    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                end
+            end
+            
+            if obj:IsA("Frame") and obj.Name == "TextboxBack" then
+                obj.BackgroundTransparency = 0.15
+                obj.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+            end
+            
+            if obj:IsA("Frame") and obj.Name == "KeybindBtn" then
+                obj.BackgroundTransparency = 0.15
+                obj.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+            end
+            
+            if obj:IsA("Frame") and obj.Name == "DropdownTop" then
+                obj.BackgroundTransparency = 0.15
+                obj.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+                local text = obj:FindFirstChild("DropdownText")
+                if text then
+                    text.TextColor3 = Color3.fromRGB(255, 255, 255)
+                end
+            end
+            
+            if obj:IsA("Frame") and obj.Name == "LabelModule" then
+                obj.BackgroundTransparency = 0
+            end
+            
+            if obj:IsA("TextButton") and obj.Name == "KeybindValue" then
+                obj.BackgroundTransparency = 0.2
+                obj.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+                obj.TextColor3 = Color3.fromRGB(255, 255, 255)
+            end
+            
+            if obj:IsA("TextButton") and obj.Name == "BoxBG" then
+                obj.BackgroundTransparency = 0.2
+                obj.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+            end
+            
+            if obj:IsA("TextButton") and obj.Name == "SliderValBG" then
+                obj.BackgroundTransparency = 0.2
+                obj.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+            end
+            
+            if obj:IsA("Frame") and obj.Name == "Option_" then
+                obj.BackgroundTransparency = 0.15
+                obj.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+                local btn = obj:FindFirstChildWhichIsA("TextButton")
+                if btn then
+                    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    btn.BackgroundTransparency = 0
+                end
+            end
+            
+            if obj:IsA("Frame") and obj.Name == "Section" then
+                obj.BackgroundTransparency = 0.1
+                obj.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+            end
+            
+            if obj:IsA("TextLabel") and obj.Name == "SectionText" then
+                obj.TextColor3 = Color3.fromRGB(255, 255, 255)
+            end
+            
+            if obj:IsA("TextLabel") and obj.Name == "Label" then
+                obj.TextColor3 = Color3.fromRGB(200, 200, 200)
+            end
         end
     end)
 end
@@ -1434,10 +1516,8 @@ TeleportSection:Button("传送", function()
 end)
 
 local quickTeleportSection = TeleportTab:section("快速传送", true)
-local teleportToggleStates = {}
 
 local function createTeleportToggle(name, coords, desc)
-    local enabled = false
     quickTeleportSection:Toggle(name, "TP_" .. name, false, function(val)
         if val then
             local char = LocalPlayer.Character
@@ -1816,8 +1896,8 @@ local function createH1SettingsWindow()
     frame.Parent = sg
     frame.Size = UDim2.new(0, 300, 0, 280)
     frame.Position = UDim2.new(0.5, -150, 0.5, -140)
-    frame.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
-    frame.BackgroundTransparency = 0.1
+    frame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+    frame.BackgroundTransparency = 0.15
     frame.ZIndex = 100
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
@@ -1871,7 +1951,7 @@ local function createH1SettingsWindow()
         sliderFrame.Size = UDim2.new(1, -40, 0, 20)
         sliderFrame.Position = UDim2.new(0, 20, 0, 65 + #frame:GetChildren() * 30)
         sliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-        sliderFrame.BackgroundTransparency = 0.3
+        sliderFrame.BackgroundTransparency = 0.2
         local sliderCorner = Instance.new("UICorner")
         sliderCorner.CornerRadius = UDim.new(0, 4)
         sliderCorner.Parent = sliderFrame
@@ -1897,7 +1977,8 @@ local function createH1SettingsWindow()
         valueBox.Parent = frame
         valueBox.Size = UDim2.new(0, 50, 0, 22)
         valueBox.Position = UDim2.new(1, -60, 0, 40 + #frame:GetChildren() * 30)
-        valueBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        valueBox.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+        valueBox.BackgroundTransparency = 0.2
         valueBox.TextColor3 = Color3.fromRGB(255, 255, 255)
         valueBox.Font = Enum.Font.Gotham
         valueBox.TextSize = 13
@@ -2067,8 +2148,8 @@ local function createH2SettingsWindow()
     frame.Parent = sg
     frame.Size = UDim2.new(0, 280, 0, 160)
     frame.Position = UDim2.new(0.5, -140, 0.5, -80)
-    frame.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
-    frame.BackgroundTransparency = 0.1
+    frame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+    frame.BackgroundTransparency = 0.15
     frame.ZIndex = 100
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
@@ -2122,7 +2203,7 @@ local function createH2SettingsWindow()
         sliderFrame.Size = UDim2.new(1, -40, 0, 20)
         sliderFrame.Position = UDim2.new(0, 20, 0, 65 + #frame:GetChildren() * 30)
         sliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-        sliderFrame.BackgroundTransparency = 0.3
+        sliderFrame.BackgroundTransparency = 0.2
         local sliderCorner = Instance.new("UICorner")
         sliderCorner.CornerRadius = UDim.new(0, 4)
         sliderCorner.Parent = sliderFrame
@@ -2148,7 +2229,8 @@ local function createH2SettingsWindow()
         valueBox.Parent = frame
         valueBox.Size = UDim2.new(0, 50, 0, 22)
         valueBox.Position = UDim2.new(1, -60, 0, 40 + #frame:GetChildren() * 30)
-        valueBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        valueBox.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+        valueBox.BackgroundTransparency = 0.2
         valueBox.TextColor3 = Color3.fromRGB(255, 255, 255)
         valueBox.Font = Enum.Font.Gotham
         valueBox.TextSize = 13
