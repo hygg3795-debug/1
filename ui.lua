@@ -10,6 +10,7 @@ local LocalPlayer = Players.LocalPlayer
 local StarterGui = game:GetService("StarterGui")
 local CoreGui = game:GetService("CoreGui")
 local Terrain = Workspace.Terrain
+local Camera = Workspace.CurrentCamera
 
 local function SafeLoad(url, name)
     local success, err = pcall(function()
@@ -1624,6 +1625,219 @@ PlayerSection:Button("传送至选中玩家", function()
 end)
 PlayerSection:Button("r15道馆", function()
     SafeLoad("https://pastefy.app/YZoglOyJ/raw", "r15道馆")
+end)
+
+PlayerSection:Button("查看玩家视角", function()
+    if not targetPlayer then
+        StarterGui:SetCore("SendNotification", {Title = "提示", Text = "请先选择目标玩家", Duration = 2})
+        return
+    end
+    local target = targetPlayer
+    if target and target.Character then
+        local targetHum = target.Character:FindFirstChildOfClass("Humanoid")
+        if targetHum then
+            Camera.CameraSubject = targetHum
+            StarterGui:SetCore("SendNotification", {Title = "视角切换", Text = "已切换到 " .. target.Name .. " 的视角", Duration = 2})
+        else
+            StarterGui:SetCore("SendNotification", {Title = "错误", Text = "目标玩家没有角色", Duration = 2})
+        end
+    else
+        StarterGui:SetCore("SendNotification", {Title = "错误", Text = "目标玩家不存在", Duration = 2})
+    end
+end)
+
+PlayerSection:Button("恢复自身视角", function()
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            Camera.CameraSubject = hum
+            StarterGui:SetCore("SendNotification", {Title = "视角切换", Text = "已恢复自身视角", Duration = 2})
+        end
+    end
+end)
+
+local function ThrowPlayer(targetPlayer)
+    local localChar = LocalPlayer.Character
+    local localHum = localChar and localChar:FindFirstChildOfClass("Humanoid")
+    local localRoot = localHum and localHum.RootPart
+    local targetChar = targetPlayer.Character
+    local targetHum = targetChar and targetChar:FindFirstChildOfClass("Humanoid")
+    local targetRoot = targetHum and targetHum.RootPart
+    local targetHead = targetChar and targetChar:FindFirstChild("Head")
+    
+    if not localChar or not localHum or not localRoot then
+        return StarterGui:SetCore("SendNotification", {Title = "错误", Text = "你的角色不存在", Duration = 3})
+    end
+    
+    if not targetChar or not targetHum then
+        return StarterGui:SetCore("SendNotification", {Title = "错误", Text = "目标玩家不存在", Duration = 3})
+    end
+    
+    if localRoot.Velocity.Magnitude < 50 then
+        getgenv().OldPos = localRoot.CFrame
+    end
+    
+    workspace.FallenPartsDestroyHeight = 0/0
+    
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.Name = "EpixVel"
+    bodyVelocity.Parent = localRoot
+    bodyVelocity.Velocity = Vector3.new(900000000, 900000000, 900000000)
+    bodyVelocity.MaxForce = Vector3.new(1/0, 1/0, 1/0)
+    
+    localHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+    
+    local function ApplyForce(part, offset, rotation)
+        localRoot.CFrame = CFrame.new(part.Position) * offset * rotation
+        localChar:SetPrimaryPartCFrame(CFrame.new(part.Position) * offset * rotation)
+        localRoot.Velocity = Vector3.new(90000000, 900000000, 90000000)
+        localRoot.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+    end
+    
+    local function PerformThrow(part)
+        local startTime = tick()
+        local angle = 0
+        while localRoot do
+            local velMag = part.Velocity.Magnitude
+            if velMag < 50 then
+                angle = angle + 100
+                ApplyForce(part, CFrame.new(0, 1.5, 0) + targetHum.MoveDirection * part.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
+                task.wait()
+                ApplyForce(part, CFrame.new(0, -1.5, 0) + targetHum.MoveDirection * part.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
+                task.wait()
+                ApplyForce(part, CFrame.new(2.25, 1.5, -2.25) + targetHum.MoveDirection * part.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
+                task.wait()
+                ApplyForce(part, CFrame.new(-2.25, -1.5, 2.25) + targetHum.MoveDirection * part.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
+                task.wait()
+                ApplyForce(part, CFrame.new(0, 1.5, 0) + targetHum.MoveDirection, CFrame.Angles(math.rad(angle), 0, 0))
+                task.wait()
+                ApplyForce(part, CFrame.new(0, -1.5, 0) + targetHum.MoveDirection, CFrame.Angles(math.rad(angle), 0, 0))
+                task.wait()
+            else
+                ApplyForce(part, CFrame.new(0, 1.5, targetHum.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                task.wait()
+                ApplyForce(part, CFrame.new(0, -1.5, -targetHum.WalkSpeed), CFrame.Angles(0, 0, 0))
+                task.wait()
+                ApplyForce(part, CFrame.new(0, 1.5, targetHum.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                task.wait()
+                ApplyForce(part, CFrame.new(0, 1.5, targetRoot.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
+                task.wait()
+                ApplyForce(part, CFrame.new(0, -1.5, -targetRoot.Velocity.Magnitude / 1.25), CFrame.Angles(0, 0, 0))
+                task.wait()
+                ApplyForce(part, CFrame.new(0, 1.5, targetRoot.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
+                task.wait()
+                ApplyForce(part, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
+                task.wait()
+                ApplyForce(part, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                task.wait()
+                ApplyForce(part, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(-90), 0, 0))
+                task.wait()
+                ApplyForce(part, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                task.wait()
+            end
+            if part.Velocity.Magnitude <= 500 then
+                if part.Parent == targetChar then
+                    if targetPlayer.Parent == Players then
+                        if not targetPlayer.Character then
+                            break
+                        end
+                        if targetHum.Sit then
+                            break
+                        end
+                        if localHum.Health <= 0 then
+                            break
+                        end
+                        if tick() - startTime > 2 then
+                            break
+                        end
+                    else
+                        break
+                    end
+                else
+                    break
+                end
+            else
+                break
+            end
+        end
+    end
+    
+    if targetRoot and targetHead then
+        if (targetRoot.Position - targetHead.Position).Magnitude > 5 then
+            PerformThrow(targetHead)
+        else
+            PerformThrow(targetRoot)
+        end
+    elseif targetRoot then
+        PerformThrow(targetRoot)
+    elseif targetHead then
+        PerformThrow(targetHead)
+    else
+        return StarterGui:SetCore("SendNotification", {Title = "错误", Text = "找不到目标部位", Duration = 3})
+    end
+    
+    bodyVelocity:Destroy()
+    localHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+    workspace.CurrentCamera.CameraSubject = localHum
+    
+    repeat
+        localRoot.CFrame = getgenv().OldPos * CFrame.new(0, 0.5, 0)
+        localChar:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, 0.5, 0))
+        localHum:ChangeState("GettingUp")
+        for _, child in pairs(localChar:GetChildren()) do
+            if child:IsA("BasePart") then
+                child.Velocity = Vector3.new()
+                child.RotVelocity = Vector3.new()
+            end
+        end
+        task.wait()
+    until (localRoot.Position - getgenv().OldPos.p).Magnitude < 25
+    
+    workspace.FallenPartsDestroyHeight = getgenv().FPDH or -500
+end
+
+PlayerSection:Button("单次甩飞", function()
+    if not targetPlayer then
+        StarterGui:SetCore("SendNotification", {Title = "提示", Text = "请先选择目标玩家", Duration = 2})
+        return
+    end
+    ThrowPlayer(targetPlayer)
+end)
+
+local autoflingRunning = false
+local autoflingThread = nil
+PlayerSection:Toggle("循环甩飞", "AutoFling", false, function(val)
+    autoflingRunning = val
+    if val then
+        if not targetPlayer then
+            StarterGui:SetCore("SendNotification", {Title = "提示", Text = "请先选择目标玩家", Duration = 2})
+            autoflingRunning = false
+            return
+        end
+        if autoflingThread then
+            coroutine.close(autoflingThread)
+            autoflingThread = nil
+        end
+        autoflingThread = coroutine.create(function()
+            while autoflingRunning do
+                task.wait(0.5)
+                pcall(function()
+                    if targetPlayer and targetPlayer.Character then
+                        ThrowPlayer(targetPlayer)
+                    end
+                end)
+            end
+        end)
+        coroutine.resume(autoflingThread)
+        StarterGui:SetCore("SendNotification", {Title = "循环甩飞", Text = "已开启，目标: " .. targetPlayer.Name, Duration = 2})
+    else
+        if autoflingThread then
+            coroutine.close(autoflingThread)
+            autoflingThread = nil
+        end
+        StarterGui:SetCore("SendNotification", {Title = "循环甩飞", Text = "已关闭", Duration = 2})
+    end
 end)
 
 local suckToggle = false
