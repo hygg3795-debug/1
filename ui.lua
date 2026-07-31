@@ -108,7 +108,7 @@ local function styleUI()
             local corner = main:FindFirstChildOfClass("UICorner")
             if not corner then
                 corner = Instance.new("UICorner")
-                corner.CornerRadius = UDim.new(0, 12)
+                corner.CornerRadius = UDim.new(0, 22)
                 corner.Parent = main
             end
             
@@ -540,7 +540,7 @@ GeneralSection:Toggle("放置方块", "PlaceBlock", false, function(val)
         btnClear.AutoButtonColor = false
         btnClear.ZIndex = 10000
         local corner1 = Instance.new("UICorner")
-        corner1.CornerRadius = UDim.new(0, 12)
+        corner1.CornerRadius = UDim.new(0, 22)
         corner1.Parent = btnClear
         btnClear.MouseButton1Click:Connect(function()
             for _, v in pairs(Workspace:GetChildren()) do
@@ -578,7 +578,7 @@ GeneralSection:Toggle("放置方块", "PlaceBlock", false, function(val)
         autoBtn.AutoButtonColor = false
         autoBtn.ZIndex = 10000
         local autoCorner = Instance.new("UICorner")
-        autoCorner.CornerRadius = UDim.new(0, 12)
+        autoCorner.CornerRadius = UDim.new(0, 22)
         autoCorner.Parent = autoBtn
         autoBtn.MouseButton1Click:Connect(function()
             autoPlace = not autoPlace
@@ -1079,7 +1079,7 @@ IndepSection:Toggle("移速跳高调整", "SpeedJump", false, function(val)
         panel.BackgroundTransparency = 0.1
         panel.ZIndex = 200
         local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 12)
+        corner.CornerRadius = UDim.new(0, 22)
         corner.Parent = panel
         local stroke = Instance.new("UIStroke")
         stroke.Thickness = 2
@@ -2114,7 +2114,7 @@ local function createH1SettingsWindow()
     frame.BackgroundTransparency = 0.15
     frame.ZIndex = 100
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 12)
+    corner.CornerRadius = UDim.new(0, 22)
     corner.Parent = frame
     local stroke = Instance.new("UIStroke")
     stroke.Thickness = 2
@@ -2366,7 +2366,7 @@ local function createH2SettingsWindow()
     frame.BackgroundTransparency = 0.15
     frame.ZIndex = 100
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 12)
+    corner.CornerRadius = UDim.new(0, 22)
     corner.Parent = frame
     local stroke = Instance.new("UIStroke")
     stroke.Thickness = 2
@@ -3120,3 +3120,10 @@ StarterGui:SetCore("SendNotification", {
     Duration = 3,
     Icon = "rbxassetid://1"
 })
+
+-- UI polish
+pcall(function()
+ for _,o in ipairs(game:GetDescendants()) do
+  if o:IsA('TextButton') and not o:FindFirstChildOfClass('UICorner') then local c=Instance.new('UICorner');c.CornerRadius=UDim.new(0,10);c.Parent=o end
+ end
+end)
