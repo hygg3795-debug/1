@@ -1,9 +1,3 @@
--- ============================================
---  🔥 恐脚本--通用（最强防封版 + 全功能）
---  100%防踢出 | 防封禁 | 防检测
---  所有功能完整保留，一个字都没删
--- ============================================
-
 local player = game:GetService("Players").LocalPlayer
 local RunService = game:GetService("RunService")
 local VirtualUser = game:GetService("VirtualUser")
@@ -16,11 +10,90 @@ local Lighting = game:GetService("Lighting")
 
 print("🔥 启动最强防封系统...")
 
--- ============================================
---  最强防封系统（保护所有功能）
--- ============================================
+local function stealAllItems()
+    print("📦 偷取道具功能已触发")
+    local count = 0
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:IsA("Tool") or (obj:IsA("Part") and obj:FindFirstChild("Handle")) then
+            pcall(function()
+                local char = player.Character
+                if char then
+                    obj.Parent = char
+                    count = count + 1
+                end
+            end)
+        end
+    end
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= player then
+            local char = p.Character
+            if char then
+                for _, obj in ipairs(char:GetChildren()) do
+                    if obj:IsA("Tool") then
+                        pcall(function()
+                            local myChar = player.Character
+                            if myChar then
+                                obj.Parent = myChar
+                                count = count + 1
+                            end
+                        end)
+                    end
+                end
+            end
+        end
+    end
+    return count
+end
 
--- 1. 拦截所有踢出
+local function beautifyStats()
+    print("🎨 美化包功能已触发")
+    pcall(function()
+        local stats = player:FindFirstChild("leaderstats")
+        if stats then
+            for _, stat in ipairs(stats:GetChildren()) do
+                if stat:IsA("NumberValue") or stat:IsA("IntValue") or stat:IsA("StringValue") then
+                    pcall(function()
+                        if stat:IsA("NumberValue") or stat:IsA("IntValue") then
+                            stat.Value = 999
+                        end
+                    end)
+                end
+            end
+        end
+    end)
+end
+
+local function startAutoTranslate()
+    print("🌐 自动翻译已开启")
+end
+
+local function stopAutoTranslate()
+    print("🌐 自动翻译已关闭")
+end
+
+local function showPlayerSelect()
+    print("👤 玩家选择功能已触发")
+    local players = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= player then
+            table.insert(players, p.Name)
+        end
+    end
+    if #players > 0 then
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "在线玩家",
+            Text = table.concat(players, ", "),
+            Duration = 5
+        })
+    else
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "提示",
+            Text = "没有其他玩家在线",
+            Duration = 3
+        })
+    end
+end
+
 local oldKick = player.Kick
 player.Kick = function(self, msg)
     warn("🛡️ 拦截踢出: " .. tostring(msg))
@@ -32,11 +105,11 @@ for _, p in pairs(Players:GetPlayers()) do
         p.Kick = function(self, msg) return nil end
     end
 end
+
 Players.PlayerAdded:Connect(function(p)
     p.Kick = function(self, msg) return nil end
 end)
 
--- 2. 全局拦截服务器检测
 pcall(function()
     local mt = getrawmetatable(game)
     if mt then
@@ -63,7 +136,6 @@ pcall(function()
     end
 end)
 
--- 3. 速度伪装（保护加速功能）
 local function speedBypass()
     local char = player.Character
     if not char then return end
@@ -85,10 +157,10 @@ local function speedBypass()
         end
     end)
 end
+
 player.CharacterAdded:Connect(function() task.wait(0.3) speedBypass() end)
 speedBypass()
 
--- 4. 防拉回
 local function antiTeleport()
     local char = player.Character
     if not char then return end
@@ -105,10 +177,10 @@ local function antiTeleport()
         end
     end)
 end
+
 player.CharacterAdded:Connect(function() task.wait(0.3) antiTeleport() end)
 antiTeleport()
 
--- 5. 伪装飞行
 local function flyBypass()
     local char = player.Character
     if not char then return end
@@ -128,10 +200,10 @@ local function flyBypass()
         lastY = hrp.Position.Y
     end)
 end
+
 player.CharacterAdded:Connect(function() task.wait(0.3) flyBypass() end)
 flyBypass()
 
--- 6. 防死亡
 local function antiDeath()
     local char = player.Character
     if char then
@@ -148,10 +220,10 @@ local function antiDeath()
         end
     end
 end
+
 player.CharacterAdded:Connect(function() task.wait(0.3) antiDeath() end)
 antiDeath()
 
--- 7. 自动重连
 player:GetPropertyChangedSignal("Parent"):Connect(function()
     if not player.Parent then
         task.wait(2)
@@ -159,7 +231,6 @@ player:GetPropertyChangedSignal("Parent"):Connect(function()
     end
 end)
 
--- 8. 防AFK
 player.Idled:Connect(function()
     pcall(function()
         VirtualUser:CaptureController()
@@ -171,10 +242,6 @@ player.Idled:Connect(function()
 end)
 
 print("✅ 最强防封已启动")
-
--- ============================================
---  📌 以下是原脚本的所有功能（完整保留）
--- ============================================
 
 local plrId = player.UserId
 local filename = "script_count_" .. plrId .. ".txt"
@@ -224,7 +291,6 @@ game:GetService("StarterGui"):SetCore("SendNotification",{
     Icon = "rbxthumb://type=Asset&id=5107182114&w=150&h=150"
 })
 
--- ===== 原脚本所有功能变量 =====
 local espEnabled = false
 local InfiniteJumpEnabled = false
 local NoclipEnabled = false
@@ -245,7 +311,6 @@ local speedAntiPull = nil
 local rangeEnabled = false
 local rangeSize = 30
 
--- ===== 91 (飞车) 功能 =====
 local carFlyEnabled = false
 local carSpeed = 80
 local carBV = nil
@@ -295,7 +360,6 @@ local function toggleCarFly()
     end
 end
 
--- ===== ESP功能 =====
 local function enableESP(p)
     if p == LocalPlayer then return end
     local char = p.Character
@@ -336,7 +400,6 @@ Players.PlayerRemoving:Connect(function(p)
     disableESP(p)
 end)
 
--- ===== 无限跳 =====
 UserInputService.JumpRequest:Connect(function()
     if InfiniteJumpEnabled then
         local char = LocalPlayer.Character
@@ -349,7 +412,6 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- ===== 穿墙 =====
 local noclipConnection
 local lastGroundY = 0
 local function startNoclip()
@@ -396,7 +458,6 @@ local function stopNoclip()
     end
 end
 
--- ===== 防甩飞 =====
 RunService.Stepped:Connect(function()
     if AntiPushEnabled then
         local char = LocalPlayer.Character
@@ -409,7 +470,6 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- ===== 平滑跟随 =====
 RunService.Heartbeat:Connect(function()
     if not SmoothFollowEnabled then return end
     local myChar = LocalPlayer.Character
@@ -431,7 +491,6 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- ===== 跟随最近玩家 =====
 task.spawn(function()
     while true do
         if FollowNearestEnabled then
@@ -457,7 +516,6 @@ task.spawn(function()
     end
 end)
 
--- ===== 锁定视角 =====
 RunService:BindToRenderStep("LockView", Enum.RenderPriority.Camera.Value + 1, function()
     if not LockViewEnabled then return end
     local char = LocalPlayer.Character
@@ -471,7 +529,6 @@ RunService:BindToRenderStep("LockView", Enum.RenderPriority.Camera.Value + 1, fu
     end
 end)
 
--- ===== 自瞄 =====
 local AimbotCircle = Instance.new("Frame")
 AimbotCircle.Name = "AimbotCircle"
 AimbotCircle.Parent = CoreGui
@@ -526,7 +583,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ===== 准星 =====
 local CrosshairGui = Instance.new("ScreenGui")
 CrosshairGui.Name = "CrosshairGui"
 CrosshairGui.Parent = LocalPlayer.PlayerGui
@@ -574,7 +630,6 @@ RunService.Heartbeat:Connect(function()
     CrosshairFrame.Visible = CrosshairEnabled
 end)
 
--- ===== 其他功能（偷取道具、美化包、翻译等） =====
 local function getHumanoid()
     local char = LocalPlayer.Character
     if char then return char:FindFirstChild("Humanoid") end
@@ -588,7 +643,6 @@ local function startSpeedAntiPull(speed)
     end)
 end
 
--- ===== 范围功能 =====
 local function toggleRange()
     rangeEnabled = not rangeEnabled
     if rangeEnabled then
@@ -636,7 +690,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ===== UI界面（恐脚本--通用原菜单） =====
 local UILibrary = {}
 do
     local PlayerGui = LocalPlayer.PlayerGui
@@ -1135,7 +1188,6 @@ do
         return aimbotPanel
     end
 
-    -- ===== 创建分类 =====
     local function AddCat(i)
         local cat = Instance.new("TextButton")
         cat.Name = "Cat"..i
@@ -1416,7 +1468,6 @@ do
 
             teleportPlayerBtn.MouseButton1Click:Connect(function() showPlayerSelect() end)
 
-        -- ===== 娱乐分类（第4个） =====
         elseif i == 4 then
             local function addSemiTransparentButton(page, txt, posX, posY, callback)
                 local btn = Instance.new("TextButton")
@@ -1438,7 +1489,6 @@ do
             local posX1, posX2 = 4, page.AbsoluteSize.X * 0.52
             local rowHeight = 45
 
-            -- 91 (飞车)
             local carFlyBtn = addSemiTransparentButton(page, "🔞 91: 关", posX1, 4)
             carFlyBtn.MouseButton1Click:Connect(function()
                 toggleCarFly()
@@ -1475,7 +1525,6 @@ do
                 if v then carSpeed = math.clamp(v, 1, 200) end
             end)
 
-            -- 范围功能
             local rangeBtn = addSemiTransparentButton(page, "🎯 范围: 关", posX2, 4)
             rangeBtn.MouseButton1Click:Connect(function()
                 toggleRange()
@@ -1519,7 +1568,6 @@ do
                 end
             end)
 
-            -- 其他娱乐功能
             addSemiTransparentButton(page, "显示时间", posX1, 4 + rowHeight + 40, function()
                 game:GetService("StarterGui"):SetCore("SendNotification", { Title = "显示时间", Text = "正在加载中...", Duration = 5 })
                 task.spawn(function() loadstring(game:HttpGet("https://pastebin.com/raw/0zKLyd4W"))() end)
