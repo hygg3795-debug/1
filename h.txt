@@ -122,20 +122,21 @@ function library.new(library, name,theme)
         end
       end
 -------------------------AL------------------------------
-ALTransparency = 0.6
-ALcolor = Color3.fromRGB(0, 255, 0)
+ALTransparency = 0.25
+ALcolor = Color3.fromRGB(255, 255, 255)
 -------------------------AL------------------------------
 if theme == 'dark' then
-    MainColor = Color3.fromRGB(25, 25, 25)
-    Background = Color3.fromRGB(25, 25, 25)
-    zyColor= Color3.fromRGB(25, 25, 25)
-    beijingColor = Color3.fromRGB(25, 25, 25)
+    MainColor = Color3.fromRGB(15, 15, 25)
+    Background = Color3.fromRGB(30, 30, 50)
+    zyColor= Color3.fromRGB(25, 25, 40)
+    beijingColor = Color3.fromRGB(60, 60, 80)
     else
-    MainColor = Color3.fromRGB(25, 25, 25)
-    Background = Color3.fromRGB(25, 25, 25)
-    zyColor= Color3.fromRGB(25, 25, 25)
-    beijingColor = Color3.fromRGB(25, 25, 25)
+    MainColor = Color3.fromRGB(15, 15, 25)
+    Background = Color3.fromRGB(30, 30, 50)
+    zyColor= Color3.fromRGB(25, 25, 40)
+    beijingColor = Color3.fromRGB(60, 60, 80)
 end
+secColor = Color3.fromRGB(20, 20, 35)
       local dogent = Instance.new("ScreenGui")
       local Main = Instance.new("Frame")
       local TabMain = Instance.new("Frame")
@@ -181,7 +182,8 @@ end
       Main.Name = "Main"
       Main.Parent = dogent
       Main.AnchorPoint = Vector2.new(0.5, 0.5)
-      Main.BackgroundColor3 = Background
+      Main.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+      Main.BackgroundTransparency = 0.35
       Main.BorderColor3 = MainColor
       Main.Position = UDim2.new(0.5, 0, 0.5, 0)
       Main.Size = UDim2.new(0, 572, 0, 353)
@@ -200,7 +202,28 @@ end
       drag(Main)
       
       UICornerMain.Parent = Main
-      UICornerMain.CornerRadius = UDim.new(0,3)
+      UICornerMain.CornerRadius = UDim.new(0,22)
+
+      local MainStroke = Instance.new("UIStroke")
+      MainStroke.Name = "MainStroke"
+      MainStroke.Parent = Main
+      MainStroke.Thickness = 3.5
+      MainStroke.LineJoinMode = Enum.LineJoinMode.Round
+      MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+      local MainStrokeG = Instance.new("UIGradient")
+      MainStrokeG.Color = ColorSequence.new({
+          ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+          ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 255, 0)),
+          ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
+          ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+          ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
+          ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
+          ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+      })
+      MainStrokeG.Parent = MainStroke
+      services.RunService.RenderStepped:Connect(function(dt)
+          MainStrokeG.Rotation = (MainStrokeG.Rotation + dt * 150) % 360
+      end)
       
       DropShadowHolder.Name = "DropShadowHolder"
       DropShadowHolder.Parent = Main
@@ -218,6 +241,7 @@ end
       DropShadow.Size = UDim2.new(1, 10, 1, 10)
       DropShadow.Image = "rbxassetid://84674071500810" --背景
       DropShadow.ImageColor3 = Color3.fromRGB(255,255,255)
+      DropShadow.ImageTransparency = 0.4
       DropShadow.SliceCenter = Rect.new(49, 49, 450, 450)
 
 
@@ -270,6 +294,7 @@ end
       Side.ClipsDescendants = true
       Side.Position = UDim2.new(1, 0, 0, 0)
       Side.Size = UDim2.new(0, 110, 0, 353)
+      Side.BackgroundTransparency = 0.3
       Side.Transparency = 1.0
       
       SideG.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, zyColor), ColorSequenceKeypoint.new(1.00, zyColor)}
@@ -301,8 +326,8 @@ end
       ScriptTitle.Size = UDim2.new(0, 102, 0, 20)
       ScriptTitle.Font = Enum.Font.GothamSemibold
       ScriptTitle.Text = name
-      ScriptTitle.TextColor3 = Color3.fromRGB(139, 0, 255)
-      ScriptTitle.TextSize = 14.000
+      ScriptTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+      ScriptTitle.TextSize = 18.000
       ScriptTitle.TextScaled = true
       ScriptTitle.TextXAlignment = Enum.TextXAlignment.Left
       
@@ -543,8 +568,8 @@ UIG.Parent = Open
     
           Section.Name = "Section"
           Section.Parent = Tab
-          Section.BackgroundColor3 = zyColor
-          Section.BackgroundTransparency = 1.000
+          Section.BackgroundColor3 = secColor
+          Section.BackgroundTransparency = 0.1
           Section.BorderSizePixel = 0
           Section.ClipsDescendants = true
           Section.Size = UDim2.new(0.981000006, 0, 0, 36)
@@ -562,7 +587,7 @@ UIG.Parent = Open
           SectionText.Font = Enum.Font.GothamSemibold
           SectionText.Text = name
           SectionText.TextColor3 = ALcolor
-          SectionText.TextSize = 16.000
+          SectionText.TextSize = 17.000
           SectionText.TextXAlignment = Enum.TextXAlignment.Left
           
           SectionOpen.Name = "SectionOpen"
@@ -630,7 +655,7 @@ UIG.Parent = Open
             BtnModule.Name = "BtnModule"
             BtnModule.Parent = Objs
             BtnModule.BackgroundColor3 = Color3.fromRGB(139, 0, 255)
-            BtnModule.BackgroundTransparency = 1.000
+            BtnModule.BackgroundTransparency = 0
             BtnModule.BorderSizePixel = 0
             BtnModule.Position = UDim2.new(0, 0, 0, 0)
             BtnModule.Size = UDim2.new(0, 428, 0, 38)
@@ -669,7 +694,7 @@ UIG.Parent = Open
           LabelModule.Name = "LabelModule"
           LabelModule.Parent = Objs
           LabelModule.BackgroundColor3 = Color3.fromRGB(139, 0, 255)
-          LabelModule.BackgroundTransparency = 1.000
+          LabelModule.BackgroundTransparency = 0
           LabelModule.BorderSizePixel = 0
           LabelModule.Position = UDim2.new(0, 0, NAN, 0)
           LabelModule.Size = UDim2.new(0, 428, 0, 19)
@@ -731,8 +756,8 @@ UIG.Parent = Open
             
             ToggleDisable.Name = "ToggleDisable"
             ToggleDisable.Parent = ToggleBtn
-            ToggleDisable.BackgroundColor3 = Background
-            ToggleDisable.BackgroundTransparency = 0.5
+            ToggleDisable.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+            ToggleDisable.BackgroundTransparency = 0.2
             ToggleDisable.BorderSizePixel = 0
             ToggleDisable.Position = UDim2.new(0.901869178, 0, 0.208881587, 0)
             ToggleDisable.Size = UDim2.new(0, 36, 0, 22)
@@ -823,6 +848,7 @@ UIG.Parent = Open
             KeybindBtn.Name = "KeybindBtn"
             KeybindBtn.Parent = KeybindModule
             KeybindBtn.BackgroundColor3 = zyColor
+            KeybindBtn.BackgroundTransparency = ALTransparency
             KeybindBtn.BorderSizePixel = 0
             KeybindBtn.Size = UDim2.new(0, 428, 0, 38)
             KeybindBtn.AutoButtonColor = false
@@ -839,13 +865,14 @@ UIG.Parent = Open
             KeybindValue.Name = "KeybindValue"
             KeybindValue.Parent = KeybindBtn
             KeybindValue.BackgroundColor3 = Background
+            KeybindValue.BackgroundTransparency = 0.2
             KeybindValue.BorderSizePixel = 0
             KeybindValue.Position = UDim2.new(0.763033211, 0, 0.289473683, 0)
             KeybindValue.Size = UDim2.new(0, 100, 0, 28)
             KeybindValue.AutoButtonColor = false
             KeybindValue.Font = Enum.Font.Gotham
             KeybindValue.Text = keyTxt
-            KeybindValue.TextColor3 = Color3.fromRGB(139, 0, 255)
+            KeybindValue.TextColor3 = Color3.fromRGB(255, 255, 255)
             KeybindValue.TextSize = 14.000
             
             KeybindValueC.CornerRadius = UDim.new(0, 6)
@@ -937,13 +964,14 @@ UIG.Parent = Open
             BoxBG.Name = "BoxBG"
             BoxBG.Parent = TextboxBack
             BoxBG.BackgroundColor3 = Background
+            BoxBG.BackgroundTransparency = 0.2
             BoxBG.BorderSizePixel = 0
             BoxBG.Position = UDim2.new(0.763033211, 0, 0.289473683, 0)
             BoxBG.Size = UDim2.new(0, 100, 0, 28)
             BoxBG.AutoButtonColor = false
             BoxBG.Font = Enum.Font.Gotham
             BoxBG.Text = ""
-            BoxBG.TextColor3 = Color3.fromRGB(139, 0, 255)
+            BoxBG.TextColor3 = Color3.fromRGB(255, 255, 255)
             BoxBG.TextSize = 14.000
             
             BoxBGC.CornerRadius = UDim.new(0, 6)
@@ -957,7 +985,7 @@ UIG.Parent = Open
             TextBox.Size = UDim2.new(1, 0, 1, 0)
             TextBox.Font = Enum.Font.Gotham
             TextBox.Text = default
-            TextBox.TextColor3 = Color3.fromRGB(139, 0, 255)
+            TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
             TextBox.TextSize = 14.000
             
             TextboxBackL.Name = "TextboxBackL"
@@ -1038,8 +1066,8 @@ UIG.Parent = Open
             SliderBar.Name = "SliderBar"
             SliderBar.Parent = SliderBack
             SliderBar.AnchorPoint = Vector2.new(0, 0.5)
-            SliderBar.BackgroundColor3 = Background
-            SliderBar.BackgroundTransparency = ALTransparency
+            SliderBar.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+            SliderBar.BackgroundTransparency = 0.2
             SliderBar.BorderSizePixel = 0
             SliderBar.Position = UDim2.new(0.369000018, 40, 0.5, 0)
             SliderBar.Size = UDim2.new(0, 140, 0, 12)
@@ -1068,7 +1096,7 @@ UIG.Parent = Open
             SliderValBG.AutoButtonColor = false
             SliderValBG.Font = Enum.Font.Gotham
             SliderValBG.Text = ""
-            SliderValBG.TextColor3 = Color3.fromRGB(139, 0, 255)
+            SliderValBG.TextColor3 = Color3.fromRGB(255, 255, 255)
             SliderValBG.TextSize = 14.000
             
             SliderValBGC.CornerRadius = UDim.new(0, 6)
@@ -1083,7 +1111,7 @@ UIG.Parent = Open
             SliderValue.Size = UDim2.new(1, 0, 1, 0)
             SliderValue.Font = Enum.Font.Gotham
             SliderValue.Text = "1000"
-            SliderValue.TextColor3 = Color3.fromRGB(139, 0, 255)
+            SliderValue.TextColor3 = Color3.fromRGB(255, 255, 255)
             SliderValue.TextSize = 14.000
             
             MinSlider.Name = "MinSlider"
@@ -1287,7 +1315,7 @@ UIG.Parent = Open
             DropdownText.PlaceholderColor3 = Color3.fromRGB(139, 0, 255)
             DropdownText.PlaceholderText = text
             DropdownText.Text = ""
-            DropdownText.TextColor3 = Color3.fromRGB(139, 0, 255)
+            DropdownText.TextColor3 = Color3.fromRGB(255, 255, 255)
             DropdownText.TextSize = 16.000
             DropdownText.TextXAlignment = Enum.TextXAlignment.Left
             
