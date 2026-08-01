@@ -1,248 +1,8 @@
+-- ========== wdfex脚本 过检测版 ==========
+-- 无服务器验证 | 全功能过检测 | 所有服务器通用
+-- 整合BS飞车功能到娱乐分类 + 子弹追踪（含队伍检测 + 掩体判断开关）
+
 local player = game:GetService("Players").LocalPlayer
-local RunService = game:GetService("RunService")
-local VirtualUser = game:GetService("VirtualUser")
-local TeleportService = game:GetService("TeleportService")
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
-local Players = game:GetService("Players")
-local Camera = workspace.CurrentCamera
-local Lighting = game:GetService("Lighting")
-
-print("🔥 启动最强防封系统...")
-
-local function stealAllItems()
-    print("📦 偷取道具功能已触发")
-    local count = 0
-    for _, obj in ipairs(workspace:GetChildren()) do
-        if obj:IsA("Tool") or (obj:IsA("Part") and obj:FindFirstChild("Handle")) then
-            pcall(function()
-                local char = player.Character
-                if char then
-                    obj.Parent = char
-                    count = count + 1
-                end
-            end)
-        end
-    end
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= player then
-            local char = p.Character
-            if char then
-                for _, obj in ipairs(char:GetChildren()) do
-                    if obj:IsA("Tool") then
-                        pcall(function()
-                            local myChar = player.Character
-                            if myChar then
-                                obj.Parent = myChar
-                                count = count + 1
-                            end
-                        end)
-                    end
-                end
-            end
-        end
-    end
-    return count
-end
-
-local function beautifyStats()
-    print("🎨 美化包功能已触发")
-    pcall(function()
-        local stats = player:FindFirstChild("leaderstats")
-        if stats then
-            for _, stat in ipairs(stats:GetChildren()) do
-                if stat:IsA("NumberValue") or stat:IsA("IntValue") or stat:IsA("StringValue") then
-                    pcall(function()
-                        if stat:IsA("NumberValue") or stat:IsA("IntValue") then
-                            stat.Value = 999
-                        end
-                    end)
-                end
-            end
-        end
-    end)
-end
-
-local function startAutoTranslate()
-    print("🌐 自动翻译已开启")
-end
-
-local function stopAutoTranslate()
-    print("🌐 自动翻译已关闭")
-end
-
-local function showPlayerSelect()
-    print("👤 玩家选择功能已触发")
-    local players = {}
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= player then
-            table.insert(players, p.Name)
-        end
-    end
-    if #players > 0 then
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "在线玩家",
-            Text = table.concat(players, ", "),
-            Duration = 5
-        })
-    else
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "提示",
-            Text = "没有其他玩家在线",
-            Duration = 3
-        })
-    end
-end
-
-local oldKick = player.Kick
-player.Kick = function(self, msg)
-    warn("🛡️ 拦截踢出: " .. tostring(msg))
-    return nil
-end
-
-for _, p in pairs(Players:GetPlayers()) do
-    if p ~= player then
-        p.Kick = function(self, msg) return nil end
-    end
-end
-
-Players.PlayerAdded:Connect(function(p)
-    p.Kick = function(self, msg) return nil end
-end)
-
-pcall(function()
-    local mt = getrawmetatable(game)
-    if mt then
-        local oldNamecall = mt.__namecall
-        local oldIndex = mt.__index
-        setreadonly(mt, false)
-        
-        mt.__namecall = newcclosure(function(self, ...)
-            local method = getnamecallmethod()
-            if method == "Kick" or method == "Ban" or method == "Remove" then
-                return nil
-            end
-            return oldNamecall(self, ...)
-        end)
-        
-        mt.__index = newcclosure(function(self, key)
-            if key == "Kick" or key == "Ban" then
-                return function() return nil end
-            end
-            return oldIndex(self, key)
-        end)
-        
-        setreadonly(mt, true)
-    end
-end)
-
-local function speedBypass()
-    local char = player.Character
-    if not char then return end
-    local hum = char:FindFirstChild("Humanoid")
-    if not hum then return end
-    RunService.RenderStepped:Connect(function()
-        if not hum or not hum.Parent then return end
-        if hum.WalkSpeed ~= 16 then
-            hum.WalkSpeed = 16
-        end
-        if hum.JumpPower ~= 50 then
-            hum.JumpPower = 50
-        end
-    end)
-    RunService.Heartbeat:Connect(function()
-        if not hum or not hum.Parent then return end
-        if hum.WalkSpeed ~= 16 then
-            hum.WalkSpeed = 16
-        end
-    end)
-end
-
-player.CharacterAdded:Connect(function() task.wait(0.3) speedBypass() end)
-speedBypass()
-
-local function antiTeleport()
-    local char = player.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    local lastPos = hrp.Position
-    RunService.Heartbeat:Connect(function()
-        if not hrp or not hrp.Parent then return end
-        if (hrp.Position - lastPos).Magnitude > 500 then
-            hrp.CFrame = CFrame.new(lastPos)
-        end
-        if (hrp.Position - lastPos).Magnitude < 100 then
-            lastPos = hrp.Position
-        end
-    end)
-end
-
-player.CharacterAdded:Connect(function() task.wait(0.3) antiTeleport() end)
-antiTeleport()
-
-local function flyBypass()
-    local char = player.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    local hum = char:FindFirstChild("Humanoid")
-    if not hrp or not hum then return end
-    local lastY = hrp.Position.Y
-    RunService.Heartbeat:Connect(function()
-        if not hrp or not hrp.Parent then return end
-        if hrp.Position.Y - lastY > 50 then
-            hum.PlatformStand = false
-            hum.Sit = false
-            hum.Jump = true
-            task.wait(0.05)
-            hum.Jump = false
-        end
-        lastY = hrp.Position.Y
-    end)
-end
-
-player.CharacterAdded:Connect(function() task.wait(0.3) flyBypass() end)
-flyBypass()
-
-local function antiDeath()
-    local char = player.Character
-    if char then
-        local hum = char:FindFirstChild("Humanoid")
-        if hum then
-            hum.HealthChanged:Connect(function()
-                if hum.Health <= 0 then
-                    task.wait(0.05)
-                    if hum and hum.Parent then
-                        hum.Health = hum.MaxHealth
-                    end
-                end
-            end)
-        end
-    end
-end
-
-player.CharacterAdded:Connect(function() task.wait(0.3) antiDeath() end)
-antiDeath()
-
-player:GetPropertyChangedSignal("Parent"):Connect(function()
-    if not player.Parent then
-        task.wait(2)
-        pcall(function() TeleportService:Teleport(game.PlaceId, player) end)
-    end
-end)
-
-player.Idled:Connect(function()
-    pcall(function()
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new())
-        VirtualUser:Button2Down(Vector2.new(0,0), Camera.CFrame)
-        task.wait(0.3)
-        VirtualUser:Button2Up(Vector2.new(0,0), Camera.CFrame)
-    end)
-end)
-
-print("✅ 最强防封已启动")
-
 local plrId = player.UserId
 local filename = "script_count_" .. plrId .. ".txt"
 local count = 0
@@ -255,12 +15,506 @@ pcall(function()
     writefile(filename, tostring(count))
 end)
 
+-- ==================== 过检测系统 ====================
+local bypassActive = false
+local bypassConnections = {}
+
+local function startBypass()
+    if bypassActive then return end
+    bypassActive = true
+    print("🛡️ 启动过检测系统...")
+
+    pcall(function()
+        local network = game:GetService("NetworkClient")
+        if network then
+            network:SetOutgoingKBPSLimit(999999)
+        end
+    end)
+
+    pcall(function()
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then
+                local healthConn = hum.HealthChanged:Connect(function()
+                    if hum.Health <= 0 then
+                        task.wait(0.1)
+                        if hum and hum.Parent then
+                            hum.Health = hum.MaxHealth
+                            print("🛡️ 反死亡触发")
+                        end
+                    end
+                end)
+                table.insert(bypassConnections, healthConn)
+            end
+        end
+    end)
+
+    pcall(function()
+        local function antiTeleport()
+            local char = player.Character
+            if char then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local lastPos = hrp.Position
+                    local heartbeatConn = RunService.Heartbeat:Connect(function()
+                        if not hrp or not hrp.Parent then return end
+                        if (hrp.Position - lastPos).Magnitude > 100 and (hrp.Position - Vector3.new(0, 0, 0)).Magnitude < 10 then
+                            hrp.CFrame = CFrame.new(lastPos)
+                            print("🛡️ 防拉回触发")
+                        end
+                        lastPos = hrp.Position
+                    end)
+                    table.insert(bypassConnections, heartbeatConn)
+                end
+            end
+        end
+        antiTeleport()
+        player.CharacterAdded:Connect(function()
+            task.wait(0.5)
+            antiTeleport()
+        end)
+    end)
+
+    pcall(function()
+        local VirtualUser = game:GetService("VirtualUser")
+        local behaviorConn = RunService.Heartbeat:Connect(function()
+            if math.random(1, 100) > 95 then
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new())
+            end
+        end)
+        table.insert(bypassConnections, behaviorConn)
+    end)
+
+    pcall(function()
+        local TeleportService = game:GetService("TeleportService")
+        local parentConn = player:GetPropertyChangedSignal("Parent"):Connect(function()
+            if not player.Parent then
+                print("🔄 检测到被踢出，正在重连...")
+                task.wait(2)
+                TeleportService:Teleport(game.PlaceId, player)
+            end
+        end)
+        table.insert(bypassConnections, parentConn)
+    end)
+
+    pcall(function()
+        local chat = game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents")
+        if chat then
+            local onMessage = chat:FindFirstChild("OnMessageDone")
+            if onMessage then
+                local chatConn = onMessage.OnClientEvent:Connect(function(data)
+                    local msg = data.Text or ""
+                    local detectionWords = {"detected", "ban", "kick", "hack", "cheat", "exploit", "加速", "外挂", "检测", "踢出", "封禁"}
+                    for _, word in pairs(detectionWords) do
+                        if msg:lower():find(word:lower()) then
+                            print("⚠️ 检测到关键词: " .. word)
+                            break
+                        end
+                    end
+                end)
+                table.insert(bypassConnections, chatConn)
+            end
+        end
+    end)
+
+    pcall(function()
+        local char = player.Character
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local velConn = RunService.Heartbeat:Connect(function()
+                    if hrp and hrp.Parent then
+                        local realVel = hrp.Velocity
+                        if realVel.Magnitude > 50 then
+                            hrp.Velocity = realVel * 0.5
+                            task.wait(0.03)
+                            hrp.Velocity = realVel
+                        end
+                    end
+                end)
+                table.insert(bypassConnections, velConn)
+            end
+        end
+    end)
+
+    pcall(function()
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then
+                local humConn = RunService.Heartbeat:Connect(function()
+                    if hum and hum.Parent then
+                        if hum.WalkSpeed > 100 then
+                            hum.WalkSpeed = 16
+                            task.wait(0.05)
+                            hum.WalkSpeed = 16 * (State and State.Speed or 1)
+                        end
+                    end
+                end)
+                table.insert(bypassConnections, humConn)
+            end
+        end
+    end)
+
+    pcall(function()
+        local oldKick = player.Kick
+        player.Kick = function(self, message)
+            print("🛡️ 拦截到踢出请求: " .. tostring(message))
+            return nil
+        end
+        table.insert(bypassConnections, {Disconnect = function()
+            player.Kick = oldKick
+        end})
+    end)
+
+    pcall(function()
+        local stats = game:GetService("Stats")
+        if stats then
+            local network = stats:FindFirstChild("Network")
+            if network then
+                network:SetAttribute("DataSendingEnabled", true)
+            end
+        end
+    end)
+
+    print("✅ 过检测系统已启动 (10层防护)")
+end
+
+local function stopBypass()
+    for _, conn in pairs(bypassConnections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    bypassConnections = {}
+    bypassActive = false
+    print("🛡️ 过检测系统已关闭")
+end
+
+-- ==================== BS飞车功能 ====================
+local carFlyEnabled = false
+local carSpeed = 80
+local carBV = nil
+local carBG = nil
+local flyConn = nil
+
+local function toggleCarFly()
+    carFlyEnabled = not carFlyEnabled
+    
+    if carFlyEnabled then
+        local char = player.Character
+        if not char then
+            print("❌ 没有角色")
+            carFlyEnabled = false
+            return
+        end
+        
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChild("Humanoid")
+        if not hrp or not hum then
+            print("❌ 找不到 HumanoidRootPart")
+            carFlyEnabled = false
+            return
+        end
+        
+        print("✅ 飞车开启")
+        hum.PlatformStand = true
+        
+        carBV = Instance.new("BodyVelocity")
+        carBV.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+        carBV.Velocity = Vector3.new(0, 20, 0)
+        carBV.Parent = hrp
+        
+        carBG = Instance.new("BodyGyro")
+        carBG.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+        carBG.D = 5000
+        carBG.P = 50000
+        carBG.CFrame = workspace.CurrentCamera.CFrame
+        carBG.Parent = hrp
+        
+        flyConn = RunService.Heartbeat:Connect(function()
+            if not carFlyEnabled then
+                if flyConn then
+                    flyConn:Disconnect()
+                    flyConn = nil
+                end
+                return
+            end
+            if not hrp or not hrp.Parent then
+                carFlyEnabled = false
+                if flyConn then
+                    flyConn:Disconnect()
+                    flyConn = nil
+                end
+                return
+            end
+            if carBV and carBG then
+                carBV.Velocity = workspace.CurrentCamera.CFrame.LookVector * carSpeed
+                carBG.CFrame = workspace.CurrentCamera.CFrame
+            end
+        end)
+        
+        task.spawn(function()
+            local targetHeight = hrp.Position.Y + 15
+            local waitCount = 0
+            while carFlyEnabled and hrp and hrp.Parent and waitCount < 30 do
+                if hrp.Position.Y < targetHeight then
+                    if carBV then
+                        carBV.Velocity = Vector3.new(0, 30, 0)
+                    end
+                else
+                    break
+                end
+                waitCount = waitCount + 1
+                task.wait(0.1)
+            end
+        end)
+        
+    else
+        print("❌ 飞车关闭")
+        if carBV then carBV:Destroy(); carBV = nil end
+        if carBG then carBG:Destroy(); carBG = nil end
+        if flyConn then flyConn:Disconnect(); flyConn = nil end
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then hum.PlatformStand = false end
+        end
+    end
+end
+
+-- ==================== 子弹追踪功能 ====================
+local aimbotEnabled = false
+local teamCheck = false
+local wallCheck = true
+local camera = workspace.CurrentCamera
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+-- 检测武器是否支持子弹追踪
+local function checkWeapon()
+    local char = LocalPlayer.Character
+    if not char then return false end
+    local tool = char:FindFirstChildOfClass("Tool")
+    if not tool then return false end
+    
+    -- 检测是否有远程攻击相关属性
+    if tool:FindFirstChild("Remote") or tool:FindFirstChild("FireRemote") or tool:FindFirstChild("ShootRemote") then
+        return true
+    end
+    
+    -- 检测是否有枪械相关部件
+    for _, child in pairs(tool:GetDescendants()) do
+        if child:IsA("RemoteEvent") or child:IsA("RemoteFunction") then
+            return true
+        end
+        if child:IsA("NumberValue") and (child.Name:lower():find("ammo") or child.Name:lower():find("bullet") or child.Name:lower():find("damage")) then
+            return true
+        end
+    end
+    
+    return false
+end
+
+-- 检查是否队友
+local function isTeammate(targetPlayer)
+    if not teamCheck then return false end
+    if targetPlayer == LocalPlayer then return true end
+    local localTeam = LocalPlayer.Team
+    local targetTeam = targetPlayer.Team
+    if localTeam and targetTeam then
+        return localTeam == targetTeam
+    end
+    return false
+end
+
+-- 检查是否可见（掩体判断）
+local function isVisible(targetPos)
+    if not wallCheck then return true end
+    local char = LocalPlayer.Character
+    if not char then return false end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {char}
+    
+    local result = workspace:Raycast(hrp.Position, (targetPos - hrp.Position).Unit * 500, raycastParams)
+    if result then
+        local hitModel = result.Instance:FindFirstAncestorOfClass("Model")
+        if hitModel and hitModel:IsA("Model") and hitModel:FindFirstChild("Humanoid") then
+            return true
+        end
+        return false
+    end
+    return true
+end
+
+-- 获取最近敌人
+local function getClosestEnemy()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+    
+    local closest = nil
+    local closestDist = math.huge
+    
+    for _, target in pairs(Players:GetPlayers()) do
+        if target == LocalPlayer then continue end
+        if isTeammate(target) then continue end
+        
+        local tchar = target.Character
+        if not tchar then continue end
+        local thrp = tchar:FindFirstChild("HumanoidRootPart")
+        local thum = tchar:FindFirstChild("Humanoid")
+        if not thrp or not thum then continue end
+        if thum.Health <= 0 then continue end
+        
+        local targetPos = thrp.Position
+        local dist = (targetPos - hrp.Position).Magnitude
+        
+        if dist < closestDist and isVisible(targetPos) then
+            closestDist = dist
+            closest = target
+        end
+    end
+    
+    return closest
+end
+
+-- 子弹追踪核心
+local aimbotConn = nil
+local aimbotCircle = nil
+
+local function toggleAimbot()
+    aimbotEnabled = not aimbotEnabled
+    
+    if aimbotEnabled then
+        -- 检测武器
+        local hasWeapon = checkWeapon()
+        if not hasWeapon then
+            print("❌ 当前武器不支持子弹追踪")
+            aimbotEnabled = false
+            return
+        end
+        
+        print("✅ 子弹追踪开启")
+        print("  队伍检测: " .. (teamCheck and "开启" or "关闭"))
+        print("  掩体判断: " .. (wallCheck and "开启" or "关闭"))
+        
+        -- 创建自瞄圈
+        aimbotCircle = Instance.new("Frame")
+        aimbotCircle.Parent = CoreGui
+        aimbotCircle.Size = UDim2.new(0, 100, 0, 100)
+        aimbotCircle.Position = UDim2.new(0.5, -50, 0.5, -50)
+        aimbotCircle.BackgroundTransparency = 1
+        aimbotCircle.BorderSizePixel = 0
+        aimbotCircle.ZIndex = 100
+        
+        local circle = Instance.new("Frame")
+        circle.Parent = aimbotCircle
+        circle.Size = UDim2.new(1, 0, 1, 0)
+        circle.BackgroundTransparency = 1
+        circle.BorderSizePixel = 2
+        circle.BorderColor3 = Color3.fromRGB(0, 255, 0)
+        circle.ZIndex = 101
+        
+        local circleCorner = Instance.new("UICorner")
+        circleCorner.Parent = circle
+        circleCorner.CornerRadius = UDim.new(1, 0)
+        
+        local dot = Instance.new("Frame")
+        dot.Parent = aimbotCircle
+        dot.Size = UDim2.new(0, 4, 0, 4)
+        dot.Position = UDim2.new(0.5, -2, 0.5, -2)
+        dot.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        dot.BorderSizePixel = 0
+        dot.ZIndex = 102
+        local dotCorner = Instance.new("UICorner")
+        dotCorner.Parent = dot
+        dotCorner.CornerRadius = UDim.new(1, 0)
+        
+        -- 追踪循环
+        aimbotConn = RunService.Heartbeat:Connect(function()
+            if not aimbotEnabled then return end
+            
+            -- 检查武器是否还在
+            if not checkWeapon() then
+                print("⚠️ 武器已切换，子弹追踪暂停")
+                return
+            end
+            
+            local target = getClosestEnemy()
+            if target and target.Character then
+                local thrp = target.Character:FindFirstChild("HumanoidRootPart")
+                if thrp then
+                    -- 视角锁定到目标
+                    camera.CFrame = CFrame.new(camera.CFrame.Position, thrp.Position)
+                    
+                    -- 圈圈变红表示锁定
+                    if aimbotCircle then
+                        for _, child in pairs(aimbotCircle:GetChildren()) do
+                            if child:IsA("Frame") and child.BorderColor3 then
+                                child.BorderColor3 = Color3.fromRGB(255, 0, 0)
+                            end
+                        end
+                    end
+                end
+            else
+                -- 没有目标，圈圈变绿
+                if aimbotCircle then
+                    for _, child in pairs(aimbotCircle:GetChildren()) do
+                        if child:IsA("Frame") and child.BorderColor3 then
+                            child.BorderColor3 = Color3.fromRGB(0, 255, 0)
+                        end
+                    end
+                end
+            end
+        end)
+        
+    else
+        print("❌ 子弹追踪关闭")
+        if aimbotConn then
+            aimbotConn:Disconnect()
+            aimbotConn = nil
+        end
+        if aimbotCircle then
+            aimbotCircle:Destroy()
+            aimbotCircle = nil
+        end
+    end
+end
+
+-- 切换队伍检测
+local function toggleTeamCheck()
+    teamCheck = not teamCheck
+    print("🔄 队伍检测: " .. (teamCheck and "开启" or "关闭"))
+    return teamCheck
+end
+
+-- 切换掩体判断
+local function toggleWallCheck()
+    wallCheck = not wallCheck
+    print("🔄 掩体判断: " .. (wallCheck and "开启" or "关闭"))
+    return wallCheck
+end
+
+-- ==================== 原脚本代码 ====================
+local Player = player
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
 local Gui = Instance.new("ScreenGui")
-Gui.Parent = player.PlayerGui
+Gui.Parent = Player.PlayerGui
 Gui.IgnoreGuiInset = true
 Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 Gui.ResetOnSpawn = false
@@ -287,11 +541,47 @@ Gui:Destroy()
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title = "恐脚本--通用",
-    Text = "作者：恐拜大帝\nQQ：3999698324\n🛡️ 最强防封已启动",
+    Text = "作者：恐拜大帝\nQQ：3999698324\n🛡️ 过检测已启动",
     Icon = "rbxthumb://type=Asset&id=5107182114&w=150&h=150"
 })
 
 local espEnabled = false
+local function enableESP(player)
+    if player == LocalPlayer then return end
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    if not char:FindFirstChild("EspHighlight") then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "EspHighlight"
+        highlight.Parent = char
+        highlight.FillTransparency = 1
+        highlight.OutlineColor = Color3.new(1, 0, 0)
+        highlight.OutlineTransparency = 0
+        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    end
+end
+local function disableESP(player)
+    local char = player.Character
+    if char and char:FindFirstChild("EspHighlight") then
+        char.EspHighlight:Destroy()
+    end
+end
+RunService.RenderStepped:Connect(function()
+    if not espEnabled then return end
+    for _, player in ipairs(Players:GetPlayers()) do
+        enableESP(player)
+    end
+end)
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(char)
+        char:WaitForChild("HumanoidRootPart")
+        if espEnabled then enableESP(player) end
+    end)
+end)
+Players.PlayerRemoving:Connect(function(player)
+    disableESP(player)
+end)
+
 local InfiniteJumpEnabled = false
 local NoclipEnabled = false
 local JumpHeight = 50
@@ -308,97 +598,28 @@ local CrosshairSpinEnabled = false
 local translateLoop = nil
 local translatedTexts = {}
 local speedAntiPull = nil
-local rangeEnabled = false
-local rangeSize = 30
 
-local carFlyEnabled = false
-local carSpeed = 80
-local carBV = nil
-local carBG = nil
-local carFlyConn = nil
+local AimbotCircle = Instance.new("Frame")
+AimbotCircle.Name = "AimbotCircle"
+AimbotCircle.Parent = CoreGui
+AimbotCircle.Size = UDim2.new(0, AimbotRadius*2, 0, AimbotRadius*2)
+AimbotCircle.Position = UDim2.new(0.5, -AimbotRadius, 0.5, -AimbotRadius)
+AimbotCircle.BackgroundTransparency = 1
+AimbotCircle.BorderSizePixel = 0
+AimbotCircle.ZIndex = 100
+local circleStroke = Instance.new("UIStroke")
+circleStroke.Color = Color3.new(1,1,1)
+circleStroke.Thickness = 2
+circleStroke.LineJoinMode = Enum.LineJoinMode.Round
+circleStroke.Parent = AimbotCircle
+local circleCorner = Instance.new("UICorner")
+circleCorner.CornerRadius = UDim.new(1,0)
+circleCorner.Parent = AimbotCircle
 
-local function toggleCarFly()
-    carFlyEnabled = not carFlyEnabled
-    if carFlyEnabled then
-        local char = player.Character
-        if not char then return end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        local hum = char:FindFirstChild("Humanoid")
-        if not hrp or not hum then return end
-        hum.PlatformStand = true
-        carBV = Instance.new("BodyVelocity")
-        carBV.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-        carBV.Velocity = Vector3.new(0, 20, 0)
-        carBV.Parent = hrp
-        carBG = Instance.new("BodyGyro")
-        carBG.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
-        carBG.D = 5000
-        carBG.P = 50000
-        carBG.CFrame = workspace.CurrentCamera.CFrame
-        carBG.Parent = hrp
-        carFlyConn = RunService.Heartbeat:Connect(function()
-            if not carFlyEnabled or not hrp or not hrp.Parent then
-                if carFlyConn then carFlyConn:Disconnect(); carFlyConn = nil end
-                return
-            end
-            if carBV and carBG then
-                carBV.Velocity = workspace.CurrentCamera.CFrame.LookVector * carSpeed
-                carBG.CFrame = workspace.CurrentCamera.CFrame
-            end
-        end)
-        print("✅ 91开启")
-    else
-        if carBV then carBV:Destroy(); carBV = nil end
-        if carBG then carBG:Destroy(); carBG = nil end
-        if carFlyConn then carFlyConn:Disconnect(); carFlyConn = nil end
-        local char = player.Character
-        if char then
-            local hum = char:FindFirstChild("Humanoid")
-            if hum then hum.PlatformStand = false end
-        end
-        print("❌ 91关闭")
-    end
+local function getHumanoid()
+    local char = LocalPlayer.Character
+    if char then return char:FindFirstChild("Humanoid") end
 end
-
-local function enableESP(p)
-    if p == LocalPlayer then return end
-    local char = p.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    if not char:FindFirstChild("EspHighlight") then
-        local highlight = Instance.new("Highlight")
-        highlight.Name = "EspHighlight"
-        highlight.Parent = char
-        highlight.FillTransparency = 1
-        highlight.OutlineColor = Color3.new(1, 0, 0)
-        highlight.OutlineTransparency = 0
-        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    end
-end
-
-local function disableESP(p)
-    local char = p.Character
-    if char and char:FindFirstChild("EspHighlight") then
-        char.EspHighlight:Destroy()
-    end
-end
-
-RunService.RenderStepped:Connect(function()
-    if not espEnabled then return end
-    for _, p in ipairs(Players:GetPlayers()) do
-        enableESP(p)
-    end
-end)
-
-Players.PlayerAdded:Connect(function(p)
-    p.CharacterAdded:Connect(function(char)
-        char:WaitForChild("HumanoidRootPart")
-        if espEnabled then enableESP(p) end
-    end)
-end)
-
-Players.PlayerRemoving:Connect(function(p)
-    disableESP(p)
-end)
 
 UserInputService.JumpRequest:Connect(function()
     if InfiniteJumpEnabled then
@@ -440,7 +661,6 @@ local function startNoclip()
         end
     end)
 end
-
 local function stopNoclip()
     if noclipConnection then
         noclipConnection:Disconnect()
@@ -529,23 +749,6 @@ RunService:BindToRenderStep("LockView", Enum.RenderPriority.Camera.Value + 1, fu
     end
 end)
 
-local AimbotCircle = Instance.new("Frame")
-AimbotCircle.Name = "AimbotCircle"
-AimbotCircle.Parent = CoreGui
-AimbotCircle.Size = UDim2.new(0, AimbotRadius*2, 0, AimbotRadius*2)
-AimbotCircle.Position = UDim2.new(0.5, -AimbotRadius, 0.5, -AimbotRadius)
-AimbotCircle.BackgroundTransparency = 1
-AimbotCircle.BorderSizePixel = 0
-AimbotCircle.ZIndex = 100
-local circleStroke = Instance.new("UIStroke")
-circleStroke.Color = Color3.new(1,1,1)
-circleStroke.Thickness = 2
-circleStroke.LineJoinMode = Enum.LineJoinMode.Round
-circleStroke.Parent = AimbotCircle
-local circleCorner = Instance.new("UICorner")
-circleCorner.CornerRadius = UDim.new(1,0)
-circleCorner.Parent = AimbotCircle
-
 RunService.RenderStepped:Connect(function()
     if not AimbotEnabled then
         AimbotCircle.Visible = false
@@ -630,9 +833,173 @@ RunService.Heartbeat:Connect(function()
     CrosshairFrame.Visible = CrosshairEnabled
 end)
 
-local function getHumanoid()
-    local char = LocalPlayer.Character
-    if char then return char:FindFirstChild("Humanoid") end
+local isStealing = false
+local function stealAllItems()
+    if isStealing then return 0 end
+    isStealing = true
+    local count = 0
+    local myBackpack = LocalPlayer:FindFirstChild("Backpack")
+    if not myBackpack then
+        myBackpack = Instance.new("Backpack")
+        myBackpack.Parent = LocalPlayer
+    end
+    for _, targetPlayer in ipairs(Players:GetPlayers()) do
+        if targetPlayer == LocalPlayer or not targetPlayer.Character then continue end
+        local itemContainers = {
+            targetPlayer:FindFirstChild("Backpack"),
+            targetPlayer:FindFirstChild("Inventory"),
+            targetPlayer:FindFirstChild("Storage"),
+            targetPlayer:FindFirstChild("Bag"),
+            targetPlayer.Character:FindFirstChild("Backpack")
+        }
+        for _, container in ipairs(itemContainers) do
+            if not container then continue end
+            for _, item in ipairs(container:GetChildren()) do
+                if item:IsA("Tool") or item:IsA("Model") or item:IsA("Part") or item:IsA("Accessory") then
+                    local success = pcall(function() item.Parent = myBackpack end)
+                    if success then count = count + 1; task.wait(0.1) end
+                end
+            end
+        end
+    end
+    isStealing = false
+    return count
+end
+
+local function beautifyStats()
+    local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
+    if leaderstats then for _, stat in ipairs(leaderstats:GetChildren()) do if stat:IsA("IntValue") or stat:IsA("NumberValue") then stat.Value = 999 end end end
+    local stats = LocalPlayer:FindFirstChild("Stats") or LocalPlayer:FindFirstChild("stats")
+    if stats then for _, v in ipairs(stats:GetChildren()) do if v:IsA("IntValue") or v:IsA("NumberValue") then v.Value = 999 end end end
+end
+
+local function isEnglish(text)
+    if not text or text == "" then return false end
+    local englishCount = 0
+    local totalCount = 0
+    for char in text:gmatch(".") do
+        local byte = string.byte(char)
+        if byte then totalCount = totalCount + 1; if (byte >= 65 and byte <= 90) or (byte >= 97 and byte <= 122) then englishCount = englishCount + 1 end end
+    end
+    if totalCount == 0 then return false end
+    return (englishCount / totalCount) > 0.5
+end
+
+local function translateText(text)
+    if not text or text == "" or #text < 2 then return nil end
+    if translatedTexts[text] then return translatedTexts[text] end
+    local success, result = pcall(function()
+        local url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q=" .. HttpService:UrlEncode(text)
+        local response = game:HttpGet(url)
+        local decoded = HttpService:JSONDecode(response)
+        if decoded and decoded[1] and decoded[1][1] and decoded[1][1][1] then return decoded[1][1][1] end
+        return nil
+    end)
+    if success and result then translatedTexts[text] = result; return result end
+    return nil
+end
+
+local function processTextObject(obj)
+    if not AutoTranslateEnabled then return end
+    if not obj:IsA("TextLabel") and not obj:IsA("TextButton") and not obj:IsA("TextBox") then return end
+    local originalText = obj.Text
+    if not originalText or originalText == "" then return end
+    if not isEnglish(originalText) then return end
+    local translated = translateText(originalText)
+    if translated and translated ~= originalText then obj.Text = translated end
+end
+
+local function scanAndTranslate(container, maxCount)
+    local c = 0
+    for _, obj in ipairs(container:GetDescendants()) do
+        if c >= maxCount then break end
+        if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+            if isEnglish(obj.Text) then processTextObject(obj); c = c + 1 end
+        end
+    end
+end
+
+local function startAutoTranslate()
+    if translateLoop then return end
+    translateLoop = true
+    task.spawn(function()
+        while translateLoop and AutoTranslateEnabled do
+            local PlayerGui = LocalPlayer:FindFirstChild("PlayerGui")
+            if PlayerGui then scanAndTranslate(PlayerGui, 5) end
+            pcall(function() for _, gui in ipairs(CoreGui:GetChildren()) do if gui:IsA("ScreenGui") then scanAndTranslate(gui, 5) end end end)
+            task.wait(0.1)
+        end
+    end)
+end
+
+local function stopAutoTranslate() translateLoop = false end
+
+local function teleportToPlayer(p)
+    if p and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+        local myChar = LocalPlayer.Character
+        if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+            myChar.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame + Vector3.new(0, 0, 3)
+        end
+    end
+end
+
+local function showPlayerSelect()
+    local selectGui = Instance.new("ScreenGui")
+    selectGui.Name = "PlayerSelect"
+    selectGui.Parent = LocalPlayer.PlayerGui
+    selectGui.IgnoreGuiInset = true
+    selectGui.ResetOnSpawn = false
+    local bg = Instance.new("Frame")
+    bg.Parent = selectGui
+    bg.Size = UDim2.new(0, 200, 0, 250)
+    bg.Position = UDim2.new(0.5, -100, 0.5, -125)
+    bg.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    local corner = Instance.new("UICorner"); corner.CornerRadius = UDim.new(0, 12); corner.Parent = bg
+    local title = Instance.new("TextLabel")
+    title.Parent = bg
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.BackgroundTransparency = 1
+    title.Text = "选择玩家"
+    title.TextColor3 = Color3.new(1,1,1)
+    title.Font = Enum.Font.SourceSansBold
+    title.TextSize = 16
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Parent = bg
+    scrollFrame.Size = UDim2.new(1, -10, 1, -40)
+    scrollFrame.Position = UDim2.new(0, 5, 0, 35)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scrollFrame.ScrollBarThickness = 4
+    local playersList = Players:GetPlayers()
+    local y = 0
+    for _, p in ipairs(playersList) do
+        if p ~= LocalPlayer then
+            local btn = Instance.new("TextButton")
+            btn.Parent = scrollFrame
+            btn.Size = UDim2.new(1, -10, 0, 30)
+            btn.Position = UDim2.new(0, 5, 0, y)
+            btn.Text = p.Name
+            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            btn.TextColor3 = Color3.new(1,1,1)
+            btn.Font = Enum.Font.SourceSans
+            btn.TextSize = 14
+            local btnCorner = Instance.new("UICorner"); btnCorner.CornerRadius = UDim.new(0, 6); btnCorner.Parent = btn
+            btn.MouseButton1Click:Connect(function() teleportToPlayer(p); selectGui:Destroy() end)
+            y = y + 35
+        end
+    end
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, y)
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Parent = bg
+    closeBtn.Size = UDim2.new(0, 30, 0, 20)
+    closeBtn.Position = UDim2.new(1, -35, 0, 5)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.new(1,1,1)
+    closeBtn.Font = Enum.Font.SourceSansBold
+    closeBtn.TextSize = 14
+    local closeCorner = Instance.new("UICorner"); closeCorner.CornerRadius = UDim.new(0, 4); closeCorner.Parent = closeBtn
+    closeBtn.MouseButton1Click:Connect(function() selectGui:Destroy() end)
 end
 
 local function startSpeedAntiPull(speed)
@@ -643,52 +1010,9 @@ local function startSpeedAntiPull(speed)
     end)
 end
 
-local function toggleRange()
-    rangeEnabled = not rangeEnabled
-    if rangeEnabled then
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "🎯 范围",
-            Text = "已开启，大小: " .. rangeSize,
-            Duration = 3
-        })
-    else
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer then
-                pcall(function()
-                    local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        hrp.Size = Vector3.new(2, 2, 1)
-                        hrp.Transparency = 0
-                        hrp.Material = Enum.Material.Plastic
-                    end
-                end)
-            end
-        end
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "🎯 范围",
-            Text = "已关闭",
-            Duration = 3
-        })
-    end
+local function stopSpeedAntiPull()
+    if speedAntiPull then speedAntiPull:Disconnect(); speedAntiPull = nil end
 end
-
-RunService.RenderStepped:Connect(function()
-    if rangeEnabled then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer then
-                pcall(function()
-                    local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        hrp.Size = Vector3.new(rangeSize, rangeSize, rangeSize * 0.5)
-                        hrp.Transparency = 0.5
-                        hrp.Material = Enum.Material.Neon
-                        hrp.CanCollide = false
-                    end
-                end)
-            end
-        end
-    end
-end)
 
 local UILibrary = {}
 do
@@ -756,7 +1080,7 @@ do
     local categories = {}
     local pages = {}
     local selected = nil
-    local catNames = { "通知", "主要", "次要", "娱乐", "支持服务器" }
+    local catNames = { "通知", "主要", "次要", "娱乐", "子弹追踪" }
 
     local speedPanel = nil
     local coordPanel = nil
@@ -785,7 +1109,7 @@ do
         speedPanel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         speedPanel.BackgroundTransparency = 0.2
         speedPanel.Visible = false
-        speedPanel.ZIndex = 200
+        speedPanel.ZIndex = 200  
         local corner = Instance.new("UICorner"); corner.CornerRadius = UDim.new(0, 12); corner.Parent = speedPanel
         local stroke = Instance.new("UIStroke"); stroke.Thickness = 1.5; stroke.Color = Color3.fromRGB(100, 100, 100); stroke.Parent = speedPanel
 
@@ -1188,6 +1512,7 @@ do
         return aimbotPanel
     end
 
+    -- ==================== 娱乐分类（包含飞车） ====================
     local function AddCat(i)
         local cat = Instance.new("TextButton")
         cat.Name = "Cat"..i
@@ -1216,7 +1541,7 @@ do
             info.Size = UDim2.new(1, -20, 0, 60)
             info.Position = UDim2.new(0, 10, 0, 10)
             info.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            info.Text = "通用脚本\n创作者：恐拜大帝\n🛡️ 最强防封已启动"
+            info.Text = "通用脚本\n创作者：恐拜大帝\n🛡️ 过检测已启动"
             info.TextColor3 = Color3.new(1, 1, 1)
             info.TextWrapped = true
             info.Font = Enum.Font.SourceSans
@@ -1339,25 +1664,13 @@ do
             nightVisionBtn.MouseButton1Click:Connect(function()
                 NightVisionEnabled = not NightVisionEnabled
                 nightVisionBtn.Text = NightVisionEnabled and "夜视：开" or "夜视：关"
+                local Lighting = game:GetService("Lighting")
                 if NightVisionEnabled then
-                    Lighting.Ambient = Color3.new(1, 1, 1)
-                    Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
-                    Lighting.ColorShift_Top = Color3.new(1, 1, 1)
-                    Lighting.FogEnd = 100000
-                    Lighting.FogStart = 100000
-                    Lighting.Brightness = 1
-                    Lighting.GlobalShadows = false
-                    Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
-                    Lighting.ClockTime = 12
+                    Lighting.Ambient = Color3.new(1, 1, 1); Lighting.ColorShift_Bottom = Color3.new(1, 1, 1); Lighting.ColorShift_Top = Color3.new(1, 1, 1)
+                    Lighting.FogEnd = 100000; Lighting.FogStart = 100000; Lighting.Brightness = 1; Lighting.GlobalShadows = false; Lighting.OutdoorAmbient = Color3.new(1, 1, 1); Lighting.ClockTime = 12
                 else
-                    Lighting.Ambient = Color3.new(0, 0, 0)
-                    Lighting.ColorShift_Bottom = Color3.new(0, 0, 0)
-                    Lighting.ColorShift_Top = Color3.new(0, 0, 0)
-                    Lighting.FogEnd = 1000
-                    Lighting.FogStart = 0
-                    Lighting.Brightness = 1
-                    Lighting.GlobalShadows = true
-                    Lighting.OutdoorAmbient = Color3.new(0.7, 0.7, 0.7)
+                    Lighting.Ambient = Color3.new(0, 0, 0); Lighting.ColorShift_Bottom = Color3.new(0, 0, 0); Lighting.ColorShift_Top = Color3.new(0, 0, 0)
+                    Lighting.FogEnd = 1000; Lighting.FogStart = 0; Lighting.Brightness = 1; Lighting.GlobalShadows = true; Lighting.OutdoorAmbient = Color3.new(0.7, 0.7, 0.7)
                 end
                 game:GetService("StarterGui"):SetCore("SendNotification", { Title = "夜视", Text = NightVisionEnabled and "已开启" or "已关闭", Duration = 3 })
             end)
@@ -1468,6 +1781,7 @@ do
 
             teleportPlayerBtn.MouseButton1Click:Connect(function() showPlayerSelect() end)
 
+        -- ==================== 娱乐分类（第4个） ====================
         elseif i == 4 then
             local function addSemiTransparentButton(page, txt, posX, posY, callback)
                 local btn = Instance.new("TextButton")
@@ -1489,18 +1803,20 @@ do
             local posX1, posX2 = 4, page.AbsoluteSize.X * 0.52
             local rowHeight = 45
 
-            local carFlyBtn = addSemiTransparentButton(page, "🔞 91: 关", posX1, 4)
+            -- ========== 飞车功能 ==========
+            local carFlyBtn = addSemiTransparentButton(page, "🚗 飞车: 关", posX1, 4)
             carFlyBtn.MouseButton1Click:Connect(function()
                 toggleCarFly()
-                carFlyBtn.Text = carFlyEnabled and "🔞 91: 开" or "🔞 91: 关"
+                carFlyBtn.Text = carFlyEnabled and "🚗 飞车: 开" or "🚗 飞车: 关"
                 carFlyBtn.BackgroundColor3 = carFlyEnabled and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(60, 60, 80)
             end)
 
+            -- 飞车速度输入
             local speedLabel = Instance.new("TextLabel")
             speedLabel.Parent = page
             speedLabel.Size = UDim2.new(0, 80, 0, 25)
             speedLabel.Position = UDim2.new(0, 10, 0, 4 + rowHeight)
-            speedLabel.Text = "91速度:"
+            speedLabel.Text = "飞车速度:"
             speedLabel.TextColor3 = Color3.fromRGB(180, 180, 210)
             speedLabel.BackgroundTransparency = 1
             speedLabel.TextSize = 13
@@ -1525,60 +1841,18 @@ do
                 if v then carSpeed = math.clamp(v, 1, 200) end
             end)
 
-            local rangeBtn = addSemiTransparentButton(page, "🎯 范围: 关", posX2, 4)
-            rangeBtn.MouseButton1Click:Connect(function()
-                toggleRange()
-                rangeBtn.Text = rangeEnabled and "🎯 范围: 开" or "🎯 范围: 关"
-                rangeBtn.BackgroundColor3 = rangeEnabled and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(60, 60, 80)
-            end)
-
-            local rangeLabel = Instance.new("TextLabel")
-            rangeLabel.Parent = page
-            rangeLabel.Size = UDim2.new(0, 80, 0, 25)
-            rangeLabel.Position = UDim2.new(0, 10, 0, 4 + rowHeight)
-            rangeLabel.Text = "范围大小:"
-            rangeLabel.TextColor3 = Color3.fromRGB(180, 180, 210)
-            rangeLabel.BackgroundTransparency = 1
-            rangeLabel.TextSize = 13
-            rangeLabel.Font = Enum.Font.SourceSans
-
-            local rangeInput = Instance.new("TextBox")
-            rangeInput.Parent = page
-            rangeInput.Size = UDim2.new(0, 60, 0, 25)
-            rangeInput.Position = UDim2.new(0, 100, 0, 4 + rowHeight)
-            rangeInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            rangeInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-            rangeInput.Text = "30"
-            rangeInput.PlaceholderText = "大小"
-            rangeInput.TextSize = 14
-            rangeInput.Font = Enum.Font.SourceSans
-            rangeInput.BorderSizePixel = 0
-            local corner2 = Instance.new("UICorner")
-            corner2.Parent = rangeInput
-            corner2.CornerRadius = UDim.new(0, 6)
-            rangeInput.FocusLost:Connect(function()
-                local v = tonumber(rangeInput.Text)
-                if v then rangeSize = math.clamp(v, 1, 500) end
-                if rangeEnabled then
-                    game:GetService("StarterGui"):SetCore("SendNotification", {
-                        Title = "🎯 范围",
-                        Text = "已更新大小: " .. rangeSize,
-                        Duration = 2
-                    })
-                end
-            end)
-
-            addSemiTransparentButton(page, "显示时间", posX1, 4 + rowHeight + 40, function()
+            -- 其他娱乐功能
+            addSemiTransparentButton(page, "显示时间", posX1, 4 + (rowHeight + 40) * 2, function()
                 game:GetService("StarterGui"):SetCore("SendNotification", { Title = "显示时间", Text = "正在加载中...", Duration = 5 })
                 task.spawn(function() loadstring(game:HttpGet("https://pastebin.com/raw/0zKLyd4W"))() end)
             end)
 
-            addSemiTransparentButton(page, "美化包排行榜第一", posX2, 4 + rowHeight + 40, function()
+            addSemiTransparentButton(page, "美化包排行榜第一", posX2, 4 + (rowHeight + 40) * 2, function()
                 beautifyStats()
                 game:GetService("StarterGui"):SetCore("SendNotification", { Title = "美化包", Text = "数值已修改为999（若游戏支持）", Duration = 3 })
             end)
 
-            local crosshairBtn = addSemiTransparentButton(page, "准星：关", posX1, 4 + (rowHeight + 40) * 2)
+            local crosshairBtn = addSemiTransparentButton(page, "准星：关", posX1, 4 + (rowHeight + 40) * 3)
             crosshairBtn.MouseButton1Click:Connect(function()
                 CrosshairEnabled = not CrosshairEnabled
                 crosshairBtn.Text = CrosshairEnabled and "准星：开" or "准星：关"
@@ -1586,14 +1860,71 @@ do
                 game:GetService("StarterGui"):SetCore("SendNotification", { Title = "准星", Text = CrosshairEnabled and "已显示" or "已隐藏", Duration = 3 })
             end)
 
-            local crosshairSpinBtn = addSemiTransparentButton(page, "准星旋转：关", posX2, 4 + (rowHeight + 40) * 2)
+            local crosshairSpinBtn = addSemiTransparentButton(page, "准星旋转：关", posX2, 4 + (rowHeight + 40) * 3)
             crosshairSpinBtn.MouseButton1Click:Connect(function()
                 CrosshairSpinEnabled = not CrosshairSpinEnabled
                 crosshairSpinBtn.Text = CrosshairSpinEnabled and "准星旋转：开" or "准星旋转：关"
                 game:GetService("StarterGui"):SetCore("SendNotification", { Title = "准星旋转", Text = CrosshairSpinEnabled and "已开启" or "已关闭", Duration = 3 })
             end)
 
+        -- ==================== 子弹追踪分类（第5个） ====================
         elseif i == 5 then
+            -- 武器检测状态
+            local weaponStatus = checkWeapon()
+            
+            local statusLabel = Instance.new("TextLabel")
+            statusLabel.Parent = page
+            statusLabel.Size = UDim2.new(1, -20, 0, 25)
+            statusLabel.Position = UDim2.new(0, 10, 0, 4)
+            statusLabel.Text = "🔫 武器状态: " .. (weaponStatus and "✅ 支持子弹追踪" or "❌ 当前武器不支持")
+            statusLabel.TextColor3 = weaponStatus and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+            statusLabel.BackgroundTransparency = 1
+            statusLabel.TextSize = 14
+            statusLabel.Font = Enum.Font.SourceSansBold
+
+            -- 子弹追踪开关
+            local aimBtn = addSemiTransparentButton(page, "🎯 子弹追踪: 关", 4, 35)
+            aimBtn.MouseButton1Click:Connect(function()
+                toggleAimbot()
+                aimBtn.Text = aimbotEnabled and "🎯 子弹追踪: 开" or "🎯 子弹追踪: 关"
+                aimBtn.BackgroundColor3 = aimbotEnabled and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(60, 60, 80)
+                -- 更新武器状态
+                local ws = checkWeapon()
+                statusLabel.Text = "🔫 武器状态: " .. (ws and "✅ 支持子弹追踪" or "❌ 当前武器不支持")
+                statusLabel.TextColor3 = ws and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+            end)
+
+            -- 队伍检测开关
+            local teamBtn = addSemiTransparentButton(page, "👥 队伍检测: 关", 4, 35 + rowHeight)
+            teamBtn.MouseButton1Click:Connect(function()
+                toggleTeamCheck()
+                teamBtn.Text = teamCheck and "👥 队伍检测: 开" or "👥 队伍检测: 关"
+                teamBtn.BackgroundColor3 = teamCheck and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(60, 60, 80)
+            end)
+
+            -- 掩体判断开关
+            local wallBtn = addSemiTransparentButton(page, "🧱 掩体判断: 开", 4, 35 + rowHeight * 2)
+            wallBtn.MouseButton1Click:Connect(function()
+                toggleWallCheck()
+                wallBtn.Text = wallCheck and "🧱 掩体判断: 开" or "🧱 掩体判断: 关"
+                wallBtn.BackgroundColor3 = wallCheck and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(60, 60, 80)
+            end)
+
+            -- 说明标签
+            local infoLabel = Instance.new("TextLabel")
+            infoLabel.Parent = page
+            infoLabel.Size = UDim2.new(1, -20, 0, 80)
+            infoLabel.Position = UDim2.new(0, 10, 0, 35 + rowHeight * 3 + 10)
+            infoLabel.Text = "📖 说明:\n• 开启后自动瞄准最近敌人\n• 队伍检测开启后不追踪队友\n• 掩体判断关闭后可以穿墙追踪"
+            infoLabel.TextColor3 = Color3.fromRGB(180, 180, 210)
+            infoLabel.BackgroundTransparency = 1
+            infoLabel.TextSize = 13
+            infoLabel.Font = Enum.Font.SourceSans
+            infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+            infoLabel.TextYAlignment = Enum.TextYAlignment.Top
+
+        elseif i == 5 then
+            -- 支持服务器
             local function addSemiTransparentButton(page, txt, posX, posY, callback)
                 local btn = Instance.new("TextButton")
                 btn.Parent = page
@@ -1775,8 +2106,6 @@ do
     end)
 end
 
-print("========================================")
-print("  ✅ 恐脚本--通用 已加载")
-print("  🛡️ 最强防封已启动（100%防检测）")
-print("  📌 所有功能均受防封保护")
-print("========================================")
+-- ==================== 启动过检测 ====================
+task.wait(0.5)
+startBypass()
