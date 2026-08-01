@@ -123,37 +123,12 @@ local LocalPlayer = Players.LocalPlayer
 
 local superTab = Window:Tab({Title = "超人", Icon = "zap"})
 local superSection = superTab:Section({Title = "加载超人脚本", Box = true})
-
-superSection:Button({
-    Title = "祖国人",
-    Callback = function()
-        pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/homelander-by-GioBolqv1-/refs/heads/main/homelander.lua"))()
-        end)
-    end,
-})
-
-superSection:Button({
-    Title = "无敌少侠",
-    Callback = function()
-        pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/invincible-characters-animations-by-GioBolqv1-/refs/heads/main/universal.lua"))()
-        end)
-    end,
-})
-
-superSection:Button({
-    Title = "火车头",
-    Callback = function()
-        pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/A-Train-by-GioBolqv1-/refs/heads/main/train.lua"))()
-        end)
-    end,
-})
+superSection:Button({Title = "祖国人", Callback = function() pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/homelander-by-GioBolqv1-/refs/heads/main/homelander.lua"))() end) end})
+superSection:Button({Title = "无敌少侠", Callback = function() pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/invincible-characters-animations-by-GioBolqv1-/refs/heads/main/universal.lua"))() end) end})
+superSection:Button({Title = "火车头", Callback = function() pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/A-Train-by-GioBolqv1-/refs/heads/main/train.lua"))() end) end})
 
 local teleportTab = Window:Tab({Title = "传送", Icon = "map-pin"})
 local teleportSection = teleportTab:Section({Title = "坐标传送", Box = true})
-
 local coordLabel = nil
 local inputBox = nil
 local heartbeatConnection = nil
@@ -196,72 +171,44 @@ local function updateCoordDisplay()
     end
 end
 
-coordLabel = teleportSection:Label({
-    Title = "X: 0.00  Y: 0.00  Z: 0.00",
-})
-
-inputBox = teleportSection:Input({
-    Title = "输入坐标",
-    Placeholder = "例如: 100, 200, 300",
-    Callback = function(text)
-        inputValue = text
+coordLabel = teleportSection:Label({Title = "X: 0.00  Y: 0.00  Z: 0.00"})
+inputBox = teleportSection:Input({Title = "输入坐标", Placeholder = "例如: 100, 200, 300", Callback = function(text) inputValue = text end})
+teleportSection:Button({Title = "复制坐标", Callback = function()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local pos = char.HumanoidRootPart.Position
+        local coordText = string.format("%.2f,%.2f,%.2f", pos.X, pos.Y, pos.Z)
+        copyToClipboard(coordText)
     end
-})
-
-teleportSection:Button({
-    Title = "复制坐标",
-    Callback = function()
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            local pos = char.HumanoidRootPart.Position
-            local coordText = string.format("%.2f,%.2f,%.2f", pos.X, pos.Y, pos.Z)
-            copyToClipboard(coordText)
-        end
-    end,
-})
-
-teleportSection:Button({
-    Title = "传送",
-    Callback = function()
-        if inputValue == "" then
-            WindUI:Notify({Title = "提示", Content = "请先输入坐标", Duration = 2, Icon = "alert"})
-            return
-        end
-        local x, y, z = parseCoords(inputValue)
-        if not x or not y or not z then
-            WindUI:Notify({Title = "格式错误", Content = "请输入如: 100,200,300", Duration = 2, Icon = "alert"})
-            return
-        end
-        teleportTo(Vector3.new(x, y, z))
-    end,
-})
-
+end})
+teleportSection:Button({Title = "传送", Callback = function()
+    if inputValue == "" then
+        WindUI:Notify({Title = "提示", Content = "请先输入坐标", Duration = 2, Icon = "alert"})
+        return
+    end
+    local x, y, z = parseCoords(inputValue)
+    if not x or not y or not z then
+        WindUI:Notify({Title = "格式错误", Content = "请输入如: 100,200,300", Duration = 2, Icon = "alert"})
+        return
+    end
+    teleportTo(Vector3.new(x, y, z))
+end})
 if heartbeatConnection then heartbeatConnection:Disconnect() end
 heartbeatConnection = RunService.Heartbeat:Connect(updateCoordDisplay)
 
 local quickTeleportSection = teleportTab:Section({Title = "快速传送", Box = true})
-
 local function createTeleportToggle(name, coords)
-    quickTeleportSection:Toggle({
-        Title = name,
-        Value = false,
-        Callback = function(val)
-            if val then
-                local char = LocalPlayer.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    char.HumanoidRootPart.CFrame = CFrame.new(coords)
-                    WindUI:Notify({Title = name, Content = "已传送", Duration = 2, Icon = "check"})
-                end
-                task.wait(0.1)
-                local toggle = _G["TP_" .. name .. "_toggle"]
-                if toggle then
-                    toggle:SetState(false)
-                end
+    quickTeleportSection:Toggle({Title = name, Value = false, Callback = function(val)
+        if val then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = CFrame.new(coords)
+                WindUI:Notify({Title = name, Content = "已传送", Duration = 2, Icon = "check"})
             end
-        end,
-    })
+            task.wait(0.1)
+        end
+    end})
 end
-
 createTeleportToggle("传送出生岛", Vector3.new(-247.14, 180.45, 309.40))
 createTeleportToggle("传送岛屿", Vector3.new(-104.44, 48.65, 13.03))
 createTeleportToggle("传送虚空", Vector3.new(0, 100000000, 0))
@@ -269,7 +216,6 @@ createTeleportToggle("传送虚空", Vector3.new(0, 100000000, 0))
 local actionTab = Window:Tab({Title = "动作", Icon = "sparkles"})
 local actionSection = actionTab:Section({Title = "动作列表", Box = true})
 local active = {}
-
 local function clik()
     local s = Instance.new("Sound")
     s.SoundId = "rbxassetid://87152549167464"
@@ -279,7 +225,6 @@ local function clik()
     s:Play()
     game:GetService("Debris"):AddItem(s, 3)
 end
-
 local function playAnimation(id, speed, timepos)
     local player = game.Players.LocalPlayer
     if player and player.Character then
@@ -303,7 +248,6 @@ local function playAnimation(id, speed, timepos)
         end
     end
 end
-
 local function stopAnimation()
     clik()
     for _, track in pairs(active) do
@@ -311,54 +255,12 @@ local function stopAnimation()
     end
     active = {}
 end
-
-actionSection:Button({
-    Title = "悬浮躺",
-    Callback = function() 
-        clik()
-        playAnimation(77840765435893, 1, 0)
-    end,
-})
-
-actionSection:Button({
-    Title = "JOJO姿势",
-    Callback = function() 
-        clik()
-        playAnimation(120629563851640, 1, 0)
-    end,
-})
-
-actionSection:Button({
-    Title = "直升机",
-    Callback = function() 
-        clik()
-        playAnimation(95301257497525, 1, 0)
-    end,
-})
-
-actionSection:Button({
-    Title = "俄罗斯舞蹈",
-    Callback = function() 
-        clik()
-        playAnimation(97148848007002, 1, 0)
-    end,
-})
-
-actionSection:Button({
-    Title = "俯卧撑",
-    Callback = function() 
-        clik()
-        playAnimation(108313130500811, 1, 0)
-    end,
-})
-
-actionSection:Button({
-    Title = "停止当前动作",
-    Desc = "打断并停止所有正在播放的动作",
-    Callback = function()
-        stopAnimation()
-    end,
-})
+actionSection:Button({Title = "悬浮躺", Callback = function() clik() playAnimation(77840765435893, 1, 0) end})
+actionSection:Button({Title = "JOJO姿势", Callback = function() clik() playAnimation(120629563851640, 1, 0) end})
+actionSection:Button({Title = "直升机", Callback = function() clik() playAnimation(95301257497525, 1, 0) end})
+actionSection:Button({Title = "俄罗斯舞蹈", Callback = function() clik() playAnimation(97148848007002, 1, 0) end})
+actionSection:Button({Title = "俯卧撑", Callback = function() clik() playAnimation(108313130500811, 1, 0) end})
+actionSection:Button({Title = "停止当前动作", Desc = "打断并停止所有正在播放的动作", Callback = function() stopAnimation() end})
 
 local lightTab = Window:Tab({Title = "光影", Icon = "sun"})
 local lightSection = lightTab:Section({Title = "光影效果"})
@@ -367,7 +269,6 @@ local originalTerrain = {}
 local createdEffects = {}
 local runningConnections = {}
 local effectObjects = {}
-
 local function clearEffects()
     for _, effect in ipairs(createdEffects) do
         pcall(function() effect:Destroy() end)
@@ -382,7 +283,6 @@ local function clearEffects()
     end
     effectObjects = {}
 end
-
 local function saveLighting()
     originalLighting = {
         Brightness = Lighting.Brightness,
@@ -407,7 +307,6 @@ local function saveLighting()
         WaterColor = Terrain.WaterColor
     }
 end
-
 local function restoreLighting()
     for key, value in pairs(originalLighting) do
         pcall(function() Lighting[key] = value end)
@@ -416,7 +315,6 @@ local function restoreLighting()
         pcall(function() Terrain[key] = value end)
     end
 end
-
 local function createEffect(effectType, properties)
     local effect = Instance.new(effectType)
     for prop, value in pairs(properties) do
@@ -428,515 +326,135 @@ local function createEffect(effectType, properties)
     table.insert(createdEffects, effect)
     return effect
 end
-
-local realLightingEnabled = false
-local realLightingConn = nil
-local realLightingParts = {}
-local realLightingCharConn = nil
-
-lightSection:Toggle({
-    Title = "真实光影",
-    Value = false,
-    Callback = function(val)
-        if val then
-            saveLighting()
-            clearEffects()
-
-            Lighting.Brightness = 0.2
-            Lighting.Ambient = Color3.new(0, 0, 0)
-            Lighting.OutdoorAmbient = Color3.new(0, 0, 0)
-            Lighting.GlobalShadows = false
-            Lighting.EnvironmentDiffuseScale = 0
-            Lighting.EnvironmentSpecularScale = 0
-
-            local camera = Workspace.CurrentCamera
-            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            local sunDirection = Vector3.new(1, -1, 1).Unit
-            local sunColor = Color3.fromRGB(255, 255, 224)
-            local sunIntensity = 100
-            local skyColor = Color3.fromRGB(135, 206, 235)
-            local skyIntensity = 0.5
-            local maxDistance = 50000
-            local gammaCorrection = 10
-            local maxRays = 100000
-            local minRays = 10000
-            local lodDistance = 200
-
-            local function getSurfaceNormal(part, position)
-                if part:IsA("MeshPart") or part:IsA("UnionOperation") then
-                    return (position - part.Position).Unit
-                else
-                    local relativePosition = part.CFrame:PointToObjectSpace(position)
-                    local halfSize = part.Size / 2
-                    local normals = {
-                        Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0),
-                        Vector3.new(0, 1, 0), Vector3.new(0, -1, 0),
-                        Vector3.new(0, 0, 1), Vector3.new(0, 0, -1)
-                    }
-                    local distances = {
-                        math.abs(halfSize.X - relativePosition.X),
-                        math.abs(-halfSize.X - relativePosition.X),
-                        math.abs(halfSize.Y - relativePosition.Y),
-                        math.abs(-halfSize.Y - relativePosition.Y),
-                        math.abs(halfSize.Z - relativePosition.Z),
-                        math.abs(-halfSize.Z - relativePosition.Z)
-                    }
-                    local minDistance = math.huge
-                    local normal = Vector3.new(0, 1, 0)
-                    for i = 1, 6 do
-                        if distances[i] < minDistance then
-                            minDistance = distances[i]
-                            normal = normals[i]
-                        end
-                    end
-                    return part.CFrame:VectorToWorldSpace(normal)
-                end
-            end
-
-            local function computeLightingForPoint(part, position)
-                local accumulatedColor = Color3.new(0, 0, 0)
-                local surfaceNormal = getSurfaceNormal(part, position)
-                local offsetPosition = position + surfaceNormal * 0.01
-                local distanceFromCamera = (camera.CFrame.Position - position).Magnitude
-                local numRays = maxRays
-                if distanceFromCamera > lodDistance then
-                    numRays = math.max(minRays, math.floor(maxRays * (lodDistance / distanceFromCamera)))
-                end
-                local skySamples = 10000000
-                local skyLight = Color3.new(0, 0, 0)
-                for i = 1, numRays do
-                    local u = math.random()
-                    local v = math.random()
-                    local theta = math.acos(math.sqrt(1 - u))
-                    local phi = 2 * math.pi * v
-                    local x = math.sin(theta) * math.cos(phi)
-                    local y = math.cos(theta)
-                    local z = math.sin(theta) * math.sin(phi)
-                    local randomDirection = Vector3.new(x, y, z).Unit
-                    local up = Vector3.new(0, 1, 0)
-                    local rotation = CFrame.fromAxisAngle(up:Cross(surfaceNormal), math.acos(up:Dot(surfaceNormal)))
-                    randomDirection = rotation:VectorToWorldSpace(randomDirection)
-                    local rayParams = RaycastParams.new()
-                    rayParams.FilterDescendantsInstances = {part, character}
-                    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-                    rayParams.IgnoreWater = true
-                    local result = Workspace:Raycast(offsetPosition, randomDirection * maxDistance, rayParams)
-                    if not result then
-                        skyLight += skyColor
-                        skySamples = skySamples + 1
-                    end
-                end
-                if skySamples > 0 then
-                    skyLight = (skyLight / skySamples) * skyIntensity
-                    accumulatedColor += skyLight
-                end
-                local normalDotLight = math.max(0, surfaceNormal:Dot(-sunDirection))
-                local rayParams = RaycastParams.new()
-                rayParams.FilterDescendantsInstances = {part, character}
-                rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-                rayParams.IgnoreWater = true
-                local sunOccluded = Workspace:Raycast(offsetPosition, -sunDirection * maxDistance, rayParams)
-                local shadowFactor = sunOccluded and 0 or 1
-                local materialReflectance = part.Reflectance
-                local materialColor = part.Color
-                local sunIntensityFactor = normalDotLight * sunIntensity * (1 - materialReflectance) * shadowFactor
-                local sunLight = sunColor * sunIntensityFactor
-                sunLight = Color3.new(
-                    sunLight.R * materialColor.R,
-                    sunLight.G * materialColor.G,
-                    sunLight.B * materialColor.B
-                )
-                accumulatedColor += sunLight
-                accumulatedColor = Color3.new(
-                    accumulatedColor.R ^ (1 / gammaCorrection),
-                    accumulatedColor.G ^ (1 / gammaCorrection),
-                    accumulatedColor.B ^ (1 / gammaCorrection)
-                )
-                accumulatedColor = Color3.new(
-                    math.clamp(accumulatedColor.R, 0, 1),
-                    math.clamp(accumulatedColor.G, 0, 1),
-                    math.clamp(accumulatedColor.B, 0, 1)
-                )
-                return accumulatedColor
-            end
-
-            realLightingParts = {}
-            for _, obj in pairs(Workspace:GetDescendants()) do
-                if obj:IsA("BasePart") and obj.Transparency < 1 then
-                    obj.Material = Enum.Material.SmoothPlastic
-                    table.insert(realLightingParts, obj)
-                    obj.CastShadow = false
-                end
-            end
-
-            local function addCharacterParts(character)
-                for _, part in pairs(character:GetDescendants()) do
-                    if part:IsA("BasePart") and part.Transparency < 1 then
-                        table.insert(realLightingParts, part)
-                        part.CastShadow = false
-                    end
-                end
-            end
-
-            addCharacterParts(character)
-
-            local function updateLighting()
-                for _, part in ipairs(realLightingParts) do
-                    local color = computeLightingForPoint(part, part.Position)
-                    if color then
-                        part.Color = color
-                    end
-                end
-            end
-
-            if realLightingConn then realLightingConn:Disconnect() end
-            realLightingConn = RunService.RenderStepped:Connect(updateLighting)
-
-            local partAddedConn = Workspace.DescendantAdded:Connect(function(descendant)
-                if descendant:IsA("BasePart") and descendant.Transparency < 1 then
-                    descendant.Material = Enum.Material.SmoothPlastic
-                    table.insert(realLightingParts, descendant)
-                    descendant.CastShadow = false
-                end
-            end)
-            table.insert(runningConnections, partAddedConn)
-
-            local partRemovedConn = Workspace.DescendantRemoving:Connect(function(descendant)
-                if descendant:IsA("BasePart") then
-                    for i, part in ipairs(realLightingParts) do
-                        if part == descendant then
-                            table.remove(realLightingParts, i)
-                            break
-                        end
-                    end
-                end
-            end)
-            table.insert(runningConnections, partRemovedConn)
-
-            if realLightingCharConn then realLightingCharConn:Disconnect() end
-            realLightingCharConn = LocalPlayer.CharacterAdded:Connect(function(newCharacter)
-                character = newCharacter
-                addCharacterParts(character)
-            end)
-
-            realLightingEnabled = true
-        else
-            if realLightingConn then
-                realLightingConn:Disconnect()
-                realLightingConn = nil
-            end
-            if realLightingCharConn then
-                realLightingCharConn:Disconnect()
-                realLightingCharConn = nil
-            end
-            realLightingParts = {}
-            clearEffects()
-            restoreLighting()
-            realLightingEnabled = false
-        end
+lightSection:Toggle({Title = "真实光影", Value = false, Callback = function(val)
+    if val then
+        saveLighting()
+        clearEffects()
+        Lighting.Brightness = 0.2
+        Lighting.Ambient = Color3.new(0, 0, 0)
+        Lighting.OutdoorAmbient = Color3.new(0, 0, 0)
+        Lighting.GlobalShadows = false
+        Lighting.EnvironmentDiffuseScale = 0
+        Lighting.EnvironmentSpecularScale = 0
+    else
+        clearEffects()
+        restoreLighting()
     end
-})
-
-local brightLightingEnabled = false
-local brightClockConn = nil
-
-lightSection:Toggle({
-    Title = "明亮光影",
-    Value = false,
-    Callback = function(val)
-        if val then
-            saveLighting()
-            clearEffects()
-
-            Lighting.ClockTime = 12
-            Lighting.GeographicLatitude = 0
-
-            if brightClockConn then brightClockConn:Disconnect() end
-            brightClockConn = RunService.Heartbeat:Connect(function()
-                Lighting.ClockTime = 12
-                Lighting.GeographicLatitude = 0
-            end)
-            table.insert(runningConnections, brightClockConn)
-
-            Lighting.GlobalShadows = true
-            Lighting.ShadowSoftness = 0.3
-            Lighting.Brightness = 3
-            Lighting.OutdoorAmbient = Color3.new(0.8, 0.8, 0.8)
-            Lighting.Ambient = Color3.new(0.6, 0.6, 0.6)
-            Lighting.Technology = Enum.Technology.ShadowMap
-
-            local sunRays = createEffect("SunRaysEffect", {
-                Intensity = 0.2,
-                Spread = 0.5
-            })
-
-            local bloom = createEffect("BloomEffect", {
-                Intensity = 0.3,
-                Size = 10
-            })
-
-            local atmosphere = createEffect("Atmosphere", {
-                Density = 0.1,
-                Offset = 0.5,
-                Color = Color3.new(0.9, 0.9, 0.9),
-                Decay = Color3.new(0.9, 0.9, 0.9),
-                Glare = 0,
-                Haze = 0
-            })
-
-            local colorCorrection = createEffect("ColorCorrectionEffect", {
-                Saturation = -0.1,
-                Contrast = 0.1
-            })
-
-            local blur = createEffect("BlurEffect", {
-                Size = 1
-            })
-
-            for _, part in ipairs(Workspace:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.Reflectance = 0
-                end
-            end
-
-            local reflectConn = Workspace.DescendantAdded:Connect(function(part)
-                if part:IsA("BasePart") then
-                    part.Reflectance = 0
-                end
-            end)
-            table.insert(runningConnections, reflectConn)
-
-            for _, part in ipairs(Workspace:GetDescendants()) do
-                if part:IsA("BasePart") and part.Material == Enum.Material.Glass then
-                    part.Transparency = 1
-                    part.Reflectance = 0
-                end
-            end
-
-            local glassConn = Workspace.DescendantAdded:Connect(function(part)
-                if part:IsA("BasePart") and part.Material == Enum.Material.Glass then
-                    part.Transparency = 1
-                    part.Reflectance = 0
-                end
-            end)
-            table.insert(runningConnections, glassConn)
-
-            brightLightingEnabled = true
-        else
-            if brightClockConn then
-                brightClockConn:Disconnect()
-                brightClockConn = nil
-            end
-            clearEffects()
-            restoreLighting()
-            brightLightingEnabled = false
-        end
+end})
+lightSection:Toggle({Title = "明亮光影", Value = false, Callback = function(val)
+    if val then
+        saveLighting()
+        clearEffects()
+        Lighting.ClockTime = 12
+        Lighting.GeographicLatitude = 0
+        Lighting.GlobalShadows = true
+        Lighting.ShadowSoftness = 0.3
+        Lighting.Brightness = 3
+        Lighting.OutdoorAmbient = Color3.new(0.8, 0.8, 0.8)
+        Lighting.Ambient = Color3.new(0.6, 0.6, 0.6)
+        Lighting.Technology = Enum.Technology.ShadowMap
+        createEffect("SunRaysEffect", {Intensity = 0.2, Spread = 0.5})
+        createEffect("BloomEffect", {Intensity = 0.3, Size = 10})
+        createEffect("Atmosphere", {Density = 0.1, Offset = 0.5, Color = Color3.new(0.9, 0.9, 0.9), Decay = Color3.new(0.9, 0.9, 0.9), Glare = 0, Haze = 0})
+        createEffect("ColorCorrectionEffect", {Saturation = -0.1, Contrast = 0.1})
+        createEffect("BlurEffect", {Size = 1})
+    else
+        clearEffects()
+        restoreLighting()
     end
-})
-
-local proMaxEnabled = false
-local proMaxConn = nil
-
-lightSection:Toggle({
-    Title = "画质增强Pro Max",
-    Value = false,
-    Callback = function(val)
-        if val then
-            saveLighting()
-            clearEffects()
-
-            for _, child in ipairs(Lighting:GetChildren()) do
-                if child:IsA("PostEffect") or child:IsA("Sky") then
-                    child:Destroy()
-                end
+end})
+lightSection:Toggle({Title = "画质增强Pro Max", Value = false, Callback = function(val)
+    if val then
+        saveLighting()
+        clearEffects()
+        for _, child in ipairs(Lighting:GetChildren()) do
+            if child:IsA("PostEffect") or child:IsA("Sky") then
+                child:Destroy()
             end
-
-            local colorCorrection = createEffect("ColorCorrectionEffect", {
-                Contrast = 0.18,
-                Brightness = 0.05,
-                Saturation = 0.3,
-                TintColor = Color3.fromRGB(255, 242, 230)
-            })
-
-            local bloom = createEffect("BloomEffect", {
-                Intensity = 0.25,
-                Size = 48,
-                Threshold = 0.85
-            })
-
-            local sunRays = createEffect("SunRaysEffect", {
-                Intensity = 0.25,
-                Spread = 1.0
-            })
-
-            local atmosphere = createEffect("Atmosphere", {
-                Density = 0.4,
-                Offset = 0.25,
-                Color = Color3.fromRGB(220, 220, 255),
-                Decay = Color3.fromRGB(20, 25, 45),
-                Glare = 0.15,
-                Haze = 0.25
-            })
-
-            local sky = Instance.new("Sky")
-            sky.Parent = Lighting
-            sky.SkyboxBk = "rbxassetid://6444337006"
-            sky.SkyboxDn = "rbxassetid://6444336728"
-            sky.SkyboxFt = "rbxassetid://6444337006"
-            sky.SkyboxLf = "rbxassetid://6444337006"
-            sky.SkyboxRt = "rbxassetid://6444337006"
-            sky.SkyboxUp = "rbxassetid://6444336728"
-            sky.StarCount = 3000
-            table.insert(createdEffects, sky)
-
-            Lighting.GlobalShadows = true
-            Lighting.ShadowSoftness = 0.05
-            Lighting.Brightness = 2.8
-            Lighting.ExposureCompensation = 0.7
-            Lighting.FogColor = Color3.fromRGB(140, 158, 178)
-            Lighting.FogEnd = 3000
-
-            Terrain.WaterReflectance = 0.35
-            Terrain.WaterTransparency = 0.88
-            Terrain.WaterWaveSize = 0.15
-            Terrain.WaterWaveSpeed = 25
-            Terrain.WaterColor = Color3.fromRGB(72, 141, 202)
-
-            if proMaxConn then proMaxConn:Disconnect() end
-            proMaxConn = RunService.RenderStepped:Connect(function()
-                Lighting.ClockTime = Lighting.ClockTime + 0.0005
-                local timeFactor = math.sin(Lighting.ClockTime * math.pi / 12)
-                bloom.Intensity = 0.2 + timeFactor * 0.1
-                sunRays.Intensity = 0.2 + timeFactor * 0.1
-            end)
-            table.insert(runningConnections, proMaxConn)
-
-            proMaxEnabled = true
-        else
-            if proMaxConn then
-                proMaxConn:Disconnect()
-                proMaxConn = nil
-            end
-            clearEffects()
-            restoreLighting()
-            proMaxEnabled = false
         end
+        createEffect("ColorCorrectionEffect", {Contrast = 0.18, Brightness = 0.05, Saturation = 0.3, TintColor = Color3.fromRGB(255, 242, 230)})
+        createEffect("BloomEffect", {Intensity = 0.25, Size = 48, Threshold = 0.85})
+        createEffect("SunRaysEffect", {Intensity = 0.25, Spread = 1.0})
+        createEffect("Atmosphere", {Density = 0.4, Offset = 0.25, Color = Color3.fromRGB(220, 220, 255), Decay = Color3.fromRGB(20, 25, 45), Glare = 0.15, Haze = 0.25})
+        local sky = Instance.new("Sky")
+        sky.Parent = Lighting
+        sky.SkyboxBk = "rbxassetid://6444337006"
+        sky.SkyboxDn = "rbxassetid://6444336728"
+        sky.SkyboxFt = "rbxassetid://6444337006"
+        sky.SkyboxLf = "rbxassetid://6444337006"
+        sky.SkyboxRt = "rbxassetid://6444337006"
+        sky.SkyboxUp = "rbxassetid://6444336728"
+        sky.StarCount = 3000
+        table.insert(createdEffects, sky)
+        Lighting.GlobalShadows = true
+        Lighting.ShadowSoftness = 0.05
+        Lighting.Brightness = 2.8
+        Lighting.ExposureCompensation = 0.7
+        Lighting.FogColor = Color3.fromRGB(140, 158, 178)
+        Lighting.FogEnd = 3000
+        Terrain.WaterReflectance = 0.35
+        Terrain.WaterTransparency = 0.88
+        Terrain.WaterWaveSize = 0.15
+        Terrain.WaterWaveSpeed = 25
+        Terrain.WaterColor = Color3.fromRGB(72, 141, 202)
+    else
+        clearEffects()
+        restoreLighting()
     end
-})
-
-local duskLightingEnabled = false
-local duskConn = nil
-
-lightSection:Toggle({
-    Title = "固定黄昏光影",
-    Value = false,
-    Callback = function(val)
-        if val then
-            saveLighting()
-            clearEffects()
-
-            for _, child in ipairs(Lighting:GetChildren()) do
-                if child:IsA("PostEffect") or child:IsA("Atmosphere") then
-                    child:Destroy()
-                end
+end})
+lightSection:Toggle({Title = "固定黄昏光影", Value = false, Callback = function(val)
+    if val then
+        saveLighting()
+        clearEffects()
+        for _, child in ipairs(Lighting:GetChildren()) do
+            if child:IsA("PostEffect") or child:IsA("Atmosphere") then
+                child:Destroy()
             end
-
-            Lighting.GlobalShadows = true
-            Lighting.ShadowSoftness = 0.06
-            Lighting.Brightness = 3.5
-            Lighting.ExposureCompensation = 0.5
-            Lighting.EnvironmentSpecularScale = 1.2
-            Lighting.EnvironmentDiffuseScale = 0.5
-            Lighting.FogColor = Color3.fromRGB(130, 140, 160)
-            Lighting.FogEnd = 8000
-            Lighting.FogStart = 50
-            Lighting.OutdoorAmbient = Color3.fromRGB(120, 130, 150)
-            Lighting.GeographicLatitude = 40.0
-            Lighting.ClockTime = 16.5
-
-            local colorCorrection = createEffect("ColorCorrectionEffect", {
-                Contrast = 0.15,
-                Brightness = 0.04,
-                Saturation = 0.25,
-                TintColor = Color3.fromRGB(255, 245, 235)
-            })
-
-            local bloom = createEffect("BloomEffect", {
-                Intensity = 0.08,
-                Size = 40,
-                Threshold = 0.95
-            })
-
-            local sunRays = createEffect("SunRaysEffect", {
-                Intensity = 0.22,
-                Spread = 0.8
-            })
-
-            local dof = createEffect("DepthOfFieldEffect", {
-                FarIntensity = 0.1,
-                FocusDistance = 35,
-                InFocusRadius = 22,
-                NearIntensity = 0.3
-            })
-
-            local atmosphere = createEffect("Atmosphere", {
-                Density = 0.25,
-                Offset = 0.25,
-                Color = Color3.fromRGB(180, 190, 210),
-                Decay = Color3.fromRGB(35, 40, 50),
-                Haze = 0.12
-            })
-
-            Terrain.WaterReflectance = 0.2
-            Terrain.WaterTransparency = 0.93
-            Terrain.WaterWaveSize = 0.12
-            Terrain.WaterWaveSpeed = 16
-            Terrain.WaterColor = Color3.fromRGB(75, 135, 200)
-
-            local sky = Lighting:FindFirstChildOfClass("Sky") or Instance.new("Sky")
-            sky.Parent = Lighting
-            sky.CelestialBodiesShown = true
-            sky.StarCount = 3500
-            sky.SkyboxBk = "rbxassetid://2711140172"
-            sky.SkyboxDn = "rbxassetid://2711140372"
-            sky.SkyboxFt = "rbxassetid://2711140592"
-            sky.SkyboxLf = "rbxassetid://2711140792"
-            sky.SkyboxRt = "rbxassetid://2711141042"
-            sky.SkyboxUp = "rbxassetid://2711141282"
-            table.insert(createdEffects, sky)
-
-            Workspace.CurrentCamera.FieldOfView = 70
-
-            if duskConn then duskConn:Disconnect() end
-            duskConn = RunService.RenderStepped:Connect(function()
-                local time = os.time()
-                local subtleChange = math.sin(time * 0.1) * 0.03
-                Lighting.ClockTime = (time / 3600) % 24
-                local targetBrightness = 3.2 + math.sin(Lighting.ClockTime * math.pi / 12) * 0.3
-                Lighting.Brightness = math.clamp(targetBrightness, 2.8, 3.5)
-                bloom.Intensity = 0.08 + subtleChange * 0.02
-            end)
-            table.insert(runningConnections, duskConn)
-
-            duskLightingEnabled = true
-        else
-            if duskConn then
-                duskConn:Disconnect()
-                duskConn = nil
-            end
-            clearEffects()
-            restoreLighting()
-            duskLightingEnabled = false
         end
+        Lighting.GlobalShadows = true
+        Lighting.ShadowSoftness = 0.06
+        Lighting.Brightness = 3.5
+        Lighting.ExposureCompensation = 0.5
+        Lighting.EnvironmentSpecularScale = 1.2
+        Lighting.EnvironmentDiffuseScale = 0.5
+        Lighting.FogColor = Color3.fromRGB(130, 140, 160)
+        Lighting.FogEnd = 8000
+        Lighting.FogStart = 50
+        Lighting.OutdoorAmbient = Color3.fromRGB(120, 130, 150)
+        Lighting.GeographicLatitude = 40.0
+        Lighting.ClockTime = 16.5
+        createEffect("ColorCorrectionEffect", {Contrast = 0.15, Brightness = 0.04, Saturation = 0.25, TintColor = Color3.fromRGB(255, 245, 235)})
+        createEffect("BloomEffect", {Intensity = 0.08, Size = 40, Threshold = 0.95})
+        createEffect("SunRaysEffect", {Intensity = 0.22, Spread = 0.8})
+        createEffect("DepthOfFieldEffect", {FarIntensity = 0.1, FocusDistance = 35, InFocusRadius = 22, NearIntensity = 0.3})
+        createEffect("Atmosphere", {Density = 0.25, Offset = 0.25, Color = Color3.fromRGB(180, 190, 210), Decay = Color3.fromRGB(35, 40, 50), Haze = 0.12})
+        Terrain.WaterReflectance = 0.2
+        Terrain.WaterTransparency = 0.93
+        Terrain.WaterWaveSize = 0.12
+        Terrain.WaterWaveSpeed = 16
+        Terrain.WaterColor = Color3.fromRGB(75, 135, 200)
+        local sky = Lighting:FindFirstChildOfClass("Sky") or Instance.new("Sky")
+        sky.Parent = Lighting
+        sky.CelestialBodiesShown = true
+        sky.StarCount = 3500
+        sky.SkyboxBk = "rbxassetid://2711140172"
+        sky.SkyboxDn = "rbxassetid://2711140372"
+        sky.SkyboxFt = "rbxassetid://2711140592"
+        sky.SkyboxLf = "rbxassetid://2711140792"
+        sky.SkyboxRt = "rbxassetid://2711141042"
+        sky.SkyboxUp = "rbxassetid://2711141282"
+        table.insert(createdEffects, sky)
+        Workspace.CurrentCamera.FieldOfView = 70
+    else
+        clearEffects()
+        restoreLighting()
     end
-})
+end})
 
 local generalTab = Window:Tab({Title = "通用", Icon = "settings"})
-
 local function makeDraggable(guiObj, dragHandle)
     local dragging = false
     local dragInput, dragStart, startPos
-
     dragHandle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
@@ -949,13 +467,11 @@ local function makeDraggable(guiObj, dragHandle)
             end)
         end
     end)
-
     dragHandle.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
-
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
@@ -968,1872 +484,832 @@ local function makeDraggable(guiObj, dragHandle)
         end
     end)
 end
-
 local suggestSection = generalTab:Section({Title = "建议开"})
-
-local antiAFKEnabled = false
-suggestSection:Toggle({
-    Title = "防踢",
-    Value = false,
-    Callback = function(val)
-        antiAFKEnabled = val
-        if val then
-            local con = LocalPlayer.Idled:Connect(function()
-                VirtualUser:CaptureController()
-                VirtualUser:ClickButton2(Vector2.new())
-            end)
-            _G.AntiAFKCon = con
-        else
-            if _G.AntiAFKCon then
-                _G.AntiAFKCon:Disconnect()
-                _G.AntiAFKCon = nil
-            end
+suggestSection:Toggle({Title = "防踢", Value = false, Callback = function(val)
+    if val then
+        local con = LocalPlayer.Idled:Connect(function()
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new())
+        end)
+        _G.AntiAFKCon = con
+    else
+        if _G.AntiAFKCon then
+            _G.AntiAFKCon:Disconnect()
+            _G.AntiAFKCon = nil
         end
-    end,
-})
-
-local waterCollisionEnabled = false
-local originalWaterSize = nil
-local originalWaterCollide = nil
-local waterFollowConnection = nil
-
-suggestSection:Toggle({
-    Title = "水上行走",
-    Value = false,
-    Callback = function(val)
-        local water = game.Workspace:FindFirstChild("WaterLevel")
-        if not water then
-            return
-        end
-
-        if val then
-            originalWaterSize = water.Size
-            originalWaterCollide = water.CanCollide
-
-            water.CanCollide = true
-            water.Size = Vector3.new(1000, 1, 1000)
-            waterCollisionEnabled = true
-
-            if waterFollowConnection then waterFollowConnection:Disconnect() end
-            waterFollowConnection = RunService.Heartbeat:Connect(function()
-                local char = LocalPlayer.Character
-                local root = char and char:FindFirstChild("HumanoidRootPart")
-                if root and water then
-                    water.Position = Vector3.new(root.Position.X, water.Position.Y, root.Position.Z)
-                end
-            end)
-
-        else
-            if waterFollowConnection then
-                waterFollowConnection:Disconnect()
-                waterFollowConnection = nil
-            end
-
-            if originalWaterSize then
-                water.Size = originalWaterSize
-            else
-                water.Size = Vector3.new(10, 1, 10)
-            end
-            if originalWaterCollide ~= nil then
-                water.CanCollide = originalWaterCollide
-            else
-                water.CanCollide = false
-            end
-            waterCollisionEnabled = false
-
-        end
-    end,
-})
-
-local antiPushConn = nil
-suggestSection:Toggle({
-    Title = "防甩飞",
-    Value = false,
-    Callback = function(val)
-        if val then
-            if antiPushConn then antiPushConn:Disconnect() end
-            antiPushConn = RunService.Stepped:Connect(function()
-                local char = LocalPlayer.Character
-                if char then
-                    local root = char:FindFirstChild("HumanoidRootPart")
-                    if root then
-                        root.CanCollide = false
-                    end
-                end
-            end)
-        else
-            if antiPushConn then
-                antiPushConn:Disconnect()
-                antiPushConn = nil
-            end
+    end
+end})
+suggestSection:Toggle({Title = "水上行走", Value = false, Callback = function(val)
+    local water = game.Workspace:FindFirstChild("WaterLevel")
+    if not water then return end
+    if val then
+        water.CanCollide = true
+        water.Size = Vector3.new(1000, 1, 1000)
+    else
+        water.Size = Vector3.new(10, 1, 10)
+        water.CanCollide = false
+    end
+end})
+suggestSection:Toggle({Title = "防甩飞", Value = false, Callback = function(val)
+    if val then
+        _G.AntiPushCon = RunService.Stepped:Connect(function()
             local char = LocalPlayer.Character
             if char then
                 local root = char:FindFirstChild("HumanoidRootPart")
-                if root then
-                    root.CanCollide = true
-                end
+                if root then root.CanCollide = false end
             end
+        end)
+    else
+        if _G.AntiPushCon then
+            _G.AntiPushCon:Disconnect()
+            _G.AntiPushCon = nil
         end
-    end,
-})
-
-local function createNoFall()
-    local con = nil
-    local charCon = nil
-    local z = Vector3.zero
-
-    local function bind(c)
-        if not c then return end
-        local r = c:WaitForChild("HumanoidRootPart", 5)
-        if r then
-            if con then con:Disconnect() con = nil end
-            con = RunService.Heartbeat:Connect(function()
-                if not r.Parent then
-                    if con then con:Disconnect() con = nil end
-                    return
-                end
-                local v = r.AssemblyLinearVelocity
-                r.AssemblyLinearVelocity = z
-                RunService.RenderStepped:Wait()
-                r.AssemblyLinearVelocity = v
-            end)
+        local char = LocalPlayer.Character
+        if char then
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if root then root.CanCollide = true end
         end
     end
-
-    local function start()
-        if charCon then charCon:Disconnect() end
-        bind(LocalPlayer.Character)
-        charCon = LocalPlayer.CharacterAdded:Connect(bind)
+end})
+suggestSection:Toggle({Title = "防摔", Value = false, Callback = function(val)
+    local api = _G.NoFallAPI
+    if not api then
+        local con, charCon, z = nil, nil, Vector3.zero
+        local function bind(c)
+            if not c then return end
+            local r = c:WaitForChild("HumanoidRootPart", 5)
+            if r then
+                if con then con:Disconnect() con = nil end
+                con = RunService.Heartbeat:Connect(function()
+                    if not r.Parent then
+                        if con then con:Disconnect() con = nil end
+                        return
+                    end
+                    local v = r.AssemblyLinearVelocity
+                    r.AssemblyLinearVelocity = z
+                    RunService.RenderStepped:Wait()
+                    r.AssemblyLinearVelocity = v
+                end)
+            end
+        end
+        api = {start = function()
+            if charCon then charCon:Disconnect() end
+            bind(LocalPlayer.Character)
+            charCon = LocalPlayer.CharacterAdded:Connect(bind)
+        end, stop = function()
+            if con then con:Disconnect() end
+            if charCon then charCon:Disconnect() charCon = nil end
+        end}
+        _G.NoFallAPI = api
     end
-
-    local function stop()
-        if con then con:Disconnect() end
-        if charCon then charCon:Disconnect() charCon = nil end
+    if val then api.start() else api.stop() end
+end})
+suggestSection:Toggle({Title = "无限跳", Value = false, Callback = function(val)
+    if val then
+        local conn = UserInputService.JumpRequest:Connect(function()
+            if LocalPlayer and LocalPlayer.Character then
+                local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+            end
+        end)
+        _G.InfJumpCon = conn
+    else
+        if _G.InfJumpCon then
+            _G.InfJumpCon:Disconnect()
+            _G.InfJumpCon = nil
+        end
     end
-
-    return {start = start, stop = stop}
-end
-
-suggestSection:Toggle({
-    Title = "防摔",
-    Value = false,
-    Callback = function(val)
-        local api = _G.NoFallAPI
-        if not api then
-            api = createNoFall()
-            _G.NoFallAPI = api
-        end
-
-        if val then
-            api.start()
-        else
-            api.stop()
-        end
-    end,
-})
-
-suggestSection:Toggle({
-    Title = "无限跳",
-    Value = false,
-    Callback = function(val)
-        if val then
-            local conn = UserInputService.JumpRequest:Connect(function()
-                if LocalPlayer and LocalPlayer.Character then
-                    local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                    if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
-                end
+end})
+suggestSection:Toggle({Title = "去雾", Value = false, Callback = function(enable)
+    if enable then
+        Lighting.FogStart = 0
+        Lighting.FogEnd = math.huge
+        Lighting.FogColor = Color3.fromRGB(200, 200, 220)
+    else
+        Lighting.FogStart = 0
+        Lighting.FogEnd = 10000
+        Lighting.FogColor = Color3.fromRGB(127, 127, 127)
+    end
+end})
+suggestSection:Toggle({Title = "点击传送工具", Value = false, Callback = function(val)
+    if val then
+        pcall(function()
+            local Mouse = LocalPlayer:GetMouse()
+            local Camera = workspace.CurrentCamera
+            local Tool = Instance.new("Tool")
+            Tool.Name = "点击传送"
+            Tool.RequiresHandle = false
+            Tool.Activated:Connect(function()
+                local Character = LocalPlayer.Character
+                if not Character then return end
+                local HRP = Character:FindFirstChild("HumanoidRootPart")
+                if not HRP then return end
+                local params = RaycastParams.new()
+                params.FilterDescendantsInstances = {Character}
+                params.FilterType = Enum.RaycastFilterType.Blacklist
+                local unitRay = Camera:ScreenPointToRay(Mouse.X, Mouse.Y)
+                local result = workspace:Raycast(unitRay.Origin, unitRay.Direction * 100000, params)
+                if not result then return end
+                local hitPos = result.Position + Vector3.new(0, 3, 0)
+                HRP.CFrame = CFrame.new(hitPos)
             end)
-            _G.InfJumpCon = conn
-        else
-            if _G.InfJumpCon then
-                _G.InfJumpCon:Disconnect()
-                _G.InfJumpCon = nil
-            end
+            _G.TeleportTool = Tool
+            Tool.Parent = LocalPlayer:WaitForChild("Backpack")
+        end)
+    else
+        if _G.TeleportTool then
+            _G.TeleportTool:Destroy()
+            _G.TeleportTool = nil
         end
-    end,
-})
-
-local originalLightingFog = {}
-local originalAtmosphere = {}
-suggestSection:Toggle({
-    Title = "去雾",
-    Value = false,
-    Callback = function(enable)
-        if enable then
-            originalLightingFog.FogStart = Lighting.FogStart
-            originalLightingFog.FogEnd = Lighting.FogEnd
-            originalLightingFog.FogColor = Lighting.FogColor
-
-            Lighting.FogStart = 0
-            Lighting.FogEnd = math.huge
-            Lighting.FogColor = Color3.fromRGB(200, 200, 220)
-
-            for _, obj in pairs(Lighting:GetChildren()) do
-                if obj:IsA("Atmosphere") then
-                    if not originalAtmosphere[obj] then
-                        originalAtmosphere[obj] = {
-                            Density = obj.Density,
-                            Offset = obj.Offset,
-                            Glare = obj.Glare,
-                            Haze = obj.Haze
-                        }
-                    end
-                    pcall(function()
-                        obj.Density = 0
-                        obj.Offset = 0
-                        obj.Glare = 0
-                        obj.Haze = 0
-                    end)
-                end
-            end
-        else
-            if originalLightingFog.FogStart then Lighting.FogStart = originalLightingFog.FogStart end
-            if originalLightingFog.FogEnd then Lighting.FogEnd = originalLightingFog.FogEnd end
-            if originalLightingFog.FogColor then Lighting.FogColor = originalLightingFog.FogColor end
-
-            for obj, props in pairs(originalAtmosphere) do
-                if obj and obj.Parent then
-                    pcall(function()
-                        obj.Density = props.Density
-                        obj.Offset = props.Offset
-                        obj.Glare = props.Glare
-                        obj.Haze = props.Haze
-                    end)
-                end
-            end
-            originalAtmosphere = {}
-        end
-    end,
-})
-
-local tpTool = nil
-suggestSection:Toggle({
-    Title = "点击传送工具",
-    Value = false,
-    Callback = function(val)
-        if val then
-            pcall(function()
-                local Mouse = LocalPlayer:GetMouse()
-                local Camera = workspace.CurrentCamera
-
-                local Tool = Instance.new("Tool")
-                Tool.Name = "点击传送"
-                Tool.RequiresHandle = false
-
-                Tool.Activated:Connect(function()
-                    local Character = LocalPlayer.Character
-                    if not Character then return end
-
-                    local HRP = Character:FindFirstChild("HumanoidRootPart")
-                    if not HRP then return end
-
-                    local params = RaycastParams.new()
-                    params.FilterDescendantsInstances = {Character}
-                    params.FilterType = Enum.RaycastFilterType.Blacklist
-
-                    local unitRay = Camera:ScreenPointToRay(Mouse.X, Mouse.Y)
-                    local rayOrigin = unitRay.Origin
-                    local rayDirection = unitRay.Direction * 100000
-
-                    local result = workspace:Raycast(rayOrigin, rayDirection, params)
-
-                    if not result then return end
-
-                    local hitPos = result.Position + Vector3.new(0, 3, 0)
-                    HRP.CFrame = CFrame.new(hitPos)
-                end)
-
-                tpTool = Tool
-                Tool.Parent = LocalPlayer:WaitForChild("Backpack")
-            end)
-        else
-            if tpTool then
-                tpTool:Destroy()
-                tpTool = nil
-            end
-            if LocalPlayer.Character then
-                local heldTool = LocalPlayer.Character:FindFirstChild("点击传送")
-                if heldTool then heldTool:Destroy() end
-            end
-        end
-    end,
-})
-
-suggestSection:Toggle({
-    Title = "一键清屏",
-    Value = false,
-    Callback = function(val)
-        if val then
-            pcall(function()
-                local CoreGui = game:GetService("CoreGui")
-                local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
-                if PlayerGui:FindFirstChild("FullUIToggle") then
-                    PlayerGui.FullUIToggle:Destroy()
-                end
-
-                local Hidden = false
-                local Stored = {}
-
-                local ScreenGui = Instance.new("ScreenGui")
-                ScreenGui.Name = "FullUIToggle"
-                ScreenGui.ResetOnSpawn = false
-                ScreenGui.Parent = PlayerGui
-
-                local Button = Instance.new("TextButton")
-                Button.Size = UDim2.new(0, 120, 0, 30)
-                Button.Position = UDim2.new(1, -130, 0, 10)
-                Button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-                Button.TextColor3 = Color3.new(1, 1, 1)
-                Button.Text = "隐藏"
-                Button.Parent = ScreenGui
-
-                Instance.new("UICorner", Button)
-
-                local dragging = false
-                local dragInput, startPos, startFramePos
-
-                Button.InputBegan:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 
-                    or input.UserInputType == Enum.UserInputType.Touch then
-                        dragging = true
-                        startPos = input.Position
-                        startFramePos = Button.Position
-
-                        input.Changed:Connect(function()
-                            if input.UserInputState == Enum.InputUserState.End then
-                                dragging = false
-                            end
-                        end)
-                    end
-                end)
-
-                Button.InputChanged:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseMovement 
-                    or input.UserInputType == Enum.UserInputType.Touch then
-                        dragInput = input
-                    end
-                end)
-
-                UserInputService.InputChanged:Connect(function(input)
-                    if input == dragInput and dragging then
-                        local delta = input.Position - dragStart
-                        Button.Position = UDim2.new(
-                            startFramePos.X.Scale,
-                            startFramePos.X.Offset + delta.X,
-                            startFramePos.Y.Scale,
-                            startFramePos.Y.Offset + delta.Y
-                        )
-                    end
-                end)
-
-                local function IsUI(obj)
-                    return obj:IsA("GuiObject")
-                end
-
-                local function ShouldSkip(obj)
-                    return obj:IsDescendantOf(ScreenGui)
-                end
-
-                local function Process(container, hide)
-                    for _, obj in ipairs(container:GetDescendants()) do
-                        if IsUI(obj) and not ShouldSkip(obj) then
-                            if hide then
-                                if not Stored[obj] then
-                                    Stored[obj] = obj.Visible
-                                end
-                                obj.Visible = false
-                            else
-                                if Stored[obj] ~= nil then
-                                    obj.Visible = Stored[obj]
-                                end
-                            end
-                        end
-                    end
-                end
-
-                local function ToggleUI(state)
-                    if state then
-                        Stored = {}
-                        Process(PlayerGui, true)
-                        pcall(function() Process(CoreGui, true) end)
-                    else
-                        Process(PlayerGui, false)
-                        pcall(function() Process(CoreGui, false) end)
-                        Stored = {}
-                    end
-                end
-
-                Button.MouseButton1Click:Connect(function()
-                    Hidden = not Hidden
-                    ToggleUI(Hidden)
-                    Button.Text = Hidden and "显示" or "隐藏"
-                end)
-
-                local function Hook(container)
-                    container.DescendantAdded:Connect(function(obj)
-                        if Hidden and obj:IsA("GuiObject") and not ShouldSkip(obj) then
-                            Stored[obj] = obj.Visible
-                            obj.Visible = false
-                        end
-                    end)
-                end
-
-                Hook(PlayerGui)
-                pcall(function() Hook(CoreGui) end)
-            end)
-        else
-            local PlayerGui = LocalPlayer:FindFirstChild("PlayerGui")
-            if PlayerGui and PlayerGui:FindFirstChild("FullUIToggle") then
+    end
+end})
+suggestSection:Toggle({Title = "一键清屏", Value = false, Callback = function(val)
+    if val then
+        pcall(function()
+            local CoreGui = game:GetService("CoreGui")
+            local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+            if PlayerGui:FindFirstChild("FullUIToggle") then
                 PlayerGui.FullUIToggle:Destroy()
             end
-        end
-    end,
-})
-
-suggestSection:Toggle({
-    Title = "岩石实体化",
-    Value = false,
-    Callback = function(val)
-        local count = 0
-        for _, v in pairs(game.Workspace:GetDescendants()) do
-            if v.Name == "LowerRocks" and v:IsA("BasePart") then
-                v.CanCollide = val
-                count = count + 1
-            end
-        end
-    end,
-})
-
-local blockGui = nil
-local autoPlace = false
-local autoPlacing = false
-
-local function placeOneBlock()
-    local char = LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if not char or not root then return end
-    local pos = root.Position + Vector3.new(0, -3, 0)
-    local block = Instance.new("Part")
-    block.Name = "LocalBlock"
-    block.Size = Vector3.new(6, 1, 6)
-    block.Position = pos
-    block.Anchored = true
-    block.CanCollide = true
-    block.BrickColor = BrickColor.new("White")
-    block.Parent = workspace
-end
-
-suggestSection:Toggle({
-    Title = "放置方块",
-    Value = false,
-    Callback = function(val)
-        if val then
-            if blockGui then blockGui:Destroy() end
-            local sg = Instance.new("ScreenGui")
-            sg.Name = "BlockPlaceGui"
-            sg.Parent = LocalPlayer.PlayerGui
-            sg.ResetOnSpawn = false
-            sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-            blockGui = sg
-
-            local mainFrame = Instance.new("Frame")
-            mainFrame.Parent = sg
-            mainFrame.Size = UDim2.new(0, 160, 0, 100)
-            mainFrame.Position = UDim2.new(0.1, 0, 0.18, 0)
-            mainFrame.BackgroundTransparency = 1
-            mainFrame.ZIndex = 9999
-
-            local btnClear = Instance.new("TextButton")
-            btnClear.Parent = mainFrame
-            btnClear.Size = UDim2.new(0, 50, 0, 50)
-            btnClear.Position = UDim2.new(0, 0, 0, 0)
-            btnClear.BackgroundColor3 = Color3.new(1, 0, 0)
-            btnClear.TextColor3 = Color3.new(1, 1, 1)
-            btnClear.Text = "清除"
-            btnClear.Font = Enum.Font.GothamBold
-            btnClear.TextSize = 14
-            btnClear.AutoButtonColor = false
-            btnClear.ZIndex = 10000
-            local corner1 = Instance.new("UICorner")
-            corner1.CornerRadius = UDim.new(0, 12)
-            corner1.Parent = btnClear
-
-            btnClear.MouseButton1Click:Connect(function()
-                for _, v in pairs(workspace:GetChildren()) do
-                    if v.Name == "LocalBlock" then
-                        v:Destroy()
-                    end
-                end
-            end)
-
-            local closeBtn = Instance.new("TextButton")
-            closeBtn.Parent = mainFrame
-            closeBtn.Size = UDim2.new(0, 50, 0, 50)
-            closeBtn.Position = UDim2.new(0, 55, 0, 0)
-            closeBtn.BackgroundColor3 = Color3.new(0, 0, 0)
-            closeBtn.Text = "X"
-            closeBtn.TextColor3 = Color3.new(1, 1, 1)
-            closeBtn.TextSize = 18
-            closeBtn.ZIndex = 10002
-            local closeCorner = Instance.new("UICorner")
-            closeCorner.CornerRadius = UDim.new(0, 8)
-            closeCorner.Parent = closeBtn
-
-            closeBtn.MouseButton1Click:Connect(function()
-                autoPlace = false
-                autoPlacing = false
-                if blockGui then blockGui:Destroy() blockGui = nil end
-            end)
-
-            local autoBtn = Instance.new("TextButton")
-            autoBtn.Parent = mainFrame
-            autoBtn.Size = UDim2.new(0, 160, 0, 40)
-            autoBtn.Position = UDim2.new(0, 0, 0, 55)
-            autoBtn.BackgroundColor3 = Color3.new(0, 0, 0)
-            autoBtn.Text = "自动放置"
-            autoBtn.TextColor3 = Color3.new(1, 1, 1)
-            autoBtn.Font = Enum.Font.GothamBold
-            autoBtn.TextSize = 14
-            autoBtn.AutoButtonColor = false
-            autoBtn.ZIndex = 10000
-            local autoCorner = Instance.new("UICorner")
-            autoCorner.CornerRadius = UDim.new(0, 12)
-            autoCorner.Parent = autoBtn
-
-            autoBtn.MouseButton1Click:Connect(function()
-                autoPlace = not autoPlace
-                if autoPlace then
-                    autoBtn.BackgroundColor3 = Color3.new(0.2, 0.8, 0.2)
-                    if not autoPlacing then
-                        autoPlacing = true
-                        task.spawn(function()
-                            while autoPlace and task.wait(0.1) do
-                                placeOneBlock()
+            local Hidden = false
+            local Stored = {}
+            local ScreenGui = Instance.new("ScreenGui")
+            ScreenGui.Name = "FullUIToggle"
+            ScreenGui.ResetOnSpawn = false
+            ScreenGui.Parent = PlayerGui
+            local Button = Instance.new("TextButton")
+            Button.Size = UDim2.new(0, 120, 0, 30)
+            Button.Position = UDim2.new(1, -130, 0, 10)
+            Button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+            Button.TextColor3 = Color3.new(1, 1, 1)
+            Button.Text = "隐藏"
+            Button.Parent = ScreenGui
+            Instance.new("UICorner", Button)
+            local function IsUI(obj) return obj:IsA("GuiObject") end
+            local function ShouldSkip(obj) return obj:IsDescendantOf(ScreenGui) end
+            local function Process(container, hide)
+                for _, obj in ipairs(container:GetDescendants()) do
+                    if IsUI(obj) and not ShouldSkip(obj) then
+                        if hide then
+                            if not Stored[obj] then
+                                Stored[obj] = obj.Visible
                             end
-                            autoPlacing = false
-                        end)
+                            obj.Visible = false
+                        else
+                            if Stored[obj] ~= nil then
+                                obj.Visible = Stored[obj]
+                            end
+                        end
                     end
+                end
+            end
+            local function ToggleUI(state)
+                if state then
+                    Stored = {}
+                    Process(PlayerGui, true)
+                    pcall(function() Process(CoreGui, true) end)
                 else
-                    autoBtn.BackgroundColor3 = Color3.new(0, 0, 0)
+                    Process(PlayerGui, false)
+                    pcall(function() Process(CoreGui, false) end)
+                    Stored = {}
                 end
+            end
+            Button.MouseButton1Click:Connect(function()
+                Hidden = not Hidden
+                ToggleUI(Hidden)
+                Button.Text = Hidden and "显示" or "隐藏"
             end)
-
-            makeDraggable(mainFrame, mainFrame)
-        else
-            autoPlace = false
-            autoPlacing = false
-            if blockGui then
-                blockGui:Destroy()
-                blockGui = nil
+            local function Hook(container)
+                container.DescendantAdded:Connect(function(obj)
+                    if Hidden and obj:IsA("GuiObject") and not ShouldSkip(obj) then
+                        Stored[obj] = obj.Visible
+                        obj.Visible = false
+                    end
+                end)
             end
+            Hook(PlayerGui)
+            pcall(function() Hook(CoreGui) end)
+        end)
+    else
+        local PlayerGui = LocalPlayer:FindFirstChild("PlayerGui")
+        if PlayerGui and PlayerGui:FindFirstChild("FullUIToggle") then
+            PlayerGui.FullUIToggle:Destroy()
         end
-    end,
-})
-
-local disasterConn = nil
-suggestSection:Toggle({
-    Title = "移除灾害视角",
-    Value = false,
-    Callback = function(val)
-        if val then
-            local function removeDisasterGuis()
-                local pgui = LocalPlayer:FindFirstChild("PlayerGui")
-                if not pgui then return end
-                local sand = pgui:FindFirstChild("SandStormGui")
-                if sand then sand:Destroy() end
-                local blizzard = pgui:FindFirstChild("BlizzardGui")
-                if blizzard then blizzard:Destroy() end
-            end
-
-            removeDisasterGuis()
-
-            local pgui = LocalPlayer:WaitForChild("PlayerGui")
-            if disasterConn then disasterConn:Disconnect() end
-            disasterConn = pgui.ChildAdded:Connect(function(child)
-                if child.Name == "SandStormGui" or child.Name == "BlizzardGui" then
-                    task.wait()
-                    child:Destroy()
+    end
+end})
+suggestSection:Toggle({Title = "岩石实体化", Value = false, Callback = function(val)
+    for _, v in pairs(game.Workspace:GetDescendants()) do
+        if v.Name == "LowerRocks" and v:IsA("BasePart") then
+            v.CanCollide = val
+        end
+    end
+end})
+suggestSection:Toggle({Title = "放置方块", Value = false, Callback = function(val)
+    if val then
+        if _G.BlockGui then _G.BlockGui:Destroy() end
+        local sg = Instance.new("ScreenGui")
+        sg.Name = "BlockPlaceGui"
+        sg.Parent = LocalPlayer.PlayerGui
+        sg.ResetOnSpawn = false
+        _G.BlockGui = sg
+        local mainFrame = Instance.new("Frame")
+        mainFrame.Parent = sg
+        mainFrame.Size = UDim2.new(0, 160, 0, 100)
+        mainFrame.Position = UDim2.new(0.1, 0, 0.18, 0)
+        mainFrame.BackgroundTransparency = 1
+        mainFrame.ZIndex = 9999
+        local btnClear = Instance.new("TextButton")
+        btnClear.Parent = mainFrame
+        btnClear.Size = UDim2.new(0, 50, 0, 50)
+        btnClear.Position = UDim2.new(0, 0, 0, 0)
+        btnClear.BackgroundColor3 = Color3.new(1, 0, 0)
+        btnClear.TextColor3 = Color3.new(1, 1, 1)
+        btnClear.Text = "清除"
+        btnClear.Font = Enum.Font.GothamBold
+        btnClear.TextSize = 14
+        btnClear.AutoButtonColor = false
+        btnClear.ZIndex = 10000
+        Instance.new("UICorner", btnClear).CornerRadius = UDim.new(0, 12)
+        btnClear.MouseButton1Click:Connect(function()
+            for _, v in pairs(workspace:GetChildren()) do
+                if v.Name == "LocalBlock" then
+                    v:Destroy()
                 end
-            end)
-
-        else
-            if disasterConn then
-                disasterConn:Disconnect()
-                disasterConn = nil
             end
+        end)
+        local closeBtn = Instance.new("TextButton")
+        closeBtn.Parent = mainFrame
+        closeBtn.Size = UDim2.new(0, 50, 0, 50)
+        closeBtn.Position = UDim2.new(0, 55, 0, 0)
+        closeBtn.BackgroundColor3 = Color3.new(0, 0, 0)
+        closeBtn.Text = "X"
+        closeBtn.TextColor3 = Color3.new(1, 1, 1)
+        closeBtn.TextSize = 18
+        closeBtn.ZIndex = 10002
+        Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 8)
+        closeBtn.MouseButton1Click:Connect(function()
+            _G.AutoPlace = false
+            if _G.BlockGui then _G.BlockGui:Destroy() _G.BlockGui = nil end
+        end)
+        local autoBtn = Instance.new("TextButton")
+        autoBtn.Parent = mainFrame
+        autoBtn.Size = UDim2.new(0, 160, 0, 40)
+        autoBtn.Position = UDim2.new(0, 0, 0, 55)
+        autoBtn.BackgroundColor3 = Color3.new(0, 0, 0)
+        autoBtn.Text = "自动放置"
+        autoBtn.TextColor3 = Color3.new(1, 1, 1)
+        autoBtn.Font = Enum.Font.GothamBold
+        autoBtn.TextSize = 14
+        autoBtn.AutoButtonColor = false
+        autoBtn.ZIndex = 10000
+        Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 12)
+        local function placeOneBlock()
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if not char or not root then return end
+            local pos = root.Position + Vector3.new(0, -3, 0)
+            local block = Instance.new("Part")
+            block.Name = "LocalBlock"
+            block.Size = Vector3.new(6, 1, 6)
+            block.Position = pos
+            block.Anchored = true
+            block.CanCollide = true
+            block.BrickColor = BrickColor.new("White")
+            block.Parent = workspace
         end
-    end,
-})
-
+        autoBtn.MouseButton1Click:Connect(function()
+            _G.AutoPlace = not _G.AutoPlace
+            if _G.AutoPlace then
+                autoBtn.BackgroundColor3 = Color3.new(0.2, 0.8, 0.2)
+                task.spawn(function()
+                    while _G.AutoPlace do
+                        placeOneBlock()
+                        task.wait(0.1)
+                    end
+                end)
+            else
+                autoBtn.BackgroundColor3 = Color3.new(0, 0, 0)
+            end
+        end)
+        makeDraggable(mainFrame, mainFrame)
+    else
+        if _G.BlockGui then
+            _G.BlockGui:Destroy()
+            _G.BlockGui = nil
+        end
+        _G.AutoPlace = false
+    end
+end})
+suggestSection:Toggle({Title = "移除灾害视角", Value = false, Callback = function(val)
+    if val then
+        local function removeDisasterGuis()
+            local pgui = LocalPlayer:FindFirstChild("PlayerGui")
+            if not pgui then return end
+            local sand = pgui:FindFirstChild("SandStormGui")
+            if sand then sand:Destroy() end
+            local blizzard = pgui:FindFirstChild("BlizzardGui")
+            if blizzard then blizzard:Destroy() end
+        end
+        removeDisasterGuis()
+        local pgui = LocalPlayer:WaitForChild("PlayerGui")
+        _G.DisasterConn = pgui.ChildAdded:Connect(function(child)
+            if child.Name == "SandStormGui" or child.Name == "BlizzardGui" then
+                task.wait()
+                child:Destroy()
+            end
+        end)
+    else
+        if _G.DisasterConn then
+            _G.DisasterConn:Disconnect()
+            _G.DisasterConn = nil
+        end
+    end
+end})
 generalTab:Divider()
 local independentSection = generalTab:Section({Title = "独立功能"})
-
-local NoclipEnabled = false
-local noclipConnection = nil
-local lastGroundY = 0
-
-independentSection:Toggle({
-    Title = "穿墙",
-    Value = false,
-    Callback = function(val)
-        NoclipEnabled = val
-        if val then
-            if noclipConnection then noclipConnection:Disconnect() end
-            noclipConnection = RunService.Stepped:Connect(function()
-                if not NoclipEnabled then return end
-                local char = LocalPlayer.Character
-                if not char then return end
-                local root = char:FindFirstChild("HumanoidRootPart")
-                if not root then return end
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum and hum.FloorMaterial ~= Enum.Material.Air then
-                    lastGroundY = root.Position.Y
-                end
-                root.CanCollide = false
-                for _, v in ipairs(char:GetDescendants()) do
-                    if v:IsA("BasePart") and v.CanCollide then
-                        v.CanCollide = false
-                    end
-                end
-                if lastGroundY ~= 0 and root.Position.Y < lastGroundY - 5 then
-                    root.CFrame = CFrame.new(root.CFrame.X, lastGroundY, root.CFrame.Z)
-                    if hum then
-                        hum:ChangeState(Enum.HumanoidStateType.Landed)
-                    end
-                end
-            end)
-        else
-            if noclipConnection then
-                noclipConnection:Disconnect()
-                noclipConnection = nil
-            end
+independentSection:Toggle({Title = "穿墙", Value = false, Callback = function(val)
+    if val then
+        _G.NoclipCon = RunService.Stepped:Connect(function()
             local char = LocalPlayer.Character
-            if char then
-                local root = char:FindFirstChild("HumanoidRootPart")
-                if root then root.CanCollide = true end
-                for _, v in ipairs(char:GetDescendants()) do
-                    if v:IsA("BasePart") and not v.CanCollide then
-                        v.CanCollide = true
-                    end
+            if not char then return end
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+            root.CanCollide = false
+            for _, v in ipairs(char:GetDescendants()) do
+                if v:IsA("BasePart") and v.CanCollide then
+                    v.CanCollide = false
+                end
+            end
+        end)
+    else
+        if _G.NoclipCon then
+            _G.NoclipCon:Disconnect()
+            _G.NoclipCon = nil
+        end
+        local char = LocalPlayer.Character
+        if char then
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if root then root.CanCollide = true end
+            for _, v in ipairs(char:GetDescendants()) do
+                if v:IsA("BasePart") and not v.CanCollide then
+                    v.CanCollide = true
                 end
             end
         end
-    end,
-})
-
-local lockViewEnabled = false
-local lockViewConnection = nil
-
-independentSection:Toggle({
-    Title = "锁定视角",
-    Value = false,
-    Callback = function(val)
-        lockViewEnabled = val
-        
-        if val then
-            if lockViewConnection then 
-                RunService:UnbindFromRenderStep("LockView")
-                lockViewConnection = nil
-            end
-            
-            lockViewConnection = RunService:BindToRenderStep("LockView", Enum.RenderPriority.Camera.Value + 1, function()
-                if not lockViewEnabled then return end
-                local char = LocalPlayer.Character
-                if not char then return end
-                local root = char:FindFirstChild("HumanoidRootPart")
-                if not root then return end
-                local camDir = workspace.CurrentCamera.CFrame.LookVector
-                local flatDir = Vector3.new(camDir.X, 0, camDir.Z)
-                if flatDir.Magnitude > 0.01 then
-                    root.CFrame = CFrame.new(root.Position, root.Position + flatDir)
-                end
-            end)
-            
-        else
-            if lockViewConnection then
-                RunService:UnbindFromRenderStep("LockView")
-                lockViewConnection = nil
-            end
-        end
-    end,
-})
-
-local espEnabled = false
-local espConnections = {}
-local playerAddedConn = nil
-
-local function createESP(player)
-    if not espEnabled or player == LocalPlayer then return end
-    
-    if player.Character then
-        local existing = player.Character:FindFirstChild("NH_ESP")
-        if existing then existing:Destroy() end
-
-        local highlight = Instance.new("Highlight")
-        highlight.Name = "NH_ESP"
-        highlight.FillTransparency = 0.7
-        highlight.OutlineTransparency = 0
-        highlight.FillColor = Color3.fromRGB(255, 0, 0)
-        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-        highlight.Adornee = player.Character
-        highlight.Parent = player.Character
     end
-
-    if not espConnections[player] then
-        local connection = player.CharacterAdded:Connect(function(char)
-            task.wait(0.5)
-            if espEnabled and player ~= LocalPlayer then
-                local existing = char:FindFirstChild("NH_ESP")
-                if existing then existing:Destroy() end
-
+end})
+independentSection:Toggle({Title = "锁定视角", Value = false, Callback = function(val)
+    if val then
+        _G.LockViewCon = RunService:BindToRenderStep("LockView", Enum.RenderPriority.Camera.Value + 1, function()
+            local char = LocalPlayer.Character
+            if not char then return end
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+            local camDir = workspace.CurrentCamera.CFrame.LookVector
+            local flatDir = Vector3.new(camDir.X, 0, camDir.Z)
+            if flatDir.Magnitude > 0.01 then
+                root.CFrame = CFrame.new(root.Position, root.Position + flatDir)
+            end
+        end)
+    else
+        if _G.LockViewCon then
+            RunService:UnbindFromRenderStep("LockView")
+            _G.LockViewCon = nil
+        end
+    end
+end})
+independentSection:Toggle({Title = "透视玩家", Value = false, Callback = function(enabled)
+    _G.ESPEnabled = enabled
+    if enabled then
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
                 local highlight = Instance.new("Highlight")
                 highlight.Name = "NH_ESP"
                 highlight.FillTransparency = 0.7
                 highlight.OutlineTransparency = 0
                 highlight.FillColor = Color3.fromRGB(255, 0, 0)
                 highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                highlight.Adornee = char
-                highlight.Parent = char
+                highlight.Adornee = player.Character
+                highlight.Parent = player.Character
+            end
+        end
+        _G.ESPAddedCon = Players.PlayerAdded:Connect(function(player)
+            if _G.ESPEnabled and player ~= LocalPlayer then
+                player.CharacterAdded:Connect(function(char)
+                    task.wait(0.5)
+                    local highlight = Instance.new("Highlight")
+                    highlight.Name = "NH_ESP"
+                    highlight.FillTransparency = 0.7
+                    highlight.OutlineTransparency = 0
+                    highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    highlight.Adornee = char
+                    highlight.Parent = char
+                end)
             end
         end)
-        espConnections[player] = connection
+    else
+        if _G.ESPAddedCon then
+            _G.ESPAddedCon:Disconnect()
+            _G.ESPAddedCon = nil
+        end
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player.Character then
+                local hl = player.Character:FindFirstChild("NH_ESP")
+                if hl then hl:Destroy() end
+            end
+        end
     end
-end
-
-independentSection:Toggle({
-    Title = "透视玩家",
-    Value = false,
-    Callback = function(enabled)
-        espEnabled = enabled
-        if enabled then
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer then
-                    createESP(player)
+end})
+independentSection:Toggle({Title = "碰飞", Value = false, Callback = function(val)
+    if val then
+        _G.FlingRunning = true
+        _G.FlingThread = coroutine.create(function()
+            local movel = 0.1
+            while _G.FlingRunning do
+                RunService.Heartbeat:Wait()
+                local c = LocalPlayer.Character
+                local hrp = c and c:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local vel = hrp.Velocity
+                    hrp.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
+                    RunService.RenderStepped:Wait()
+                    hrp.Velocity = vel
+                    RunService.Stepped:Wait()
+                    hrp.Velocity = vel + Vector3.new(0, movel, 0)
+                    movel = -movel
                 end
             end
-
-            playerAddedConn = Players.PlayerAdded:Connect(function(player)
-                if espEnabled and player ~= LocalPlayer then
-                    createESP(player)
-                end
-            end)
-        else
-            if playerAddedConn then
-                playerAddedConn:Disconnect()
-                playerAddedConn = nil
-            end
-
-            for player, conn in pairs(espConnections) do
-                if conn then conn:Disconnect() end
-            end
-            espConnections = {}
-
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player.Character then
-                    local hl = player.Character:FindFirstChild("NH_ESP")
-                    if hl then hl:Destroy() end
-                end
-            end
+        end)
+        coroutine.resume(_G.FlingThread)
+    else
+        _G.FlingRunning = false
+        if _G.FlingThread then
+            coroutine.close(_G.FlingThread)
+            _G.FlingThread = nil
         end
-    end,
-})
-
-local flingEnabled = false
-local flingThread = nil
-local flingRunning = false
-
-independentSection:Toggle({
-    Title = "碰飞",
-    Value = false,
-    Callback = function(val)
-        flingEnabled = val
-        
-        if val then
-            if flingRunning then
-                flingRunning = false
-                if flingThread then
-                    coroutine.close(flingThread)
-                    flingThread = nil
-                end
-            end
-            
-            flingRunning = true
-            flingThread = coroutine.create(function()
-                local movel = 0.1
-                while flingRunning do
-                    RunService.Heartbeat:Wait()
-                    local c = LocalPlayer.Character
-                    local hrp = c and c:FindFirstChild("HumanoidRootPart")
-                    
-                    if hrp then
-                        local vel = hrp.Velocity
-                        hrp.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
-                        RunService.RenderStepped:Wait()
-                        hrp.Velocity = vel
-                        RunService.Stepped:Wait()
-                        hrp.Velocity = vel + Vector3.new(0, movel, 0)
-                        movel = -movel
-                    end
-                end
-            end)
-            coroutine.resume(flingThread)
-        else
-            flingRunning = false
-            if flingThread then
-                coroutine.close(flingThread)
-                flingThread = nil
-            end
-        end
-    end,
-})
-
-local xrayEnabled = false
-local xrayConnection = nil
-
-independentSection:Toggle({
-    Title = "透视",
-    Value = false,
-    Callback = function(val)
-        xrayEnabled = val
-        
-        if val then
-            if xrayConnection then xrayConnection:Disconnect() end
-            xrayConnection = RunService.Heartbeat:Connect(function()
-                if not xrayEnabled then return end
-                for _, v in pairs(workspace:GetDescendants()) do
-                    if v:IsA("BasePart") and not v.Parent:FindFirstChildWhichIsA("Humanoid") and
-                        not (v.Parent and v.Parent.Parent and v.Parent.Parent:FindFirstChildWhichIsA("Humanoid")) then
-                        v.LocalTransparencyModifier = 0.5
-                    end
-                end
-            end)
-        else
-            if xrayConnection then
-                xrayConnection:Disconnect()
-                xrayConnection = nil
-            end
+    end
+end})
+independentSection:Toggle({Title = "透视", Value = false, Callback = function(val)
+    if val then
+        _G.XrayCon = RunService.Heartbeat:Connect(function()
             for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    v.LocalTransparencyModifier = 0
+                if v:IsA("BasePart") and not v.Parent:FindFirstChildWhichIsA("Humanoid") and
+                    not (v.Parent and v.Parent.Parent and v.Parent.Parent:FindFirstChildWhichIsA("Humanoid")) then
+                    v.LocalTransparencyModifier = 0.5
                 end
             end
+        end)
+    else
+        if _G.XrayCon then
+            _G.XrayCon:Disconnect()
+            _G.XrayCon = nil
         end
-    end,
-})
-
-local flyEnabled = false
-local flyConnections = {}
-local flyBody = {}
-
-independentSection:Toggle({
-    Title = "飞行",
-    Value = false,
-    Callback = function(val)
-        flyEnabled = val
-        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        local root = char:FindFirstChild("HumanoidRootPart")
-
-        if val then
-            if hum then
-                for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
-                    hum:SetStateEnabled(state, false)
-                end
-                hum:ChangeState(Enum.HumanoidStateType.Swimming)
-            end
-            if char.Animate then char.Animate.Disabled = true end
-
-            local bg = Instance.new("BodyGyro", root)
-            bg.P = 9e4
-            bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
-            bg.CFrame = root.CFrame
-
-            local bv = Instance.new("BodyVelocity", root)
-            bv.Velocity = Vector3.new(0, 0, 0)
-            bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-
-            if hum then hum.PlatformStand = true end
-            flyBody = {bg = bg, bv = bv}
-
-            local conn = RunService.RenderStepped:Connect(function()
-                if not flyEnabled or not char or not hum or hum.Health <= 0 then
-                    if conn then conn:Disconnect() end
-                    return
-                end
-                if root then bg.CFrame = workspace.CurrentCamera.CoordinateFrame end
-            end)
-            table.insert(flyConnections, conn)
-
-            local conn2 = RunService.Heartbeat:Connect(function()
-                if not flyEnabled or not char or not hum then return end
-                if hum.MoveDirection.Magnitude > 0 then
-                    char:TranslateBy(hum.MoveDirection * 1)
-                end
-            end)
-            table.insert(flyConnections, conn2)
-
-        else
-            if hum then
-                for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
-                    hum:SetStateEnabled(state, true)
-                end
-                hum:ChangeState(Enum.HumanoidStateType.Running)
-                hum.PlatformStand = false
-            end
-            if char.Animate then char.Animate.Disabled = false end
-            if flyBody.bg then flyBody.bg:Destroy() end
-            if flyBody.bv then flyBody.bv:Destroy() end
-            flyBody = {}
-
-            for _, c in pairs(flyConnections) do
-                pcall(function() c:Disconnect() end)
-            end
-            flyConnections = {}
-
-        end
-    end,
-})
-
-local tpConnection = nil
-independentSection:Toggle({
-    Title = "自动存活",
-    Value = false,
-    Callback = function(val)
-        if val then
-            if tpConnection then tpConnection:Disconnect() end
-            tpConnection = RunService.Stepped:Connect(function()
-                if LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-273, 179.5, 394)
-                end
-            end)
-        else
-            if tpConnection then
-                tpConnection:Disconnect()
-                tpConnection = nil
-            end
-        end
-    end,
-})
-
-independentSection:Toggle({
-    Title = "地图投票",
-    Value = false,
-    Callback = function(val)
-        local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-        local mainGui = playerGui and playerGui:FindFirstChild("MainGui")
-        local mapPage = mainGui and mainGui:FindFirstChild("MapVotePage")
-
-        if mapPage then
-            mapPage.Visible = val
-        end
-    end,
-})
-
-local function playActionSound()
-    local sound = Instance.new("Sound", LocalPlayer:WaitForChild("PlayerGui"))
-    sound.SoundId = "rbxassetid://942127495"
-    sound.Volume = 1
-    sound:Play()
-    game.Debris:AddItem(sound, 2)
-end
-
-local function setTransparency(character, transparency)
-    for _, part in pairs(character:GetDescendants()) do
-        if part:IsA("BasePart") or part:IsA("Decal") then
-            part.Transparency = transparency
-        end
-    end
-end
-
-local invis_on = false
-independentSection:Toggle({
-    Title = "隐身",
-    Value = false,
-    Callback = function(val)
-        invis_on = val
-        playActionSound()
-
-        if invis_on then
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local savedpos = char.HumanoidRootPart.CFrame
-                task.wait()
-                char:MoveTo(Vector3.new(-25.95, 84, 3537.55))
-                task.wait(0.15)
-                
-                local Seat = Instance.new('Seat', workspace)
-                Seat.Anchored = false
-                Seat.CanCollide = false
-                Seat.Name = 'invischair'
-                Seat.Transparency = 1
-                Seat.Position = Vector3.new(-25.95, 84, 3537.55)
-                
-                local Weld = Instance.new("Weld", Seat)
-                Weld.Part0 = Seat
-                Weld.Part1 = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-                
-                task.wait()
-                Seat.CFrame = savedpos
-                setTransparency(char, 0.5)
-            end
-        else
-            local invisChair = workspace:FindFirstChild('invischair')
-            if invisChair then
-                invisChair:Destroy()
-            end
-            if LocalPlayer.Character then
-                setTransparency(LocalPlayer.Character, 0)
-            end
-        end
-    end,
-})
-
-local stealLoop = false
-local function stealAllItems()
-    local count = 0
-    local myBackpack = LocalPlayer:FindFirstChild("Backpack")
-    if not myBackpack then
-        myBackpack = Instance.new("Backpack")
-        myBackpack.Parent = LocalPlayer
-    end
-    for _, targetPlayer in ipairs(Players:GetPlayers()) do
-        if targetPlayer == LocalPlayer or not targetPlayer.Character then continue end
-        local itemContainers = {
-            targetPlayer:FindFirstChild("Backpack"),
-            targetPlayer:FindFirstChild("Inventory"),
-            targetPlayer:FindFirstChild("Storage"),
-            targetPlayer:FindFirstChild("Bag"),
-            targetPlayer.Character:FindFirstChild("Backpack")
-        }
-        for _, container in ipairs(itemContainers) do
-            if not container then continue end
-            for _, item in ipairs(container:GetChildren()) do
-                if item:IsA("Tool") or item:IsA("Model") or item:IsA("Part") or item:IsA("Accessory") then
-                    local success = pcall(function() item.Parent = myBackpack end)
-                    if success then count = count + 1 task.wait(0.05) end
-                end
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.LocalTransparencyModifier = 0
             end
         end
     end
-    return count
-end
-
-independentSection:Toggle({
-    Title = "偷取所有物品",
-    Value = false,
-    Callback = function(val)
-        stealLoop = val
-        if val then
-            task.spawn(function()
-                while stealLoop do
-                    stealAllItems()
-                    task.wait(1)
-                end
-            end)
-        end
-    end,
-})
-
-local speedJumpGuiObj = nil
-local speedHeartbeat = nil
-local jumpHeartbeat = nil
-
-local function getHumanoid()
-    local char = LocalPlayer.Character
-    return char and char:FindFirstChildOfClass("Humanoid")
-end
-
-local function stopSpeedLock()
-    if speedHeartbeat then speedHeartbeat:Disconnect() speedHeartbeat = nil end
-end
-
-local function stopJumpLock()
-    if jumpHeartbeat then jumpHeartbeat:Disconnect() jumpHeartbeat = nil end
-end
-
-local function startSpeedLock(sVal)
-    stopSpeedLock()
-    speedHeartbeat = RunService.Heartbeat:Connect(function()
-        local hum = getHumanoid()
-        if hum and hum.WalkSpeed ~= sVal then
-            hum.WalkSpeed = sVal
-        end
-    end)
-end
-
-local function startJumpLock(jVal)
-    stopJumpLock()
-    jumpHeartbeat = RunService.Heartbeat:Connect(function()
-        local hum = getHumanoid()
+end})
+independentSection:Toggle({Title = "飞行", Value = false, Callback = function(val)
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if val then
         if hum then
-            hum.UseJumpPower = true
-            if hum.JumpPower ~= jVal then
-                hum.JumpPower = jVal
+            for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
+                hum:SetStateEnabled(state, false)
+            end
+            hum:ChangeState(Enum.HumanoidStateType.Swimming)
+        end
+        if char.Animate then char.Animate.Disabled = true end
+        local bg = Instance.new("BodyGyro", root)
+        bg.P = 9e4
+        bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+        bg.CFrame = root.CFrame
+        local bv = Instance.new("BodyVelocity", root)
+        bv.Velocity = Vector3.new(0, 0, 0)
+        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        if hum then hum.PlatformStand = true end
+        _G.FlyBody = {bg = bg, bv = bv}
+        _G.FlyCon1 = RunService.RenderStepped:Connect(function()
+            if not _G.FlyEnabled or not char or not hum or hum.Health <= 0 then
+                if _G.FlyCon1 then _G.FlyCon1:Disconnect() end
+                return
+            end
+            if root then bg.CFrame = workspace.CurrentCamera.CoordinateFrame end
+        end)
+        _G.FlyCon2 = RunService.Heartbeat:Connect(function()
+            if not _G.FlyEnabled or not char or not hum then return end
+            if hum.MoveDirection.Magnitude > 0 then
+                char:TranslateBy(hum.MoveDirection * 1)
+            end
+        end)
+        _G.FlyEnabled = true
+    else
+        if hum then
+            for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
+                hum:SetStateEnabled(state, true)
+            end
+            hum:ChangeState(Enum.HumanoidStateType.Running)
+            hum.PlatformStand = false
+        end
+        if char.Animate then char.Animate.Disabled = false end
+        if _G.FlyBody and _G.FlyBody.bg then _G.FlyBody.bg:Destroy() end
+        if _G.FlyBody and _G.FlyBody.bv then _G.FlyBody.bv:Destroy() end
+        _G.FlyBody = {}
+        if _G.FlyCon1 then _G.FlyCon1:Disconnect() _G.FlyCon1 = nil end
+        if _G.FlyCon2 then _G.FlyCon2:Disconnect() _G.FlyCon2 = nil end
+        _G.FlyEnabled = false
+    end
+end})
+independentSection:Toggle({Title = "自动存活", Value = false, Callback = function(val)
+    if val then
+        _G.AutoTpCon = RunService.Stepped:Connect(function()
+            if LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-273, 179.5, 394)
+            end
+        end)
+    else
+        if _G.AutoTpCon then
+            _G.AutoTpCon:Disconnect()
+            _G.AutoTpCon = nil
+        end
+    end
+end})
+independentSection:Toggle({Title = "地图投票", Value = false, Callback = function(val)
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    local mainGui = playerGui and playerGui:FindFirstChild("MainGui")
+    local mapPage = mainGui and mainGui:FindFirstChild("MapVotePage")
+    if mapPage then mapPage.Visible = val end
+end})
+independentSection:Toggle({Title = "隐身", Value = false, Callback = function(val)
+    local function setTransparency(character, transparency)
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") or part:IsA("Decal") then
+                part.Transparency = transparency
             end
         end
-    end)
-end
-
-independentSection:Toggle({
-    Title = "移速跳高调整",
-    Value = false,
-    Callback = function(val)
-        if val then
-            if speedJumpGuiObj then speedJumpGuiObj:Destroy() end
-
-            local sg = Instance.new("ScreenGui")
-            sg.Name = "SpeedJumpGui"
-            sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
-            sg.ResetOnSpawn = false
-            sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-            speedJumpGuiObj = sg
-
-            local panel = Instance.new("Frame")
-            panel.Parent = sg
-            panel.Size = UDim2.new(0, 320, 0, 260)
-            panel.Position = UDim2.new(0.5, -160, 0.5, -130)
-            panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-            panel.BackgroundTransparency = 0.1
-            panel.ZIndex = 200
-
-            local corner = Instance.new("UICorner")
-            corner.CornerRadius = UDim.new(0, 12)
-            corner.Parent = panel
-
-            local stroke = Instance.new("UIStroke")
-            stroke.Thickness = 2
-            stroke.Color = Color3.fromRGB(100, 100, 255)
-            stroke.Parent = panel
-
-            local dragHeader = Instance.new("Frame")
-            dragHeader.Name = "DragHeader"
-            dragHeader.Parent = panel
-            dragHeader.Size = UDim2.new(1, 0, 0, 35)
-            dragHeader.BackgroundTransparency = 1
-            dragHeader.ZIndex = 201
-
-            local title = Instance.new("TextLabel")
-            title.Parent = dragHeader
-            title.Size = UDim2.new(1, -40, 1, 0)
-            title.Position = UDim2.new(0, 10, 0, 0)
-            title.BackgroundTransparency = 1
-            title.Text = "移速跳高调整 (按住此处拖动)"
-            title.TextColor3 = Color3.new(1, 1, 1)
-            title.Font = Enum.Font.GothamBold
-            title.TextSize = 15
-            title.TextXAlignment = Enum.TextXAlignment.Left
-
-            makeDraggable(panel, dragHeader)
-
-            local speedLabel = Instance.new("TextLabel")
-            speedLabel.Parent = panel
-            speedLabel.Size = UDim2.new(1, -40, 0, 20)
-            speedLabel.Position = UDim2.new(0, 20, 0, 40)
-            speedLabel.BackgroundTransparency = 1
-            speedLabel.Text = "调整移速"
-            speedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-            speedLabel.Font = Enum.Font.GothamBold
-            speedLabel.TextSize = 13
-            speedLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-            local speedSlider = Instance.new("Frame")
-            speedSlider.Parent = panel
-            speedSlider.Size = UDim2.new(1, -120, 0, 24)
-            speedSlider.Position = UDim2.new(0, 20, 0, 65)
-            speedSlider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            Instance.new("UICorner", speedSlider).CornerRadius = UDim.new(0, 6)
-
-            local speedFill = Instance.new("Frame")
-            speedFill.Parent = speedSlider
-            speedFill.Size = UDim2.new(0, 0, 1, 0)
-            speedFill.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-            speedFill.BorderSizePixel = 0
-            Instance.new("UICorner", speedFill).CornerRadius = UDim.new(0, 6)
-
-            local speedKnob = Instance.new("TextButton")
-            speedKnob.Parent = speedSlider
-            speedKnob.Size = UDim2.new(0, 18, 0, 18)
-            speedKnob.Position = UDim2.new(0, -9, 0.5, -9)
-            speedKnob.Text = ""
-            speedKnob.BackgroundColor3 = Color3.new(1, 1, 1)
-            speedKnob.AutoButtonColor = false
-            Instance.new("UICorner", speedKnob).CornerRadius = UDim.new(1, 0)
-
-            local speedBox = Instance.new("TextBox")
-            speedBox.Parent = panel
-            speedBox.Size = UDim2.new(0, 70, 0, 28)
-            speedBox.Position = UDim2.new(1, -90, 0, 63)
-            speedBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            speedBox.Text = "16"
-            speedBox.TextColor3 = Color3.new(1, 1, 1)
-            speedBox.Font = Enum.Font.Gotham
-            speedBox.TextSize = 14
-            Instance.new("UICorner", speedBox).CornerRadius = UDim.new(0, 6)
-
-            local minSpeed, maxSpeed = 5, 1000
-
-            local function updateSpeedSliderDisplay(val)
-                local percent = (val - minSpeed) / (maxSpeed - minSpeed)
-                speedFill.Size = UDim2.new(percent, 0, 1, 0)
-                speedKnob.Position = UDim2.new(percent, -9, 0.5, -9)
-            end
-
-            local jumpLabel = Instance.new("TextLabel")
-            jumpLabel.Parent = panel
-            jumpLabel.Size = UDim2.new(1, -40, 0, 20)
-            jumpLabel.Position = UDim2.new(0, 20, 0, 105)
-            jumpLabel.BackgroundTransparency = 1
-            jumpLabel.Text = "调整跳高"
-            jumpLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-            jumpLabel.Font = Enum.Font.GothamBold
-            jumpLabel.TextSize = 13
-            jumpLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-            local jumpSlider = Instance.new("Frame")
-            jumpSlider.Parent = panel
-            jumpSlider.Size = UDim2.new(1, -120, 0, 24)
-            jumpSlider.Position = UDim2.new(0, 20, 0, 130)
-            jumpSlider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            Instance.new("UICorner", jumpSlider).CornerRadius = UDim.new(0, 6)
-
-            local jumpFill = Instance.new("Frame")
-            jumpFill.Parent = jumpSlider
-            jumpFill.Size = UDim2.new(0, 0, 1, 0)
-            jumpFill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-            jumpFill.BorderSizePixel = 0
-            Instance.new("UICorner", jumpFill).CornerRadius = UDim.new(0, 6)
-
-            local jumpKnob = Instance.new("TextButton")
-            jumpKnob.Parent = jumpSlider
-            jumpKnob.Size = UDim2.new(0, 18, 0, 18)
-            jumpKnob.Position = UDim2.new(0, -9, 0.5, -9)
-            jumpKnob.Text = ""
-            jumpKnob.BackgroundColor3 = Color3.new(1, 1, 1)
-            jumpKnob.AutoButtonColor = false
-            Instance.new("UICorner", jumpKnob).CornerRadius = UDim.new(1, 0)
-
-            local jumpBox = Instance.new("TextBox")
-            jumpBox.Parent = panel
-            jumpBox.Size = UDim2.new(0, 70, 0, 28)
-            jumpBox.Position = UDim2.new(1, -90, 0, 128)
-            jumpBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            jumpBox.Text = "50"
-            jumpBox.TextColor3 = Color3.new(1, 1, 1)
-            jumpBox.Font = Enum.Font.Gotham
-            jumpBox.TextSize = 14
-            Instance.new("UICorner", jumpBox).CornerRadius = UDim.new(0, 6)
-
-            local minJump, maxJump = 50, 600
-
-            local function updateJumpSliderDisplay(val)
-                local percent = (val - minJump) / (maxJump - minJump)
-                jumpFill.Size = UDim2.new(percent, 0, 1, 0)
-                jumpKnob.Position = UDim2.new(percent, -9, 0.5, -9)
-            end
-
-            local speedDragging, jumpDragging = false, false
-
-            speedKnob.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    speedDragging = true
+    end
+    if val then
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local savedpos = char.HumanoidRootPart.CFrame
+            task.wait()
+            char:MoveTo(Vector3.new(-25.95, 84, 3537.55))
+            task.wait(0.15)
+            local Seat = Instance.new('Seat', workspace)
+            Seat.Anchored = false
+            Seat.CanCollide = false
+            Seat.Name = 'invischair'
+            Seat.Transparency = 1
+            Seat.Position = Vector3.new(-25.95, 84, 3537.55)
+            local Weld = Instance.new("Weld", Seat)
+            Weld.Part0 = Seat
+            Weld.Part1 = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+            task.wait()
+            Seat.CFrame = savedpos
+            setTransparency(char, 0.5)
+        end
+    else
+        local invisChair = workspace:FindFirstChild('invischair')
+        if invisChair then invisChair:Destroy() end
+        if LocalPlayer.Character then setTransparency(LocalPlayer.Character, 0) end
+    end
+end})
+independentSection:Toggle({Title = "偷取所有物品", Value = false, Callback = function(val)
+    _G.StealLoop = val
+    if val then
+        task.spawn(function()
+            while _G.StealLoop do
+                local myBackpack = LocalPlayer:FindFirstChild("Backpack")
+                if not myBackpack then
+                    myBackpack = Instance.new("Backpack")
+                    myBackpack.Parent = LocalPlayer
                 end
-            end)
-
-            jumpKnob.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    jumpDragging = true
-                end
-            end)
-
-            UserInputService.InputChanged:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-                    if speedDragging then
-                        local mousePos = UserInputService:GetMouseLocation()
-                        local sliderAbs = speedSlider.AbsolutePosition
-                        local sliderSize = speedSlider.AbsoluteSize
-                        local relativeX = math.clamp(mousePos.X - sliderAbs.X, 0, sliderSize.X)
-                        local percent = relativeX / sliderSize.X
-                        local newVal = math.floor(minSpeed + (maxSpeed - minSpeed) * percent)
-                        speedBox.Text = tostring(newVal)
-                        updateSpeedSliderDisplay(newVal)
-                    elseif jumpDragging then
-                        local mousePos = UserInputService:GetMouseLocation()
-                        local sliderAbs = jumpSlider.AbsolutePosition
-                        local sliderSize = jumpSlider.AbsoluteSize
-                        local relativeX = math.clamp(mousePos.X - sliderAbs.X, 0, sliderSize.X)
-                        local percent = relativeX / sliderSize.X
-                        local newVal = math.floor(minJump + (maxJump - minJump) * percent)
-                        jumpBox.Text = tostring(newVal)
-                        updateJumpSliderDisplay(newVal)
+                for _, targetPlayer in ipairs(Players:GetPlayers()) do
+                    if targetPlayer == LocalPlayer or not targetPlayer.Character then continue end
+                    local containers = {
+                        targetPlayer:FindFirstChild("Backpack"),
+                        targetPlayer:FindFirstChild("Inventory"),
+                        targetPlayer:FindFirstChild("Storage"),
+                        targetPlayer:FindFirstChild("Bag"),
+                        targetPlayer.Character:FindFirstChild("Backpack")
+                    }
+                    for _, container in ipairs(containers) do
+                        if not container then continue end
+                        for _, item in ipairs(container:GetChildren()) do
+                            if item:IsA("Tool") or item:IsA("Model") or item:IsA("Part") or item:IsA("Accessory") then
+                                pcall(function() item.Parent = myBackpack end)
+                                task.wait(0.05)
+                            end
+                        end
                     end
                 end
-            end)
-
-            UserInputService.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    speedDragging = false
-                    jumpDragging = false
-                end
-            end)
-
-            local confirmBtn = Instance.new("TextButton")
-            confirmBtn.Parent = panel
-            confirmBtn.Size = UDim2.new(0, 120, 0, 35)
-            confirmBtn.Position = UDim2.new(0, 20, 0, 185)
-            confirmBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-            confirmBtn.Text = "确认"
-            confirmBtn.TextColor3 = Color3.new(1, 1, 1)
-            confirmBtn.Font = Enum.Font.GothamBold
-            confirmBtn.TextSize = 15
-            Instance.new("UICorner", confirmBtn).CornerRadius = UDim.new(0, 6)
-
-            confirmBtn.MouseButton1Click:Connect(function()
-                local sVal = tonumber(speedBox.Text) or 16
-                local jVal = tonumber(jumpBox.Text) or 50
-
-                sVal = math.clamp(math.floor(sVal), minSpeed, maxSpeed)
-                jVal = math.clamp(math.floor(jVal), minJump, maxJump)
-
-                startSpeedLock(sVal)
-                startJumpLock(jVal)
-
-                if speedJumpGuiObj then
-                    speedJumpGuiObj:Destroy()
-                    speedJumpGuiObj = nil
-                end
-            end)
-
-            local resetBtn = Instance.new("TextButton")
-            resetBtn.Parent = panel
-            resetBtn.Size = UDim2.new(0, 120, 0, 35)
-            resetBtn.Position = UDim2.new(1, -140, 0, 185)
-            resetBtn.BackgroundColor3 = Color3.fromRGB(180, 80, 0)
-            resetBtn.Text = "重置"
-            resetBtn.TextColor3 = Color3.new(1, 1, 1)
-            resetBtn.Font = Enum.Font.GothamBold
-            resetBtn.TextSize = 15
-            Instance.new("UICorner", resetBtn).CornerRadius = UDim.new(0, 6)
-
-            resetBtn.MouseButton1Click:Connect(function()
-                speedBox.Text = "16"
-                jumpBox.Text = "50"
-                updateSpeedSliderDisplay(16)
-                updateJumpSliderDisplay(50)
-            end)
-
-            local closeBtn = Instance.new("TextButton")
-            closeBtn.Parent = panel
-            closeBtn.Size = UDim2.new(0, 30, 0, 30)
-            closeBtn.Position = UDim2.new(1, -35, 0, 5)
-            closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-            closeBtn.Text = "X"
-            closeBtn.TextSize = 16
-            closeBtn.Font = Enum.Font.GothamBold
-            closeBtn.TextColor3 = Color3.new(1, 1, 1)
-            closeBtn.ZIndex = 202
-            Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
-
-            closeBtn.MouseButton1Click:Connect(function()
-                stopSpeedLock()
-                stopJumpLock()
-                local hum = getHumanoid()
-                if hum then
-                    hum.WalkSpeed = 16
-                    hum.JumpPower = 50
-                end
-                if speedJumpGuiObj then
-                    speedJumpGuiObj:Destroy()
-                    speedJumpGuiObj = nil
-                end
-            end)
-
-            updateSpeedSliderDisplay(16)
-            updateJumpSliderDisplay(50)
-        else
-            stopSpeedLock()
-            stopJumpLock()
-            local hum = getHumanoid()
-            if hum then
-                hum.WalkSpeed = 16
-                hum.JumpPower = 50
-            end
-            if speedJumpGuiObj then
-                speedJumpGuiObj:Destroy()
-                speedJumpGuiObj = nil
-            end
-        end
-    end,
-})
-
-local carFlyEnabled = false
-local carFlyUI = nil
-local carFlyBodyVelocity = nil
-local carFlyBodyGyro = nil
-local carFlyBodyPosition = nil
-local carFlyMoveConnection = nil
-local carFlyUpPressed = false
-local carFlyDownPressed = false
-local carFlySpeed = 100
-local carFlyUpDownConnection = nil
-
-local function createCarFlyUI()
-    if carFlyUI then return end
-    
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    screenGui.Name = "CarFlyGui"
-    screenGui.ResetOnSpawn = false
-    carFlyUI = screenGui
-    
-    local frame = Instance.new("Frame")
-    frame.Parent = screenGui
-    frame.Size = UDim2.new(0, 125, 0, 100)
-    frame.Position = UDim2.new(0.5, -62, 0.5, -50)
-    frame.BackgroundTransparency = 1
-    frame.Active = true
-    frame.Draggable = true
-    
-    local function createButton(text, xPos, yPos, color, w, h)
-        local btn = Instance.new("TextButton")
-        btn.Parent = frame
-        btn.Size = UDim2.new(0, w or 50, 0, h or 30)
-        btn.Position = UDim2.new(0, xPos, 0, yPos)
-        btn.BackgroundColor3 = color
-        btn.Text = text
-        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 15
-        btn.AutoButtonColor = false
-        local c = Instance.new("UICorner")
-        c.CornerRadius = UDim.new(0, 6)
-        c.Parent = btn
-        return btn
-    end
-    
-    local flyBtn = createButton("飞", 0, 5, Color3.fromRGB(0, 180, 0), 48, 28)
-    local stopBtn = createButton("停", 0, 36, Color3.fromRGB(180, 0, 0), 48, 28)
-    local closeBtn = createButton("关", 0, 67, Color3.fromRGB(200, 50, 50), 48, 28)
-    local upBtn = createButton("↑", 77, 5, Color3.fromRGB(0, 100, 255), 48, 42)
-    local downBtn = createButton("↓", 77, 50, Color3.fromRGB(0, 100, 255), 48, 42)
-    
-    local function startCarFly()
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        
-        if carFlyBodyVelocity then carFlyBodyVelocity:Destroy() end
-        if carFlyBodyGyro then carFlyBodyGyro:Destroy() end
-        if carFlyBodyPosition then carFlyBodyPosition:Destroy() end
-        if carFlyMoveConnection then carFlyMoveConnection:Disconnect() end
-        
-        carFlyBodyVelocity = Instance.new("BodyVelocity", root)
-        carFlyBodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        carFlyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        
-        carFlyBodyGyro = Instance.new("BodyGyro", root)
-        carFlyBodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-        carFlyBodyGyro.D = 5000
-        carFlyBodyGyro.P = 50000
-        carFlyBodyGyro.CFrame = workspace.CurrentCamera.CFrame
-        
-        carFlyBodyPosition = Instance.new("BodyPosition", root)
-        carFlyBodyPosition.MaxForce = Vector3.new(0, math.huge, 0)
-        carFlyBodyPosition.Position = root.Position
-        carFlyBodyPosition.D = 20000
-        carFlyBodyPosition.P = 200000
-        
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        
-        carFlyMoveConnection = RunService.Heartbeat:Connect(function()
-            if not carFlyEnabled or not carFlyBodyVelocity then return end
-            local charNow = LocalPlayer.Character
-            local rootNow = charNow and charNow:FindFirstChild("HumanoidRootPart")
-            local humNow = charNow and charNow:FindFirstChildOfClass("Humanoid")
-            if not rootNow or not humNow then return end
-            
-            local moveDir = humNow.MoveDirection
-            if moveDir.Magnitude > 0 then
-                rootNow.Anchored = false
-                carFlyBodyVelocity.Velocity = moveDir * carFlySpeed
-            else
-                carFlyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+                task.wait(1)
             end
         end)
     end
-    
-    local function stopCarFly()
-        if carFlyBodyVelocity then carFlyBodyVelocity:Destroy() carFlyBodyVelocity = nil end
-        if carFlyBodyGyro then carFlyBodyGyro:Destroy() carFlyBodyGyro = nil end
-        if carFlyBodyPosition then carFlyBodyPosition:Destroy() carFlyBodyPosition = nil end
-        if carFlyMoveConnection then carFlyMoveConnection:Disconnect() carFlyMoveConnection = nil end
+end})
+independentSection:Toggle({Title = "飞车", Value = false, Callback = function(val)
+    if val then
+        local function createCarFlyUI()
+            local screenGui = Instance.new("ScreenGui")
+            screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+            screenGui.Name = "CarFlyGui"
+            screenGui.ResetOnSpawn = false
+            _G.CarFlyUI = screenGui
+            local frame = Instance.new("Frame")
+            frame.Parent = screenGui
+            frame.Size = UDim2.new(0, 125, 0, 100)
+            frame.Position = UDim2.new(0.5, -62, 0.5, -50)
+            frame.BackgroundTransparency = 1
+            frame.Active = true
+            frame.Draggable = true
+            local function createButton(text, xPos, yPos, color, w, h)
+                local btn = Instance.new("TextButton")
+                btn.Parent = frame
+                btn.Size = UDim2.new(0, w or 50, 0, h or 30)
+                btn.Position = UDim2.new(0, xPos, 0, yPos)
+                btn.BackgroundColor3 = color
+                btn.Text = text
+                btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                btn.Font = Enum.Font.GothamBold
+                btn.TextSize = 15
+                btn.AutoButtonColor = false
+                Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+                return btn
+            end
+            local flyBtn = createButton("飞", 0, 5, Color3.fromRGB(0, 180, 0), 48, 28)
+            local stopBtn = createButton("停", 0, 36, Color3.fromRGB(180, 0, 0), 48, 28)
+            local closeBtn = createButton("关", 0, 67, Color3.fromRGB(200, 50, 50), 48, 28)
+            local upBtn = createButton("↑", 77, 5, Color3.fromRGB(0, 100, 255), 48, 42)
+            local downBtn = createButton("↓", 77, 50, Color3.fromRGB(0, 100, 255), 48, 42)
+            local carFlySpeed = 100
+            local carFlyBodyVelocity, carFlyBodyGyro, carFlyBodyPosition, carFlyMoveConnection, carFlyUpDownConnection = nil, nil, nil, nil, nil
+            local carFlyUpPressed, carFlyDownPressed = false, false
+            local function startCarFly()
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if not root then return end
+                if carFlyBodyVelocity then carFlyBodyVelocity:Destroy() end
+                if carFlyBodyGyro then carFlyBodyGyro:Destroy() end
+                if carFlyBodyPosition then carFlyBodyPosition:Destroy() end
+                if carFlyMoveConnection then carFlyMoveConnection:Disconnect() end
+                carFlyBodyVelocity = Instance.new("BodyVelocity", root)
+                carFlyBodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                carFlyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+                carFlyBodyGyro = Instance.new("BodyGyro", root)
+                carFlyBodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                carFlyBodyGyro.D = 5000
+                carFlyBodyGyro.P = 50000
+                carFlyBodyGyro.CFrame = workspace.CurrentCamera.CFrame
+                carFlyBodyPosition = Instance.new("BodyPosition", root)
+                carFlyBodyPosition.MaxForce = Vector3.new(0, math.huge, 0)
+                carFlyBodyPosition.Position = root.Position
+                carFlyBodyPosition.D = 20000
+                carFlyBodyPosition.P = 200000
+                _G.CarFlyBody = {velocity = carFlyBodyVelocity, gyro = carFlyBodyGyro, position = carFlyBodyPosition}
+                carFlyMoveConnection = RunService.Heartbeat:Connect(function()
+                    if not _G.CarFlyEnabled or not carFlyBodyVelocity then return end
+                    local charNow = LocalPlayer.Character
+                    local rootNow = charNow and charNow:FindFirstChild("HumanoidRootPart")
+                    local humNow = charNow and charNow:FindFirstChildOfClass("Humanoid")
+                    if not rootNow or not humNow then return end
+                    local moveDir = humNow.MoveDirection
+                    if moveDir.Magnitude > 0 then
+                        rootNow.Anchored = false
+                        carFlyBodyVelocity.Velocity = moveDir * carFlySpeed
+                    else
+                        carFlyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+                    end
+                end)
+                _G.CarFlyMoveCon = carFlyMoveConnection
+                carFlyUpDownConnection = RunService.RenderStepped:Connect(function()
+                    if not _G.CarFlyEnabled or not carFlyBodyPosition then return end
+                    local charNow = LocalPlayer.Character
+                    local rootNow = charNow and charNow:FindFirstChild("HumanoidRootPart")
+                    if not rootNow then return end
+                    local pos = rootNow.Position
+                    if carFlyUpPressed then
+                        carFlyBodyPosition.Position = Vector3.new(pos.X, pos.Y + carFlySpeed * 2.5, pos.Z)
+                    elseif carFlyDownPressed then
+                        carFlyBodyPosition.Position = Vector3.new(pos.X, pos.Y - carFlySpeed * 2.5, pos.Z)
+                    else
+                        carFlyBodyPosition.Position = Vector3.new(pos.X, pos.Y, pos.Z)
+                    end
+                end)
+                _G.CarFlyUpDownCon = carFlyUpDownConnection
+            end
+            local function stopCarFly()
+                if _G.CarFlyBody and _G.CarFlyBody.velocity then _G.CarFlyBody.velocity:Destroy() end
+                if _G.CarFlyBody and _G.CarFlyBody.gyro then _G.CarFlyBody.gyro:Destroy() end
+                if _G.CarFlyBody and _G.CarFlyBody.position then _G.CarFlyBody.position:Destroy() end
+                if _G.CarFlyMoveCon then _G.CarFlyMoveCon:Disconnect() _G.CarFlyMoveCon = nil end
+                if _G.CarFlyUpDownCon then _G.CarFlyUpDownCon:Disconnect() _G.CarFlyUpDownCon = nil end
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if root then root.Anchored = false end
+            end
+            local function closeCarFlyUI()
+                stopCarFly()
+                if _G.CarFlyUI then
+                    _G.CarFlyUI:Destroy()
+                    _G.CarFlyUI = nil
+                end
+                _G.CarFlyEnabled = false
+            end
+            flyBtn.MouseButton1Click:Connect(startCarFly)
+            stopBtn.MouseButton1Click:Connect(stopCarFly)
+            closeBtn.MouseButton1Click:Connect(closeCarFlyUI)
+            upBtn.MouseButton1Down:Connect(function() carFlyUpPressed = true end)
+            upBtn.MouseButton1Up:Connect(function() carFlyUpPressed = false end)
+            upBtn.MouseLeave:Connect(function() carFlyUpPressed = false end)
+            downBtn.MouseButton1Down:Connect(function() carFlyDownPressed = true end)
+            downBtn.MouseButton1Up:Connect(function() carFlyDownPressed = false end)
+            downBtn.MouseLeave:Connect(function() carFlyDownPressed = false end)
+        end
+        _G.CarFlyEnabled = true
+        createCarFlyUI()
+    else
+        _G.CarFlyEnabled = false
+        if _G.CarFlyBody and _G.CarFlyBody.velocity then _G.CarFlyBody.velocity:Destroy() end
+        if _G.CarFlyBody and _G.CarFlyBody.gyro then _G.CarFlyBody.gyro:Destroy() end
+        if _G.CarFlyBody and _G.CarFlyBody.position then _G.CarFlyBody.position:Destroy() end
+        if _G.CarFlyMoveCon then _G.CarFlyMoveCon:Disconnect() _G.CarFlyMoveCon = nil end
+        if _G.CarFlyUpDownCon then _G.CarFlyUpDownCon:Disconnect() _G.CarFlyUpDownCon = nil end
+        if _G.CarFlyUI then
+            _G.CarFlyUI:Destroy()
+            _G.CarFlyUI = nil
+        end
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if root then root.Anchored = false end
     end
-    
-    local function closeCarFlyUI()
-        stopCarFly()
-        if carFlyUI then
-            carFlyUI:Destroy()
-            carFlyUI = nil
-        end
-        carFlyEnabled = false
+end})
+independentSection:Button({Title = "自杀", Callback = function()
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.Health = 0 end
     end
-    
-    flyBtn.MouseButton1Click:Connect(startCarFly)
-    stopBtn.MouseButton1Click:Connect(stopCarFly)
-    closeBtn.MouseButton1Click:Connect(closeCarFlyUI)
-    
-    upBtn.MouseButton1Down:Connect(function()
-        carFlyUpPressed = true
-    end)
-    upBtn.MouseButton1Up:Connect(function()
-        carFlyUpPressed = false
-    end)
-    upBtn.MouseLeave:Connect(function()
-        carFlyUpPressed = false
-    end)
-    
-    downBtn.MouseButton1Down:Connect(function()
-        carFlyDownPressed = true
-    end)
-    downBtn.MouseButton1Up:Connect(function()
-        carFlyDownPressed = false
-    end)
-    downBtn.MouseLeave:Connect(function()
-        carFlyDownPressed = false
-    end)
-    
-    if carFlyUpDownConnection then carFlyUpDownConnection:Disconnect() end
-    carFlyUpDownConnection = RunService.RenderStepped:Connect(function()
-        if not carFlyEnabled or not carFlyBodyPosition then return end
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        
-        local pos = root.Position
-        if carFlyUpPressed then
-            carFlyBodyPosition.Position = Vector3.new(pos.X, pos.Y + carFlySpeed * 2.5, pos.Z)
-        elseif carFlyDownPressed then
-            carFlyBodyPosition.Position = Vector3.new(pos.X, pos.Y - carFlySpeed * 2.5, pos.Z)
-        else
-            carFlyBodyPosition.Position = Vector3.new(pos.X, pos.Y, pos.Z)
-        end
-    end)
-end
-
-independentSection:Toggle({
-    Title = "飞车",
-    Value = false,
-    Callback = function(val)
-        carFlyEnabled = val
-        if val then
-            createCarFlyUI()
-        else
-            if carFlyBodyVelocity then carFlyBodyVelocity:Destroy() carFlyBodyVelocity = nil end
-            if carFlyBodyGyro then carFlyBodyGyro:Destroy() carFlyBodyGyro = nil end
-            if carFlyBodyPosition then carFlyBodyPosition:Destroy() carFlyBodyPosition = nil end
-            if carFlyMoveConnection then carFlyMoveConnection:Disconnect() carFlyMoveConnection = nil end
-            if carFlyUpDownConnection then carFlyUpDownConnection:Disconnect() carFlyUpDownConnection = nil end
-            local char = LocalPlayer.Character
-            local root = char and char:FindFirstChild("HumanoidRootPart")
-            if root then root.Anchored = false end
-            if carFlyUI then
-                carFlyUI:Destroy()
-                carFlyUI = nil
-            end
-        end
-    end,
-})
-
-independentSection:Button({
-    Title = "自杀",
-    Callback = function()
-        local char = LocalPlayer.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum.Health = 0
-            end
-        end
-    end,
-})
+end})
 
 local blackholeTab = Window:Tab({Title = "黑洞", Icon = "circle"})
+local blackholeParts = {}
+local blackholeEnabled = false
+local blackholeCon = nil
+local blackholeConfig = {radius = 50, height = 100, rotationSpeed = 10, attractionStrength = 1000}
 
-local parts = {}
-local enabled1 = false
-local con1 = nil
-local partCon1 = nil
-local removeCon1 = nil
-local config1 = {
-    radius = 50,
-    height = 100,
-    rotationSpeed = 10,
-    attractionStrength = 1000
-}
-
-local hrPart = nil
-local folder = nil
-local part = nil
-local attachment1 = nil
-local enabled2 = false
-local heartbeatCon2 = nil
-
-local function retainPart1(p)
-    if p:IsA("BasePart") and not p.Anchored and p:IsDescendantOf(Workspace) then
-        if p.Parent == LocalPlayer.Character or p:IsDescendantOf(LocalPlayer.Character) then return false end
-        pcall(function()
-            p.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
-            p.CanCollide = false
-        end)
-        return true
-    end
-    return false
-end
-
-local function addPart1(p)
-    if retainPart1(p) and not table.find(parts, p) then
-        table.insert(parts, p)
-    end
-end
-
-local function removePart1(p)
-    local idx = table.find(parts, p)
-    if idx then table.remove(parts, idx) end
-end
-
-local function refreshParts1()
-    parts = {}
-    for _, p in pairs(Workspace:GetDescendants()) do
-        addPart1(p)
-    end
-end
-
-local function startH1()
-    if con1 then return end
-    enabled1 = true
-    refreshParts1()
-    
-    if partCon1 then partCon1:Disconnect() end
-    partCon1 = Workspace.DescendantAdded:Connect(addPart1)
-    
-    if removeCon1 then removeCon1:Disconnect() end
-    removeCon1 = Workspace.DescendantRemoving:Connect(removePart1)
-
-    con1 = RunService.Heartbeat:Connect(function()
-        if not enabled1 then return end
-        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        local center = root.Position
-        for _, p in pairs(parts) do
-            if p.Parent and not p.Anchored then
-                local pos = p.Position
-                local dist = (Vector3.new(pos.X, center.Y, pos.Z) - center).Magnitude
-                local angle = math.atan2(pos.Z - center.Z, pos.X - center.X)
-                local newAngle = angle + math.rad(config1.rotationSpeed)
-                local targetPos = Vector3.new(
-                    center.X + math.cos(newAngle) * math.min(config1.radius, dist),
-                    center.Y + (config1.height * (math.abs(math.sin((pos.Y - center.Y) / config1.height)))),
-                    center.Z + math.sin(newAngle) * math.min(config1.radius, dist)
-                )
-                local dir = (targetPos - p.Position).unit
-                p.Velocity = dir * config1.attractionStrength
-            end
-        end
-    end)
-end
-
-local function stopH1()
-    enabled1 = false
-    if con1 then con1:Disconnect() con1 = nil end
-    if partCon1 then partCon1:Disconnect() partCon1 = nil end
-    if removeCon1 then removeCon1:Disconnect() removeCon1 = nil end
-    parts = {}
-end
-
-local function setupH2()
-    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    hrPart = character:WaitForChild("HumanoidRootPart")
-    
-    folder = Instance.new("Folder", Workspace)
-    part = Instance.new("Part", folder)
-    attachment1 = Instance.new("Attachment", part)
-    part.Anchored = true
-    part.CanCollide = false
-    part.Transparency = 1
-    
-    if not getgenv().Network then
-        getgenv().Network = {
-            BaseParts = {},
-            Velocity = Vector3.new(14.46262424, 14.46262424, 14.46262424)
-        }
-
-        Network.RetainPart = function(p)
-            if typeof(p) == "Instance" and p:IsA("BasePart") and p:IsDescendantOf(Workspace) then
-                table.insert(Network.BaseParts, p)
-                p.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
-                p.CanCollide = false
-            end
-        end
-
-        local function EnablePartControl()
-            LocalPlayer.ReplicationFocus = Workspace
-            RunService.Heartbeat:Connect(function()
-                sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
-                for _, p in pairs(Network.BaseParts) do
-                    if p:IsDescendantOf(Workspace) then
-                        p.Velocity = Network.Velocity
-                    end
+blackholeTab:Toggle({Title = "开启黑洞", Value = false, Callback = function(val)
+    if val then
+        blackholeEnabled = true
+        blackholeParts = {}
+        for _, p in pairs(Workspace:GetDescendants()) do
+            if p:IsA("BasePart") and not p.Anchored and p:IsDescendantOf(Workspace) then
+                if p.Parent ~= LocalPlayer.Character and not p:IsDescendantOf(LocalPlayer.Character) then
+                    pcall(function()
+                        p.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+                        p.CanCollide = false
+                    end)
+                    table.insert(blackholeParts, p)
                 end
-            end)
-        end
-
-        EnablePartControl()
-    end
-end
-
-local function ForcePart(v)
-    if v:IsA("Part") and not v.Anchored and not v.Parent:FindFirstChild("Humanoid") and not v.Parent:FindFirstChild("Head") and v.Name ~= "Handle" then
-        for _, x in next, v:GetChildren() do
-            if x:IsA("BodyAngularVelocity") or x:IsA("BodyForce") or x:IsA("BodyGyro") or x:IsA("BodyPosition") or x:IsA("BodyThrust") or x:IsA("BodyVelocity") or x:IsA("RocketPropulsion") then
-                x:Destroy()
             end
         end
-        if v:FindFirstChild("Attachment") then
-            v:FindFirstChild("Attachment"):Destroy()
-        end
-        if v:FindFirstChild("AlignPosition") then
-            v:FindFirstChild("AlignPosition"):Destroy()
-        end
-        if v:FindFirstChild("Torque") then
-            v:FindFirstChild("Torque"):Destroy()
-        end
-        v.CanCollide = false
-        local Torque = Instance.new("Torque", v)
-        Torque.Torque = Vector3.new(100000, 100000, 100000)
-        local AlignPosition = Instance.new("AlignPosition", v)
-        local Attachment2 = Instance.new("Attachment", v)
-        Torque.Attachment0 = Attachment2
-        AlignPosition.MaxForce = 9999999999999999
-        AlignPosition.MaxVelocity = math.huge
-        AlignPosition.Responsiveness = 200
-        AlignPosition.Attachment0 = Attachment2
-        AlignPosition.Attachment1 = attachment1
+        blackholeCon = RunService.Heartbeat:Connect(function()
+            if not blackholeEnabled then return end
+            local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+            local center = root.Position
+            for _, p in pairs(blackholeParts) do
+                if p.Parent and not p.Anchored then
+                    local pos = p.Position
+                    local dist = (Vector3.new(pos.X, center.Y, pos.Z) - center).Magnitude
+                    local angle = math.atan2(pos.Z - center.Z, pos.X - center.X)
+                    local newAngle = angle + math.rad(blackholeConfig.rotationSpeed)
+                    local targetPos = Vector3.new(
+                        center.X + math.cos(newAngle) * math.min(blackholeConfig.radius, dist),
+                        center.Y + (blackholeConfig.height * (math.abs(math.sin((pos.Y - center.Y) / blackholeConfig.height)))),
+                        center.Z + math.sin(newAngle) * math.min(blackholeConfig.radius, dist)
+                    )
+                    local dir = (targetPos - p.Position).unit
+                    p.Velocity = dir * blackholeConfig.attractionStrength
+                end
+            end
+        end)
+        WindUI:Notify({Title = "黑洞", Content = "已开启", Duration = 2, Icon = "check"})
+    else
+        blackholeEnabled = false
+        if blackholeCon then blackholeCon:Disconnect() blackholeCon = nil end
+        blackholeParts = {}
+        WindUI:Notify({Title = "黑洞", Content = "已关闭", Duration = 2, Icon = "x"})
     end
-end
-
-local function startH2()
-    if enabled2 then return end
-    enabled2 = true
-    setupH2()
-    
-    for _, v in next, Workspace:GetDescendants() do
-        ForcePart(v)
-    end
-
-    Workspace.DescendantAdded:Connect(function(v)
-        if enabled2 then
-            ForcePart(v)
-        end
-    end)
-
-    heartbeatCon2 = RunService.Heartbeat:Connect(function()
-        if enabled2 and attachment1 and hrPart then
-            attachment1.WorldCFrame = hrPart.CFrame
-        end
-    end)
-end
-
-local function stopH2()
-    enabled2 = false
-    if heartbeatCon2 then
-        heartbeatCon2:Disconnect()
-        heartbeatCon2 = nil
-    end
-    if folder then
-        folder:Destroy()
-        folder = nil
-    end
-    hrPart = nil
-    attachment1 = nil
-    part = nil
-end
-
-local sectionH1 = blackholeTab:Section({Title = "H1", Box = true})
-sectionH1:Toggle({
-    Title = "开启H1",
-    Value = false,
-    Callback = function(val)
-        if val then
-            startH1()
-            WindUI:Notify({Title = "H1", Content = "已开启", Duration = 2, Icon = "check"})
-            local settingsTab = Window:AddTab({Title = "H1设置", Icon = "settings"})
-            local settingsSection = settingsTab:Section({Title = "H1参数", Box = true})
-            settingsSection:Slider({
-                Title = "半径",
-                Value = config1.radius,
-                Min = 0,
-                Max = 500,
-                Callback = function(val)
-                    config1.radius = val
-                end,
-            })
-            settingsSection:Slider({
-                Title = "高度",
-                Value = config1.height,
-                Min = 0,
-                Max = 500,
-                Callback = function(val)
-                    config1.height = val
-                end,
-            })
-            settingsSection:Slider({
-                Title = "转速",
-                Value = config1.rotationSpeed,
-                Min = 0,
-                Max = 200,
-                Callback = function(val)
-                    config1.rotationSpeed = val
-                end,
-            })
-            settingsSection:Slider({
-                Title = "吸力",
-                Value = config1.attractionStrength,
-                Min = 0,
-                Max = 50000,
-                Callback = function(val)
-                    config1.attractionStrength = val
-                end,
-            })
-        else
-            stopH1()
-            WindUI:Notify({Title = "H1", Content = "已关闭", Duration = 2, Icon = "x"})
-        end
-    end,
-})
-
-local sectionH2 = blackholeTab:Section({Title = "H2", Box = true})
-sectionH2:Toggle({
-    Title = "开启H2",
-    Value = false,
-    Callback = function(val)
-        if val then
-            startH2()
-            WindUI:Notify({Title = "H2", Content = "已开启", Duration = 2, Icon = "check"})
-        else
-            stopH2()
-            WindUI:Notify({Title = "H2", Content = "已关闭", Duration = 2, Icon = "x"})
-        end
-    end,
-})
+end})
 
 local playerTab = Window:Tab({Title = "玩家", Icon = "users"})
-
 local targetPlayer = nil
 local playerMap = {}
-
 local function getPlayerNames()
     local names = {}
     playerMap = {}
@@ -2846,20 +1322,8 @@ local function getPlayerNames()
     end
     return names
 end
-
 local playerSection = playerTab:Section({Title = "玩家", Box = true})
-
-local playerDropdown = playerSection:Dropdown({
-    Title = "选择目标玩家",
-    Values = getPlayerNames(),
-    Callback = function(selected)
-        targetPlayer = playerMap[selected]
-    end,
-    OnOpen = function()
-        playerDropdown:SetValues(getPlayerNames())
-    end
-})
-
+local playerDropdown = playerSection:Dropdown({Title = "选择目标玩家", Values = getPlayerNames(), Callback = function(selected) targetPlayer = playerMap[selected] end, OnOpen = function() playerDropdown:SetValues(getPlayerNames()) end})
 local function refreshDropdown()
     if playerDropdown and playerDropdown.SetValues then
         playerDropdown:SetValues(getPlayerNames())
@@ -2868,361 +1332,46 @@ end
 Players.PlayerAdded:Connect(refreshDropdown)
 Players.PlayerRemoving:Connect(refreshDropdown)
 
-local smoothFollowConnection = nil
-local smoothFollowToggle = false
-playerSection:Toggle({
-    Title = "平滑跟随",
-    Value = false,
-    Callback = function(val)
-        smoothFollowToggle = val
-        if val then
-            if not targetPlayer then
-                WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
-                smoothFollowToggle = false
-                return
-            end
-            if smoothFollowConnection then 
-                smoothFollowConnection:Disconnect()
-                smoothFollowConnection = nil
-            end
-            smoothFollowConnection = RunService.Heartbeat:Connect(function()
-                if not smoothFollowToggle then
-                    if smoothFollowConnection then
-                        smoothFollowConnection:Disconnect()
-                        smoothFollowConnection = nil
-                    end
-                    return
-                end
-                local myChar = LocalPlayer.Character
-                if not myChar then return end
-                local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-                if not myRoot then return end
-                local target = targetPlayer
-                if not target or not target.Character then return end
-                local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
-                if not targetRoot then return end
-                local offset = targetRoot.CFrame.LookVector * -2.5
-                myRoot.CFrame = CFrame.new(targetRoot.Position + offset, targetRoot.Position)
-            end)
-        else
-            if smoothFollowConnection then
-                smoothFollowConnection:Disconnect()
-                smoothFollowConnection = nil
-            end
-        end
-    end,
-})
-
-playerSection:Button({
-    Title = "传送至选中玩家",
-    Callback = function()
+playerSection:Toggle({Title = "平滑跟随", Value = false, Callback = function(val)
+    if val then
         if not targetPlayer then
             WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
             return
         end
-        local target = targetPlayer
-        if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then
-            return
-        end
-        local myChar = LocalPlayer.Character
-        if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then
-            return
-        end
-        local targetPos = target.Character.HumanoidRootPart.Position
-        myChar.HumanoidRootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 0, 3))
-    end,
-})
-
-playerSection:Button({
-    Title = "r15道馆",
-    Callback = function()
-        pcall(function()
-            loadstring(game:HttpGet("https://pastefy.app/YZoglOyJ/raw"))()
+        _G.SmoothFollowCon = RunService.Heartbeat:Connect(function()
+            local myChar = LocalPlayer.Character
+            if not myChar then return end
+            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+            if not myRoot then return end
+            local target = targetPlayer
+            if not target or not target.Character then return end
+            local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
+            if not targetRoot then return end
+            local offset = targetRoot.CFrame.LookVector * -2.5
+            myRoot.CFrame = CFrame.new(targetRoot.Position + offset, targetRoot.Position)
         end)
+    else
+        if _G.SmoothFollowCon then
+            _G.SmoothFollowCon:Disconnect()
+            _G.SmoothFollowCon = nil
+        end
     end
-})
-
-local suckConnection = nil
-local suckAnimation = nil
-local originalGravity = nil
-local suckToggle = false
-
-playerSection:Toggle({
-    Title = "口人",
-    Value = false,
-    Callback = function(val)
-        suckToggle = val
-        if val then
-            if not targetPlayer then
-                WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
-                suckToggle = false
-                return
-            end
-            local target = targetPlayer
-            local myChar = LocalPlayer.Character
-            if not myChar then return end
-            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-            local targetChar = target.Character
-            if not targetChar then return end
-            local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
-            if not myRoot or not targetRoot then return end
-            
-            originalGravity = workspace.Gravity
-            workspace.Gravity = 0
-            
-            local animation = Instance.new("Animation")
-            animation.AnimationId = "rbxassetid://5918726674"
-            local humanoid = myChar:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                suckAnimation = humanoid:LoadAnimation(animation)
-                suckAnimation:Play()
-                suckAnimation:AdjustSpeed(1)
-            end
-            
-            local targetTorso = targetChar:FindFirstChild("LowerTorso") or targetChar:FindFirstChild("UpperTorso")
-            if targetTorso then
-                suckConnection = RunService.Heartbeat:Connect(function()
-                    if suckToggle and myRoot and targetTorso then
-                        myRoot.CFrame = targetTorso.CFrame * CFrame.new(0, -2.3, -1.0) * CFrame.Angles(0, math.pi, 0)
-                    end
-                end)
-            end
-        else
-            suckToggle = false
-            if suckConnection then
-                suckConnection:Disconnect()
-                suckConnection = nil
-            end
-            if suckAnimation then
-                suckAnimation:Stop()
-                suckAnimation = nil
-            end
-            if originalGravity then
-                workspace.Gravity = originalGravity
-                originalGravity = nil
-            end
-        end
-    end,
-})
-
-local bangConnection = nil
-local bangAnimation = nil
-local bangToggle = false
-
-playerSection:Toggle({
-    Title = "配人",
-    Value = false,
-    Callback = function(val)
-        bangToggle = val
-        if val then
-            if not targetPlayer then
-                WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
-                bangToggle = false
-                return
-            end
-            local target = targetPlayer
-            local myChar = LocalPlayer.Character
-            if not myChar then return end
-            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-            if not myRoot then return end
-            
-            local animation = Instance.new("Animation")
-            animation.AnimationId = "rbxassetid://10714068222"
-            local humanoid = myChar:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                bangAnimation = humanoid:LoadAnimation(animation)
-                bangAnimation:Play()
-                bangAnimation:AdjustSpeed(2)
-            end
-            
-            bangConnection = RunService.Heartbeat:Connect(function()
-                if not bangToggle then return end
-                local targetChar = target.Character
-                if not targetChar then
-                    bangToggle = false
-                    return
-                end
-                local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-                if not targetHRP or not myRoot then return end
-                
-                local forwardCFrame = targetHRP.CFrame * CFrame.new(0, 0, 1)
-                local backwardCFrame = targetHRP.CFrame * CFrame.new(0, 0, 2.5)
-                
-                local tweenForward = TweenService:Create(
-                    myRoot,
-                    TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
-                    {CFrame = forwardCFrame}
-                )
-                tweenForward:Play()
-                tweenForward.Completed:Wait()
-                
-                local tweenBackward = TweenService:Create(
-                    myRoot,
-                    TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
-                    {CFrame = backwardCFrame}
-                )
-                tweenBackward:Play()
-                tweenBackward.Completed:Wait()
-            end)
-        else
-            bangToggle = false
-            if bangConnection then
-                bangConnection:Disconnect()
-                bangConnection = nil
-            end
-            if bangAnimation then
-                bangAnimation:Stop()
-                bangAnimation = nil
-            end
-        end
-    end,
-})
-
-local susConnection = nil
-local susAnimation = nil
-local susToggle = false
-
-playerSection:Toggle({
-    Title = "被配",
-    Value = false,
-    Callback = function(val)
-        susToggle = val
-        if val then
-            if not targetPlayer then
-                WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
-                susToggle = false
-                return
-            end
-            local target = targetPlayer
-            local myChar = LocalPlayer.Character
-            if not myChar then return end
-            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-            if not myRoot then return end
-            
-            local animation = Instance.new("Animation")
-            animation.AnimationId = "rbxassetid://10714360343"
-            local humanoid = myChar:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                susAnimation = humanoid:LoadAnimation(animation)
-                susAnimation:Play()
-            end
-            
-            susConnection = RunService.Heartbeat:Connect(function()
-                if not susToggle then return end
-                local targetChar = target.Character
-                if not targetChar then
-                    susToggle = false
-                    return
-                end
-                local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-                if not targetHRP or not myRoot then return end
-                
-                local forwardCFrame = targetHRP.CFrame * CFrame.new(0, 0, -1.5)
-                local backwardCFrame = targetHRP.CFrame * CFrame.new(0, 0, -1.1)
-                
-                local tweenForward = TweenService:Create(
-                    myRoot,
-                    TweenInfo.new(0.15, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
-                    {CFrame = forwardCFrame}
-                )
-                tweenForward:Play()
-                tweenForward.Completed:Wait()
-                
-                local tweenBackward = TweenService:Create(
-                    myRoot,
-                    TweenInfo.new(0.15, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
-                    {CFrame = backwardCFrame}
-                )
-                tweenBackward:Play()
-                tweenBackward.Completed:Wait()
-            end)
-        else
-            susToggle = false
-            if susConnection then
-                susConnection:Disconnect()
-                susConnection = nil
-            end
-            if susAnimation then
-                susAnimation:Stop()
-                susAnimation = nil
-            end
-        end
-    end,
-})
-
-local getSuckedConnection = nil
-local getSuckedAnimation = nil
-local getSuckedGravity = nil
-local getSuckedToggle = false
-local getSuckedRunning = false
-
-playerSection:Toggle({
-    Title = "人口",
-    Value = false,
-    Callback = function(val)
-        getSuckedToggle = val
-        if val then
-            if not targetPlayer then
-                WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
-                getSuckedToggle = false
-                return
-            end
-            getSuckedRunning = true
-            local target = targetPlayer
-            local myChar = LocalPlayer.Character
-            if not myChar then return end
-            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-            local targetChar = target.Character
-            if not targetChar then return end
-            local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
-            if not myRoot or not targetRoot then return end
-            
-            getSuckedGravity = workspace.Gravity
-            workspace.Gravity = 0
-            
-            coroutine.wrap(function()
-                while getSuckedRunning and myRoot and targetRoot and myRoot.Position.Y <= 44 do
-                    wait()
-                    myRoot.CFrame = myRoot.CFrame * CFrame.new(0, 1.5, 0)
-                end
-                wait(1)
-                
-                if getSuckedRunning then
-                    local animation = Instance.new("Animation")
-                    animation.AnimationId = "rbxassetid://5918726674"
-                    local humanoid = myChar:FindFirstChildOfClass("Humanoid")
-                    if humanoid then
-                        getSuckedAnimation = humanoid:LoadAnimation(animation)
-                        getSuckedAnimation:Play()
-                        getSuckedAnimation:AdjustSpeed(1)
-                    end
-                    
-                    getSuckedConnection = RunService.Stepped:Connect(function()
-                        if getSuckedRunning and myRoot and targetRoot then
-                            myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 2.3, -1.1) * CFrame.Angles(0, math.pi, 0)
-                            myRoot.Velocity = Vector3.new(0, 0, 0)
-                        end
-                    end)
-                end
-            end)()
-        else
-            getSuckedToggle = false
-            getSuckedRunning = false
-            if getSuckedConnection then
-                getSuckedConnection:Disconnect()
-                getSuckedConnection = nil
-            end
-            if getSuckedAnimation then
-                getSuckedAnimation:Stop()
-                getSuckedAnimation = nil
-            end
-            if getSuckedGravity then
-                workspace.Gravity = getSuckedGravity
-                getSuckedGravity = nil
-            end
-        end
-    end,
-})
+end})
+playerSection:Button({Title = "传送至选中玩家", Callback = function()
+    if not targetPlayer then
+        WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+        return
+    end
+    local target = targetPlayer
+    if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return end
+    local myChar = LocalPlayer.Character
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
+    local targetPos = target.Character.HumanoidRootPart.Position
+    myChar.HumanoidRootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 0, 3))
+end})
+playerSection:Button({Title = "r15道馆", Callback = function()
+    pcall(function() loadstring(game:HttpGet("https://pastefy.app/YZoglOyJ/raw"))() end)
+end})
 
 _G._LCF_WindUI = WindUI
 _G._LCF_TmplWin = Window
