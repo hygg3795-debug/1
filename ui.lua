@@ -1,6 +1,223 @@
 local WindUI = loadstring(game:HttpGet("https://hygg3795-debug.github.io/1/main.txt"))()
 local BRAND = {name = "hygg脚本", version = "v1.0", author = "hygg", folder = "hyggHub", icon = "zap", theme = "Dark", accent = "#FF6B35"}
 
+local function loadBypass()
+    local player = game.Players.LocalPlayer
+    local RunService = game:GetService("RunService")
+    local VirtualUser = game:GetService("VirtualUser")
+    local TeleportService = game:GetService("TeleportService")
+    
+    pcall(function()
+        local mt = getrawmetatable(game)
+        if mt then
+            local old_namecall = mt.__namecall
+            local old_index = mt.__index
+            setreadonly(mt, false)
+            
+            mt.__namecall = function(self, ...)
+                local method = getnamecallmethod()
+                if method == "Kick" or method == "Ban" or method == "Remove" then
+                    return nil
+                end
+                return old_namecall(self, ...)
+            end
+            
+            mt.__index = function(self, key)
+                if key == "Kick" or key == "Ban" then
+                    return function() return nil end
+                end
+                return old_index(self, key)
+            end
+            
+            setreadonly(mt, true)
+        end
+    end)
+    
+    player.Kick = function() return nil end
+    for _, p in ipairs(game.Players:GetPlayers()) do
+        p.Kick = function() return nil end
+    end
+    
+    local function speedBypass()
+        local char = player.Character
+        if not char then return end
+        local hum = char:FindFirstChild("Humanoid")
+        if not hum then return end
+        
+        RunService.Heartbeat:Connect(function()
+            if hum and hum.Parent then
+                if hum.WalkSpeed ~= 16 then hum.WalkSpeed = 16 end
+                if hum.JumpPower ~= 50 then hum.JumpPower = 50 end
+            end
+        end)
+    end
+    
+    player.CharacterAdded:Connect(function() task.wait(0.5) speedBypass() end)
+    speedBypass()
+    
+    local function antiTeleport()
+        local char = player.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        
+        local lastPos = hrp.Position
+        RunService.Heartbeat:Connect(function()
+            if not hrp or not hrp.Parent then return end
+            if (hrp.Position - lastPos).Magnitude > 300 then
+                hrp.CFrame = CFrame.new(lastPos)
+            end
+            if (hrp.Position - lastPos).Magnitude < 100 then
+                lastPos = hrp.Position
+            end
+        end)
+    end
+    
+    player.CharacterAdded:Connect(function() task.wait(0.5) antiTeleport() end)
+    antiTeleport()
+    
+    local function flyBypass()
+        local char = player.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChild("Humanoid")
+        if not hrp or not hum then return end
+        
+        local lastY = hrp.Position.Y
+        RunService.Heartbeat:Connect(function()
+            if not hrp or not hrp.Parent then return end
+            if hrp.Position.Y - lastY > 50 then
+                hum.PlatformStand = false
+                hum.Sit = false
+                hum.Jump = true
+                task.wait(0.05)
+                hum.Jump = false
+            end
+            lastY = hrp.Position.Y
+        end)
+    end
+    
+    player.CharacterAdded:Connect(function() task.wait(0.5) flyBypass() end)
+    flyBypass()
+    
+    local function antiDeath()
+        local char = player.Character
+        if not char then return end
+        local hum = char:FindFirstChild("Humanoid")
+        if not hum then return end
+        
+        hum.HealthChanged:Connect(function()
+            if hum.Health <= 0 then
+                task.wait(0.05)
+                if hum and hum.Parent then
+                    hum.Health = hum.MaxHealth
+                end
+            end
+        end)
+    end
+    
+    player.CharacterAdded:Connect(function() task.wait(0.5) antiDeath() end)
+    antiDeath()
+    
+    player.Idled:Connect(function()
+        pcall(function()
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new())
+        end)
+    end)
+    
+    player:GetPropertyChangedSignal("Parent"):Connect(function()
+        if not player.Parent then
+            task.wait(2)
+            pcall(function() TeleportService:Teleport(game.PlaceId, player) end)
+        end
+    end)
+    
+    local SAFE_REMOTES = {"Move", "Jump", "Attack", "Interact", "Click", "Spawn"}
+    
+    local function isSafeRemote(name)
+        for _, safe in ipairs(SAFE_REMOTES) do
+            if name == safe then return true end
+        end
+        return false
+    end
+    
+    pcall(function()
+        local rep = game:GetService("ReplicatedStorage")
+        for _, remote in ipairs(rep:GetDescendants()) do
+            if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
+                local oldFire = remote.FireServer
+                if oldFire then
+                    remote.FireServer = function(self, ...)
+                        if not isSafeRemote(self.Name) then
+                            return
+                        end
+                        return oldFire(self, ...)
+                    end
+                end
+            end
+        end
+    end)
+    
+    task.spawn(function()
+        while true do
+            if math.random() > 0.85 then
+                task.wait(math.random(200, 800) / 1000)
+            end
+            if math.random() > 0.95 then
+                pcall(function()
+                    local cam = workspace.CurrentCamera
+                    if cam then
+                        cam.CFrame = cam.CFrame * CFrame.Angles(
+                            math.rad(math.random(-5, 5)),
+                            math.rad(math.random(-20, 20)),
+                            0
+                        )
+                    end
+                end)
+            end
+            task.wait(math.random(2, 10))
+        end
+    end)
+    
+    pcall(function()
+        if getfenv and getfenv(0) then
+            local env = getfenv(0)
+            if env.script then
+                env.script = nil
+            end
+        end
+    end)
+    
+    local function humanizeVector(vec)
+        if not vec then return vec end
+        return vec + Vector3.new(
+            math.random(-2, 2) / 1000,
+            math.random(-2, 2) / 1000,
+            math.random(-2, 2) / 1000
+        )
+    end
+    
+    pcall(function()
+        local oldFire = game:GetService("ReplicatedStorage").FireServer
+        if oldFire then
+            game:GetService("ReplicatedStorage").FireServer = function(self, ...)
+                local args = {...}
+                for i, arg in ipairs(args) do
+                    if type(arg) == "Vector3" then
+                        args[i] = humanizeVector(arg)
+                    end
+                end
+                return oldFire(self, unpack(args))
+            end
+        end
+    end)
+end
+
+loadBypass()
+
+task.wait(0.5)
+
 local Window = WindUI:CreateWindow({
     Title = BRAND.name,
     Icon = BRAND.icon,
@@ -24,14 +241,49 @@ Window:EditOpenButton({
     CornerRadius = UDim.new(0, 26),
     StrokeThickness = 4,
     Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromHex("00BFFF")),
-        ColorSequenceKeypoint.new(1, Color3.fromHex("8A2BE2")),
+        ColorSequenceKeypoint.new(0, Color3.fromHex("FF0000")),
+        ColorSequenceKeypoint.new(0.17, Color3.fromHex("FF7F00")),
+        ColorSequenceKeypoint.new(0.33, Color3.fromHex("FFFF00")),
+        ColorSequenceKeypoint.new(0.5, Color3.fromHex("00FF00")),
+        ColorSequenceKeypoint.new(0.67, Color3.fromHex("0000FF")),
+        ColorSequenceKeypoint.new(0.83, Color3.fromHex("4B0082")),
+        ColorSequenceKeypoint.new(1, Color3.fromHex("8F00FF")),
     }),
     Draggable = true,
 })
 
 task.spawn(function()
-    task.wait(0.5)
+    while true do
+        task.wait(0.05)
+        local success, err = pcall(function()
+            local mainFrame = Window.Frame or Window.Main or (Window.UIElements and Window.UIElements.Main)
+            if not mainFrame and Window.Instance then
+                mainFrame = Window.Instance:FindFirstChildWhichIsA("Frame", true)
+            end
+            if mainFrame then
+                local frame = mainFrame:FindFirstChildWhichIsA("Frame") or mainFrame
+                if frame and not frame:FindFirstChild("RainbowBorder") then
+                    local border = Instance.new("Frame")
+                    border.Name = "RainbowBorder"
+                    border.Size = UDim2.new(1, 0, 1, 0)
+                    border.Position = UDim2.new(0, 0, 0, 0)
+                    border.BackgroundTransparency = 1
+                    border.ZIndex = 999
+                    border.Parent = frame
+                    local uiStroke = Instance.new("UIStroke")
+                    uiStroke.Name = "BorderStroke"
+                    uiStroke.Thickness = 2
+                    uiStroke.Color = Color3.fromRGB(255, 0, 0)
+                    uiStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                    uiStroke.Parent = border
+                end
+            end
+        end)
+    end
+end)
+
+task.spawn(function()
+    task.wait(1)
     pcall(function()
         local mainFrame = Window.Frame or Window.Main or (Window.UIElements and Window.UIElements.Main)
         if not mainFrame and Window.Instance then
@@ -76,6 +328,8 @@ task.spawn(function()
         end
     end)
 end)
+
+WindUI:Notify({Title = "天天开心", Content = "", Duration = 3, Icon = "smile"})
 
 local function createGeneralTab(Window, WindUI)
     local Players = game:GetService("Players")
@@ -1130,7 +1384,7 @@ local function createPlayerTab(Window, WindUI)
     local playerMap = {}
 
     local function getPlayerNames()
-        local names = {"-- 请选择玩家 --"}
+        local names = {}
         playerMap = {}
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= LocalPlayer then
@@ -1147,11 +1401,24 @@ local function createPlayerTab(Window, WindUI)
         Title = "选择目标玩家",
         Values = getPlayerNames(),
         Callback = function(selected)
-            if selected and selected ~= "-- 请选择玩家 --" then
+            if selected then
                 targetPlayer = playerMap[selected]
             end
         end
     })
+
+    playerSection:Button({Title = "刷新玩家列表", Callback = function()
+        if playerDropdown then
+            pcall(function()
+                if playerDropdown.SetValues then
+                    playerDropdown:SetValues(getPlayerNames())
+                elseif playerDropdown.Update then
+                    playerDropdown:Update(getPlayerNames())
+                end
+                WindUI:Notify({Title = "刷新成功", Content = "玩家列表已更新", Duration = 2, Icon = "check"})
+            end)
+        end
+    end})
 
     local function refreshDropdown()
         if playerDropdown then
@@ -1880,69 +2147,33 @@ local function createLightingTab(Window, WindUI)
     return tab
 end
 
-local success, err = pcall(function()
+pcall(function()
     createGeneralTab(Window, WindUI)
 end)
-if not success then
-    warn("通用Tab加载失败:", err)
-end
 
-local success, err = pcall(function()
+pcall(function()
     createTeleportTab(Window, WindUI)
 end)
-if not success then
-    warn("传送Tab加载失败:", err)
-end
 
-local success, err = pcall(function()
+pcall(function()
     createPlayerTab(Window, WindUI)
 end)
-if not success then
-    warn("玩家Tab加载失败:", err)
-    local fallbackTab = Window:Tab({Title = "玩家", Icon = "users"})
-    local fallbackSection = fallbackTab:Section({Title = "加载失败"})
-    fallbackSection:Label({Title = "玩家Tab加载失败，请查看控制台"})
-end
 
-local success, err = pcall(function()
+pcall(function()
     createSuperTab(Window, WindUI)
 end)
-if not success then
-    warn("超人Tab加载失败:", err)
-    local fallbackTab = Window:Tab({Title = "超人", Icon = "zap"})
-    local fallbackSection = fallbackTab:Section({Title = "加载失败"})
-    fallbackSection:Label({Title = "超人Tab加载失败，请查看控制台"})
-end
 
-local success, err = pcall(function()
+pcall(function()
     createActionTab(Window, WindUI)
 end)
-if not success then
-    warn("动作Tab加载失败:", err)
-    local fallbackTab = Window:Tab({Title = "动作", Icon = "sparkles"})
-    local fallbackSection = fallbackTab:Section({Title = "加载失败"})
-    fallbackSection:Label({Title = "动作Tab加载失败，请查看控制台"})
-end
 
-local success, err = pcall(function()
+pcall(function()
     createBlackholeTab(Window, WindUI)
 end)
-if not success then
-    warn("黑洞Tab加载失败:", err)
-    local fallbackTab = Window:Tab({Title = "黑洞", Icon = "circle"})
-    local fallbackSection = fallbackTab:Section({Title = "加载失败"})
-    fallbackSection:Label({Title = "黑洞Tab加载失败，请查看控制台"})
-end
 
-local success, err = pcall(function()
+pcall(function()
     createLightingTab(Window, WindUI)
 end)
-if not success then
-    warn("光影Tab加载失败:", err)
-    local fallbackTab = Window:Tab({Title = "光影", Icon = "sun"})
-    local fallbackSection = fallbackTab:Section({Title = "加载失败"})
-    fallbackSection:Label({Title = "光影Tab加载失败，请查看控制台"})
-end
 
 _G._LCF_WindUI = WindUI
 _G._LCF_TmplWin = Window
