@@ -449,6 +449,74 @@ return function(Window, WindUI)
         end
     end)
 
+    local floodPlatform = nil
+    local floodPart = nil
+    local floodFollowConnection = nil
+    local floodEnabled = false
+
+    local function createFloodPlatform()
+        if floodPlatform then return end
+        floodPlatform = Instance.new("Part")
+        floodPlatform.Name = "FloodPlatform"
+        floodPlatform.Size = Vector3.new(10000, 0.5, 10000)
+        floodPlatform.CanCollide = true
+        floodPlatform.Anchored = true
+        floodPlatform.Transparency = 0.2
+        floodPlatform.BrickColor = BrickColor.new("Bright blue")
+        floodPlatform.Material = Enum.Material.SmoothPlastic
+        floodPlatform.Parent = Workspace
+    end
+
+    local function findFlood()
+        local structure = Workspace:FindFirstChild("Structure")
+        if structure then
+            floodPart = structure:FindFirstChild("FloodLevel")
+        end
+        if not floodPart then
+            floodPart = Workspace:FindFirstChild("FloodLevel")
+        end
+        return floodPart
+    end
+
+    local function updateFloodPlatform()
+        if not floodPlatform or not floodPart then return end
+        local char = LocalPlayer.Character
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        floodPlatform.Position = Vector3.new(root.Position.X, floodPart.Position.Y + 0.5, root.Position.Z)
+    end
+
+    local function startFlood()
+        if floodEnabled then return end
+        createFloodPlatform()
+        findFlood()
+        if floodFollowConnection then floodFollowConnection:Disconnect() end
+        floodFollowConnection = RunService.Heartbeat:Connect(updateFloodPlatform)
+        floodEnabled = true
+    end
+
+    local function stopFlood()
+        floodEnabled = false
+        if floodFollowConnection then
+            floodFollowConnection:Disconnect()
+            floodFollowConnection = nil
+        end
+        if floodPlatform then
+            floodPlatform:Destroy()
+            floodPlatform = nil
+        end
+        floodPart = nil
+    end
+
+    createSuggestToggle("去除洪水", function(val)
+        if val then
+            startFlood()
+        else
+            stopFlood()
+        end
+    end)
+
     tab:Divider()
 
     local independentSection = tab:Section({Title = "独立功能"})
@@ -955,6 +1023,67 @@ return function(Window, WindUI)
         if char then
             local hum = char:FindFirstChildOfClass("Humanoid")
             if hum then hum.Health = 0 end
+        end
+    end})
+
+    local soundSpamRunning = false
+    local soundSpamConnection = nil
+
+    independentSection:Toggle({Title = "声音折磨", Value = false, Callback = function(val)
+        if val then
+            soundSpamRunning = true
+            soundSpamConnection = RunService.Heartbeat:Connect(function()
+                if not soundSpamRunning then return end
+                pcall(function()
+                    for _, v in pairs(game:GetDescendants()) do
+                        if v:IsA("Sound") then
+                            v.Volume = 10
+                            v.Looped = true
+                            v:Play()
+                        end
+                    end
+                    
+                    for _, player in pairs(Players:GetPlayers()) do
+                        local char = player.Character
+                        if char then
+                            for i = 1, 5 do
+                                local s = Instance.new("Sound")
+                                s.SoundId = "rbxassetid://" .. math.random(1000000, 99999999)
+                                s.Volume = 10
+                                s.Looped = true
+                                s.Parent = char:FindFirstChild("Head") or char
+                                s:Play()
+                                game:GetService("Debris"):AddItem(s, 10)
+                            end
+                        end
+                    end
+                    
+                    for i = 1, 20 do
+                        local s = Instance.new("Sound")
+                        s.SoundId = "rbxassetid://" .. math.random(1000000, 99999999)
+                        s.Volume = 10
+                        s.PlaybackSpeed = math.random(5, 30) / 10
+                        s.Parent = workspace
+                        s:Play()
+                        game:GetService("Debris"):AddItem(s, 5)
+                    end
+                end)
+                task.wait(0.03)
+            end)
+        else
+            soundSpamRunning = false
+            if soundSpamConnection then
+                soundSpamConnection:Disconnect()
+                soundSpamConnection = nil
+            end
+            for _, v in pairs(game:GetDescendants()) do
+                if v:IsA("Sound") then
+                    pcall(function()
+                        v:Stop()
+                        v:Destroy()
+                    end)
+                end
+            end
         end
     end})
 
