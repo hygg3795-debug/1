@@ -77,7 +77,6 @@ task.spawn(function()
     end)
 end)
 
--- ==================== 通用 Tab ====================
 local function createGeneralTab(Window, WindUI)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
@@ -1041,7 +1040,6 @@ local function createGeneralTab(Window, WindUI)
     return tab
 end
 
--- ==================== 玩家 Tab ====================
 local function createPlayerTab(Window, WindUI)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
@@ -1308,7 +1306,6 @@ local function createPlayerTab(Window, WindUI)
     return tab
 end
 
--- ==================== 超人 Tab ====================
 local function createSuperTab(Window, WindUI)
     local tab = Window:Tab({Title = "超人", Icon = "zap"})
     local section = tab:Section({Title = "加载超人脚本", Box = true})
@@ -1334,7 +1331,6 @@ local function createSuperTab(Window, WindUI)
     return tab
 end
 
--- ==================== 传送 Tab ====================
 local function createTeleportTab(Window, WindUI)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
@@ -1413,7 +1409,6 @@ local function createTeleportTab(Window, WindUI)
     return tab
 end
 
--- ==================== 动作 Tab ====================
 local function createActionTab(Window, WindUI)
     local Players = game:GetService("Players")
     local Workspace = game:GetService("Workspace")
@@ -1476,7 +1471,6 @@ local function createActionTab(Window, WindUI)
     return tab
 end
 
--- ==================== 黑洞 Tab ====================
 local function createBlackholeTab(Window, WindUI)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
@@ -1510,11 +1504,21 @@ local function createBlackholeTab(Window, WindUI)
         return false
     end
     local function addPart1(p)
-        if retainPart1(p) and not table.find(parts, p) then table.insert(parts, p) end
+        if retainPart1(p) then
+            local found = false
+            for _, v in pairs(parts) do
+                if v == p then found = true break end
+            end
+            if not found then table.insert(parts, p) end
+        end
     end
     local function removePart1(p)
-        local idx = table.find(parts, p)
-        if idx then table.remove(parts, idx) end
+        for i, v in pairs(parts) do
+            if v == p then
+                table.remove(parts, i)
+                break
+            end
+        end
     end
     local function refreshParts1()
         parts = {}
@@ -1662,7 +1666,6 @@ local function createBlackholeTab(Window, WindUI)
     return tab
 end
 
--- ==================== 光影 Tab ====================
 local function createLightingTab(Window, WindUI)
     local Players = game:GetService("Players")
     local Lighting = game:GetService("Lighting")
@@ -1863,7 +1866,6 @@ local function createLightingTab(Window, WindUI)
     return tab
 end
 
--- ==================== 加载所有 Tab ====================
 createGeneralTab(Window, WindUI)
 createTeleportTab(Window, WindUI)
 createPlayerTab(Window, WindUI)
