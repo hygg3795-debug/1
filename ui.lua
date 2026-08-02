@@ -121,8 +121,6 @@ local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
-local generalTab = Window:Tab({Title = "通用", Icon = "settings"})
-
 local function makeDraggable(guiObj, dragHandle)
     local dragging = false
     local dragInput, dragStart, startPos
@@ -156,50 +154,19 @@ local function makeDraggable(guiObj, dragHandle)
     end)
 end
 
+----------------------------------------------------------------------
+-- 1. 通用 Tab
+----------------------------------------------------------------------
+local generalTab = Window:Tab({Title = "通用", Icon = "settings"})
 local suggestSection = generalTab:Section({Title = "建议开"})
 
-local allSuggestEnabled = false
-local suggestToggles = {}
-
-local masterToggle = suggestSection:Toggle({
-    Title = "一键开关",
-    Desc = "开启/关闭下方所有建议开功能",
-    Value = false,
-    Callback = function(val)
-        allSuggestEnabled = val
-        for _, toggle in ipairs(suggestToggles) do
-            if toggle and toggle.SetValue then
-                pcall(function()
-                    toggle:SetValue(val)
-                end)
-            end
-        end
-    end
-})
-suggestSection:Divider()
-
+-- 去除了一键开关，只保留独立开关函数
 local function createSuggestToggle(title, callback)
-    local toggle = suggestSection:Toggle({
+    return suggestSection:Toggle({
         Title = title,
         Value = false,
-        Callback = function(val)
-            callback(val)
-            if not val and allSuggestEnabled then
-                allSuggestEnabled = false
-                for i, t in ipairs(suggestToggles) do
-                    if i > 1 and t.GetValue and t:GetValue() then
-                        allSuggestEnabled = true
-                        break
-                    end
-                end
-                if suggestToggles[1] and suggestToggles[1].SetValue then
-                    suggestToggles[1]:SetValue(allSuggestEnabled)
-                end
-            end
-        end
+        Callback = callback
     })
-    table.insert(suggestToggles, toggle)
-    return toggle
 end
 
 createSuggestToggle("防踢", function(val)
@@ -368,7 +335,6 @@ createSuggestToggle("去雾", function(enable)
     end
 end)
 
-local tpTool = nil
 createSuggestToggle("点击传送工具", function(val)
     if val then
         pcall(function()
@@ -482,8 +448,6 @@ createSuggestToggle("岩石实体化", function(val)
 end)
 
 local blockGui = nil
-local autoPlace = false
-local autoPlacing = false
 local function placeOneBlock()
     local char = LocalPlayer.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -576,7 +540,6 @@ createSuggestToggle("放置方块", function(val)
     end
 end)
 
-local disasterConn = nil
 createSuggestToggle("移除灾害视角", function(val)
     if val then
         local function removeDisasterGuis()
@@ -1112,6 +1075,9 @@ independentSection:Button({Title = "自杀", Callback = function()
     end
 end})
 
+----------------------------------------------------------------------
+-- 2. 传送 Tab
+----------------------------------------------------------------------
 local teleportTab = Window:Tab({Title = "传送", Icon = "map-pin"})
 local teleportSection = teleportTab:Section({Title = "坐标传送", Box = true})
 local coordLabel = teleportSection:Label({Title = "X: 0.00  Y: 0.00  Z: 0.00"})
@@ -1156,7 +1122,7 @@ RunService.Heartbeat:Connect(function()
         local char = LocalPlayer.Character
         if char and char:FindFirstChild("HumanoidRootPart") then
             local pos = char.HumanoidRootPart.Position
-            coordLabel.Text = string.format("X: %.2f  Y: %.2f  Z: %.2f", pos.X, pos.Y, pos.Z)
+            coordLabel:SetTitle(string.format("X: %.2f  Y: %.2f  Z: %.2f", pos.X, pos.Y, pos.Z))
         end
     end
 end)
@@ -1178,6 +1144,9 @@ createTeleportToggle("传送出生岛", Vector3.new(-247.14, 180.45, 309.40))
 createTeleportToggle("传送岛屿", Vector3.new(-104.44, 48.65, 13.03))
 createTeleportToggle("传送虚空", Vector3.new(0, 100000000, 0))
 
+----------------------------------------------------------------------
+-- 3. 玩家 Tab
+----------------------------------------------------------------------
 local playerTab = Window:Tab({Title = "玩家", Icon = "users"})
 local targetPlayer = nil
 local playerMap = {}
@@ -1194,13 +1163,13 @@ local function getPlayerNames()
     return names
 end
 
-local playerSection = playerTab:Section({Title = "玩家", Box = true})
+local playerSection = playerTab:Section({Title = "玩家选项", Box = true})
 local playerDropdown = playerSection:Dropdown({
     Title = "选择目标玩家",
     Values = getPlayerNames(),
     Callback = function(selected)
         targetPlayer = playerMap[selected]
-    end,
+    end
 })
 
 local function refreshDropdown()
@@ -1404,10 +1373,10 @@ playerSection:Toggle({Title = "人口", Value = false, Callback = function(val)
         workspace.Gravity = 0
         coroutine.wrap(function()
             while getSuckedRunning and myRoot and targetRoot and myRoot.Position.Y <= 44 do
-                wait()
+                task.wait()
                 myRoot.CFrame = myRoot.CFrame * CFrame.new(0, 1.5, 0)
             end
-            wait(1)
+            task.wait(1)
             if getSuckedRunning then
                 local animation = Instance.new("Animation")
                 animation.AnimationId = "rbxassetid://5918726674"
@@ -1433,6 +1402,9 @@ playerSection:Toggle({Title = "人口", Value = false, Callback = function(val)
     end
 end})
 
+----------------------------------------------------------------------
+-- 4. 黑洞 Tab
+----------------------------------------------------------------------
 local blackholeTab = Window:Tab({Title = "黑洞", Icon = "circle"})
 local parts = {}
 local enabled1 = false
@@ -1591,12 +1563,6 @@ sectionH1:Toggle({Title = "开启h1", Value = false, Callback = function(val)
     if val then
         startH1()
         WindUI:Notify({Title = "h1", Content = "已开启", Duration = 2, Icon = "check"})
-        local settingsTab = Window:Tab({Title = "h1设置", Icon = "settings"})
-        local settingsSection = settingsTab:Section({Title = "h1参数", Box = true})
-        settingsSection:Slider({Title = "半径", Value = config1.radius, Min = 0, Max = 500, Callback = function(val) config1.radius = val end})
-        settingsSection:Slider({Title = "高度", Value = config1.height, Min = 0, Max = 500, Callback = function(val) config1.height = val end})
-        settingsSection:Slider({Title = "转速", Value = config1.rotationSpeed, Min = 0, Max = 200, Callback = function(val) config1.rotationSpeed = val end})
-        settingsSection:Slider({Title = "吸力", Value = config1.attractionStrength, Min = 0, Max = 50000, Callback = function(val) config1.attractionStrength = val end})
     else
         stopH1()
         WindUI:Notify({Title = "h1", Content = "已关闭", Duration = 2, Icon = "x"})
@@ -1614,6 +1580,9 @@ sectionH2:Toggle({Title = "开启h2", Value = false, Callback = function(val)
     end
 end})
 
+----------------------------------------------------------------------
+-- 5. 超人 Tab
+----------------------------------------------------------------------
 local superTab = Window:Tab({Title = "超人", Icon = "zap"})
 local superSection = superTab:Section({Title = "加载超人脚本", Box = true})
 superSection:Button({Title = "祖国人", Callback = function()
@@ -1632,6 +1601,9 @@ superSection:Button({Title = "火车头", Callback = function()
     end)
 end})
 
+----------------------------------------------------------------------
+-- 6. 光影 Tab
+----------------------------------------------------------------------
 local lightTab = Window:Tab({Title = "光影", Icon = "sun"})
 local lightSection = lightTab:Section({Title = "光影效果"})
 local originalLighting2 = {}
@@ -1662,18 +1634,24 @@ local function saveLighting()
         EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale,
         EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale
     }
-    originalTerrain = {
-        WaterReflectance = Terrain.WaterReflectance,
-        WaterTransparency = Terrain.WaterTransparency,
-        WaterWaveSize = Terrain.WaterWaveSize,
-        WaterWaveSpeed = Terrain.WaterWaveSpeed,
-        WaterColor = Terrain.WaterColor
-    }
+    local terrain = workspace:FindFirstChildOfClass("Terrain")
+    if terrain then
+        originalTerrain = {
+            WaterReflectance = terrain.WaterReflectance,
+            WaterTransparency = terrain.WaterTransparency,
+            WaterWaveSize = terrain.WaterWaveSize,
+            WaterWaveSpeed = terrain.WaterWaveSpeed,
+            WaterColor = terrain.WaterColor
+        }
+    end
 end
 
 local function restoreLighting()
     for key, value in pairs(originalLighting2) do pcall(function() Lighting[key] = value end) end
-    for key, value in pairs(originalTerrain) do pcall(function() Terrain[key] = value end) end
+    local terrain = workspace:FindFirstChildOfClass("Terrain")
+    if terrain then
+        for key, value in pairs(originalTerrain) do pcall(function() terrain[key] = value end) end
+    end
 end
 
 local function createEffect(effectType, properties)
@@ -1752,11 +1730,15 @@ lightSection:Toggle({Title = "画质增强Pro Max", Value = false, Callback = fu
         Lighting.ExposureCompensation = 0.7
         Lighting.FogColor = Color3.fromRGB(140, 158, 178)
         Lighting.FogEnd = 3000
-        Terrain.WaterReflectance = 0.35
-        Terrain.WaterTransparency = 0.88
-        Terrain.WaterWaveSize = 0.15
-        Terrain.WaterWaveSpeed = 25
-        Terrain.WaterColor = Color3.fromRGB(72, 141, 202)
+        
+        local terrain = workspace:FindFirstChildOfClass("Terrain")
+        if terrain then
+            terrain.WaterReflectance = 0.35
+            terrain.WaterTransparency = 0.88
+            terrain.WaterWaveSize = 0.15
+            terrain.WaterWaveSpeed = 25
+            terrain.WaterColor = Color3.fromRGB(72, 141, 202)
+        end
     else
         clearEffects()
         restoreLighting()
@@ -1787,11 +1769,15 @@ lightSection:Toggle({Title = "固定黄昏光影", Value = false, Callback = fun
         createEffect("SunRaysEffect", {Intensity = 0.22, Spread = 0.8})
         createEffect("DepthOfFieldEffect", {FarIntensity = 0.1, FocusDistance = 35, InFocusRadius = 22, NearIntensity = 0.3})
         createEffect("Atmosphere", {Density = 0.25, Offset = 0.25, Color = Color3.fromRGB(180, 190, 210), Decay = Color3.fromRGB(35, 40, 50), Haze = 0.12})
-        Terrain.WaterReflectance = 0.2
-        Terrain.WaterTransparency = 0.93
-        Terrain.WaterWaveSize = 0.12
-        Terrain.WaterWaveSpeed = 16
-        Terrain.WaterColor = Color3.fromRGB(75, 135, 200)
+        
+        local terrain = workspace:FindFirstChildOfClass("Terrain")
+        if terrain then
+            terrain.WaterReflectance = 0.2
+            terrain.WaterTransparency = 0.93
+            terrain.WaterWaveSize = 0.12
+            terrain.WaterWaveSpeed = 16
+            terrain.WaterColor = Color3.fromRGB(75, 135, 200)
+        end
         local sky = Lighting:FindFirstChildOfClass("Sky") or Instance.new("Sky")
         sky.Parent = Lighting
         sky.CelestialBodiesShown = true
@@ -1810,6 +1796,9 @@ lightSection:Toggle({Title = "固定黄昏光影", Value = false, Callback = fun
     end
 end})
 
+----------------------------------------------------------------------
+-- 7. 动作 Tab
+----------------------------------------------------------------------
 local actionTab = Window:Tab({Title = "动作", Icon = "sparkles"})
 local actionSection = actionTab:Section({Title = "动作列表", Box = true})
 local active = {}
@@ -1863,33 +1852,4 @@ actionSection:Button({Title = "俄罗斯舞蹈", Callback = function() clik() pl
 actionSection:Button({Title = "俯卧撑", Callback = function() clik() playAnimation(108313130500811, 1, 0) end})
 actionSection:Button({Title = "停止当前动作", Desc = "打断并停止所有正在播放的动作", Callback = function() stopAnimation() end})
 
-task.spawn(function()
-    local WindUI = _G._LCF_WindUI
-    if not WindUI then return end
-    local oldDialog = WindUI.Dialog
-    WindUI.Dialog = function(options)
-        options = options or {}
-        if options.Title == "Close" or options.Title == "Close Window" then
-            options.Title = "关闭窗口"
-        end
-        if options.Content then
-            options.Content = string.gsub(options.Content, "Are you sure you want to close the window?", "确定要关闭窗口吗？")
-            options.Content = string.gsub(options.Content, "Are you sure you want to close?", "确定要关闭吗？")
-            options.Content = string.gsub(options.Content, "Are you sure", "确定")
-        end
-        if options.Buttons then
-            for _, btn in ipairs(options.Buttons) do
-                if btn.Title == "Confirm" or btn.Title == "Yes" then
-                    btn.Title = "确定"
-                elseif btn.Title == "Cancel" or btn.Title == "No" then
-                    btn.Title = "取消"
-                end
-            end
-        end
-        return oldDialog(options)
-    end
-end)
-
-_G._LCF_WindUI = WindUI
-_G._LCF_TmplWin = Window
 print("[" .. BRAND.name .. "] 全新 UI 加载完成 ✅")
