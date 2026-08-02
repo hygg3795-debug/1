@@ -47,54 +47,64 @@ return function(Window, WindUI)
 
     -- ================= UI 界面绑定 =================
     local actionSection = tab:Section({ Title = "动作列表", Box = true })
+return function(Window, WindUI)
+    local Players = game:GetService("Players")
+    local Workspace = game:GetService("Workspace")
+    local LocalPlayer = Players.LocalPlayer
 
-    actionSection:Button({
-        Title = "悬浮躺",
-        Callback = function() 
-            clik()
-            playAnimation(77840765435893, 1, 0)
-        end,
-    })
+    local tab = Window:Tab({Title = "动作", Icon = "sparkles"})
+    local section = tab:Section({Title = "动作列表", Box = true})
 
-    actionSection:Button({
-        Title = "JOJO姿势",
-        Callback = function() 
-            clik()
-            playAnimation(120629563851640, 1, 0)
-        end,
-    })
+    local active = {}
 
-    actionSection:Button({
-        Title = "直升机",
-        Callback = function() 
-            clik()
-            playAnimation(95301257497525, 1, 0)
-        end,
-    })
+    local function clik()
+        local s = Instance.new("Sound")
+        s.SoundId = "rbxassetid://87152549167464"
+        s.Parent = Workspace
+        s.Volume = 1.2
+        s.TimePosition = 0.1
+        s:Play()
+        game:GetService("Debris"):AddItem(s, 3)
+    end
 
-    actionSection:Button({
-        Title = "俄罗斯舞蹈",
-        Callback = function() 
-            clik()
-            playAnimation(97148848007002, 1, 0)
-        end,
-    })
+    local function playAnimation(id, speed, timepos)
+        local player = game.Players.LocalPlayer
+        if player and player.Character then
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                local animator = humanoid:FindFirstChildOfClass("Animator") or humanoid
+                for _, track in pairs(active) do
+                    if track then track:Stop() end
+                end
+                active = {}
+                local animation = Instance.new("Animation")
+                animation.AnimationId = "rbxassetid://" .. tostring(id)
+                local track = animator:LoadAnimation(animation)
+                if track then
+                    track.Looped = true
+                    track:Play()
+                    track:AdjustSpeed(speed or 1)
+                    track.TimePosition = timepos or 0
+                    active[id] = track
+                end
+            end
+        end
+    end
 
-    actionSection:Button({
-        Title = "俯卧撑",
-        Callback = function() 
-            clik()
-            playAnimation(108313130500811, 1, 0)
-        end,
-    })
+    local function stopAnimation()
+        clik()
+        for _, track in pairs(active) do
+            if track then track:Stop() end
+        end
+        active = {}
+    end
 
-    actionSection:Button({
-        Title = "停止当前动作",
-        Desc = "打断并停止所有正在播放的动作",
-        Callback = function()
-            stopAnimation()
-        end,
-    })
+    section:Button({Title = "悬浮躺", Callback = function() clik() playAnimation(77840765435893, 1, 0) end})
+    section:Button({Title = "JOJO姿势", Callback = function() clik() playAnimation(120629563851640, 1, 0) end})
+    section:Button({Title = "直升机", Callback = function() clik() playAnimation(95301257497525, 1, 0) end})
+    section:Button({Title = "俄罗斯舞蹈", Callback = function() clik() playAnimation(97148848007002, 1, 0) end})
+    section:Button({Title = "俯卧撑", Callback = function() clik() playAnimation(108313130500811, 1, 0) end})
+    section:Button({Title = "停止当前动作", Desc = "打断并停止所有正在播放的动作", Callback = function() stopAnimation() end})
 
     return tab
 end
