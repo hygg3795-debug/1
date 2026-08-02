@@ -31,11 +31,21 @@ return function(Window, WindUI)
         return false
     end
     local function addPart1(p)
-        if retainPart1(p) and not table.find(parts, p) then table.insert(parts, p) end
+        if retainPart1(p) then
+            local found = false
+            for _, v in pairs(parts) do
+                if v == p then found = true break end
+            end
+            if not found then table.insert(parts, p) end
+        end
     end
     local function removePart1(p)
-        local idx = table.find(parts, p)
-        if idx then table.remove(parts, idx) end
+        for i, v in pairs(parts) do
+            if v == p then
+                table.remove(parts, i)
+                break
+            end
+        end
     end
     local function refreshParts1()
         parts = {}
@@ -141,7 +151,8 @@ return function(Window, WindUI)
         enabled2 = true
         setupH2()
         for _, v in next, Workspace:GetDescendants() do ForcePart(v) end
-        Workspace.DescendantAdded:Connect(function(v) if enabled2 then ForcePart(v) end end)
+        local conn = Workspace.DescendantAdded:Connect(function(v) if enabled2 then ForcePart(v) end end)
+        _G.BlackholeDescendantConn = conn
         heartbeatCon2 = RunService.Heartbeat:Connect(function()
             if enabled2 and attachment1 and hrPart then
                 attachment1.WorldCFrame = hrPart.CFrame
@@ -152,6 +163,7 @@ return function(Window, WindUI)
     local function stopH2()
         enabled2 = false
         if heartbeatCon2 then heartbeatCon2:Disconnect() heartbeatCon2 = nil end
+        if _G.BlackholeDescendantConn then _G.BlackholeDescendantConn:Disconnect() _G.BlackholeDescendantConn = nil end
         if folder then folder:Destroy() folder = nil end
         hrPart = nil
         attachment1 = nil
