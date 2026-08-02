@@ -27,13 +27,34 @@ return function(Window, WindUI)
         Title = "选择目标玩家",
         Values = getPlayerNames(),
         Callback = function(selected)
-            targetPlayer = playerMap[selected]
+            if selected then
+                targetPlayer = playerMap[selected]
+            end
         end
     })
 
+    playerSection:Button({Title = "刷新玩家列表", Callback = function()
+        if playerDropdown then
+            pcall(function()
+                if playerDropdown.SetValues then
+                    playerDropdown:SetValues(getPlayerNames())
+                elseif playerDropdown.Update then
+                    playerDropdown:Update(getPlayerNames())
+                end
+                WindUI:Notify({Title = "刷新成功", Content = "玩家列表已更新", Duration = 2, Icon = "check"})
+            end)
+        end
+    end})
+
     local function refreshDropdown()
-        if playerDropdown and playerDropdown.SetValues then
-            playerDropdown:SetValues(getPlayerNames())
+        if playerDropdown then
+            pcall(function()
+                if playerDropdown.SetValues then
+                    playerDropdown:SetValues(getPlayerNames())
+                elseif playerDropdown.Update then
+                    playerDropdown:Update(getPlayerNames())
+                end
+            end)
         end
     end
     Players.PlayerAdded:Connect(refreshDropdown)
@@ -258,6 +279,346 @@ return function(Window, WindUI)
             if getSuckedConnection then getSuckedConnection:Disconnect() getSuckedConnection = nil end
             if getSuckedAnimation then getSuckedAnimation:Stop() getSuckedAnimation = nil end
             if getSuckedGravity then Workspace.Gravity = getSuckedGravity getSuckedGravity = nil end
+        end
+    end})
+
+    local flingTarget = nil
+    local flingRunning = false
+    local flingLoopConnection = nil
+
+    local function PerformThrowAnimation(part, targetHumanoid, targetRootPart, localRootPart, localCharacter, localHumanoid)
+        local rotationAngle = 0
+        while localRootPart and flingRunning do
+            if not part or not part.Parent then break end
+            if part.Velocity.Magnitude < 50 then
+                rotationAngle = rotationAngle + 100
+                localRootPart.CFrame = CFrame.new(part.Position) * CFrame.new(0, 1.5, 0) * CFrame.Angles(math.rad(rotationAngle), 0, 0)
+                localCharacter:SetPrimaryPartCFrame(CFrame.new(part.Position) * CFrame.new(0, 1.5, 0) * CFrame.Angles(math.rad(rotationAngle), 0, 0))
+                localRootPart.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                localRootPart.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                task.wait()
+                localRootPart.CFrame = CFrame.new(part.Position) * CFrame.new(0, -1.5, 0) * CFrame.Angles(math.rad(rotationAngle), 0, 0)
+                localCharacter:SetPrimaryPartCFrame(CFrame.new(part.Position) * CFrame.new(0, -1.5, 0) * CFrame.Angles(math.rad(rotationAngle), 0, 0))
+                localRootPart.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                localRootPart.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                task.wait()
+                localRootPart.CFrame = CFrame.new(part.Position) * CFrame.new(2.25, 1.5, -2.25) * CFrame.Angles(math.rad(rotationAngle), 0, 0)
+                localCharacter:SetPrimaryPartCFrame(CFrame.new(part.Position) * CFrame.new(2.25, 1.5, -2.25) * CFrame.Angles(math.rad(rotationAngle), 0, 0))
+                localRootPart.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                localRootPart.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                task.wait()
+                localRootPart.CFrame = CFrame.new(part.Position) * CFrame.new(-2.25, -1.5, 2.25) * CFrame.Angles(math.rad(rotationAngle), 0, 0)
+                localCharacter:SetPrimaryPartCFrame(CFrame.new(part.Position) * CFrame.new(-2.25, -1.5, 2.25) * CFrame.Angles(math.rad(rotationAngle), 0, 0))
+                localRootPart.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                localRootPart.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                task.wait()
+                localRootPart.CFrame = CFrame.new(part.Position) * CFrame.new(0, 1.5, 0) * CFrame.Angles(math.rad(rotationAngle), 0, 0)
+                localCharacter:SetPrimaryPartCFrame(CFrame.new(part.Position) * CFrame.new(0, 1.5, 0) * CFrame.Angles(math.rad(rotationAngle), 0, 0))
+                localRootPart.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                localRootPart.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                task.wait()
+                localRootPart.CFrame = CFrame.new(part.Position) * CFrame.new(0, -1.5, 0) * CFrame.Angles(math.rad(rotationAngle), 0, 0)
+                localCharacter:SetPrimaryPartCFrame(CFrame.new(part.Position) * CFrame.new(0, -1.5, 0) * CFrame.Angles(math.rad(rotationAngle), 0, 0))
+                localRootPart.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                localRootPart.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                task.wait()
+            else
+                localRootPart.CFrame = CFrame.new(part.Position) * CFrame.new(0, 1.5, targetHumanoid.WalkSpeed) * CFrame.Angles(math.rad(90), 0, 0)
+                localCharacter:SetPrimaryPartCFrame(CFrame.new(part.Position) * CFrame.new(0, 1.5, targetHumanoid.WalkSpeed) * CFrame.Angles(math.rad(90), 0, 0))
+                localRootPart.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                localRootPart.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                task.wait()
+                localRootPart.CFrame = CFrame.new(part.Position) * CFrame.new(0, -1.5, -targetHumanoid.WalkSpeed) * CFrame.Angles(0, 0, 0)
+                localCharacter:SetPrimaryPartCFrame(CFrame.new(part.Position) * CFrame.new(0, -1.5, -targetHumanoid.WalkSpeed) * CFrame.Angles(0, 0, 0))
+                localRootPart.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                localRootPart.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                task.wait()
+                localRootPart.CFrame = CFrame.new(part.Position) * CFrame.new(0, 1.5, targetHumanoid.WalkSpeed) * CFrame.Angles(math.rad(90), 0, 0)
+                localCharacter:SetPrimaryPartCFrame(CFrame.new(part.Position) * CFrame.new(0, 1.5, targetHumanoid.WalkSpeed) * CFrame.Angles(math.rad(90), 0, 0))
+                localRootPart.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                localRootPart.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                task.wait()
+                if targetRootPart then
+                    localRootPart.CFrame = CFrame.new(part.Position) * CFrame.new(0, 1.5, targetRootPart.Velocity.Magnitude / 1.25) * CFrame.Angles(math.rad(90), 0, 0)
+                    localCharacter:SetPrimaryPartCFrame(CFrame.new(part.Position) * CFrame.new(0, 1.5, targetRootPart.Velocity.Magnitude / 1.25) * CFrame.Angles(math.rad(90), 0, 0))
+                    localRootPart.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                    localRootPart.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                    task.wait()
+                    localRootPart.CFrame = CFrame.new(part.Position) * CFrame.new(0, -1.5, -targetRootPart.Velocity.Magnitude / 1.25) * CFrame.Angles(0, 0, 0)
+                    localCharacter:SetPrimaryPartCFrame(CFrame.new(part.Position) * CFrame.new(0, -1.5, -targetRootPart.Velocity.Magnitude / 1.25) * CFrame.Angles(0, 0, 0))
+                    localRootPart.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                    localRootPart.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                    task.wait()
+                    localRootPart.CFrame = CFrame.new(part.Position) * CFrame.new(0, 1.5, targetRootPart.Velocity.Magnitude / 1.25) * CFrame.Angles(math.rad(90), 0, 0)
+                    localCharacter:SetPrimaryPartCFrame(CFrame.new(part.Position) * CFrame.new(0, 1.5, targetRootPart.Velocity.Magnitude / 1.25) * CFrame.Angles(math.rad(90), 0, 0))
+                    localRootPart.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                    localRootPart.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                    task.wait()
+                end
+                localRootPart.CFrame = CFrame.new(part.Position) * CFrame.new(0, -1.5, 0) * CFrame.Angles(math.rad(90), 0, 0)
+                localCharacter:SetPrimaryPartCFrame(CFrame.new(part.Position) * CFrame.new(0, -1.5, 0) * CFrame.Angles(math.rad(90), 0, 0))
+                localRootPart.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                localRootPart.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                task.wait()
+                localRootPart.CFrame = CFrame.new(part.Position) * CFrame.new(0, -1.5, 0) * CFrame.Angles(0, 0, 0)
+                localCharacter:SetPrimaryPartCFrame(CFrame.new(part.Position) * CFrame.new(0, -1.5, 0) * CFrame.Angles(0, 0, 0))
+                localRootPart.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                localRootPart.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                task.wait()
+                localRootPart.CFrame = CFrame.new(part.Position) * CFrame.new(0, -1.5, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+                localCharacter:SetPrimaryPartCFrame(CFrame.new(part.Position) * CFrame.new(0, -1.5, 0) * CFrame.Angles(math.rad(-90), 0, 0))
+                localRootPart.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                localRootPart.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                task.wait()
+                localRootPart.CFrame = CFrame.new(part.Position) * CFrame.new(0, -1.5, 0) * CFrame.Angles(0, 0, 0)
+                localCharacter:SetPrimaryPartCFrame(CFrame.new(part.Position) * CFrame.new(0, -1.5, 0) * CFrame.Angles(0, 0, 0))
+                localRootPart.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                localRootPart.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                task.wait()
+            end
+            if part.Velocity.Magnitude <= 500 then
+                break
+            end
+        end
+    end
+
+    local function StartFling()
+        if flingRunning then return end
+        if not targetPlayer then
+            WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+            return
+        end
+        
+        flingRunning = true
+        flingTarget = targetPlayer
+        
+        task.spawn(function()
+            while flingRunning do
+                pcall(function()
+                    local localPlayer = LocalPlayer
+                    local target = flingTarget
+                    if not target or not target.Character then 
+                        task.wait(0.5)
+                        return 
+                    end
+                    
+                    local localChar = localPlayer.Character
+                    local localHum = localChar and localChar:FindFirstChildOfClass("Humanoid")
+                    local localRoot = localHum and localHum.RootPart
+                    local targetChar = target.Character
+                    local targetHum = targetChar and targetChar:FindFirstChildOfClass("Humanoid")
+                    local targetRoot = targetHum and targetHum.RootPart
+                    local targetHead = targetChar and targetChar:FindFirstChild("Head")
+                    
+                    if not (localChar and localHum and localRoot and targetChar and targetHum) then
+                        task.wait(0.5)
+                        return
+                    end
+                    
+                    if localRoot.Velocity.Magnitude < 50 then
+                        _G.OldPos = localRoot.CFrame
+                    end
+                    
+                    workspace.FallenPartsDestroyHeight = 0 / 0
+                    
+                    local bv = Instance.new("BodyVelocity")
+                    bv.Name = "EpixVel"
+                    bv.Parent = localRoot
+                    bv.Velocity = Vector3.new(900000000, 900000000, 900000000)
+                    bv.MaxForce = Vector3.new(1 / 0, 1 / 0, 1 / 0)
+                    localHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+                    
+                    local targetPart = nil
+                    if targetRoot and targetHead then
+                        if (targetRoot.CFrame.p - targetHead.CFrame.p).Magnitude > 5 then
+                            targetPart = targetHead
+                        else
+                            targetPart = targetRoot
+                        end
+                    elseif targetRoot then
+                        targetPart = targetRoot
+                    elseif targetHead then
+                        targetPart = targetHead
+                    else
+                        bv:Destroy()
+                        localHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+                        return
+                    end
+                    
+                    workspace.CurrentCamera.CameraSubject = targetPart or targetHum
+                    PerformThrowAnimation(targetPart, targetHum, targetRoot, localRoot, localChar, localHum)
+                    
+                    bv:Destroy()
+                    localHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+                    workspace.CurrentCamera.CameraSubject = localHum
+                    
+                    repeat
+                        localRoot.CFrame = _G.OldPos * CFrame.new(0, 0.5, 0)
+                        localChar:SetPrimaryPartCFrame(_G.OldPos * CFrame.new(0, 0.5, 0))
+                        localHum:ChangeState("GettingUp")
+                        for _, child in pairs(localChar:GetChildren()) do
+                            if child:IsA("BasePart") then
+                                child.Velocity = Vector3.new()
+                                child.RotVelocity = Vector3.new()
+                            end
+                        end
+                        task.wait()
+                    until not flingRunning or (localRoot.Position - _G.OldPos.p).Magnitude < 25
+                    
+                    workspace.FallenPartsDestroyHeight = _G.FPDH or -1000
+                end)
+                if flingRunning then
+                    task.wait(0.1)
+                end
+            end
+        end)
+    end
+
+    local function StopFling()
+        flingRunning = false
+        if flingLoopConnection then
+            flingLoopConnection:Disconnect()
+            flingLoopConnection = nil
+        end
+    end
+
+    playerSection:Toggle({Title = "甩飞", Value = false, Callback = function(val)
+        if val then
+            StartFling()
+        else
+            StopFling()
+        end
+    end})
+
+    playerSection:Toggle({Title = "循环甩飞", Value = false, Callback = function(val)
+        if val then
+            if not targetPlayer then
+                WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+                return
+            end
+            _G.autofling = true
+            flingTarget = targetPlayer
+            task.spawn(function()
+                while _G.autofling do
+                    task.wait()
+                    pcall(function()
+                        local localPlayer = LocalPlayer
+                        local target = flingTarget
+                        if not target or not target.Character then return end
+                        
+                        local localChar = localPlayer.Character
+                        local localHum = localChar and localChar:FindFirstChildOfClass("Humanoid")
+                        local localRoot = localHum and localHum.RootPart
+                        local targetChar = target.Character
+                        local targetHum = targetChar and targetChar:FindFirstChildOfClass("Humanoid")
+                        local targetRoot = targetHum and targetHum.RootPart
+                        local targetHead = targetChar and targetChar:FindFirstChild("Head")
+                        
+                        if not (localChar and localHum and localRoot and targetChar and targetHum and targetRoot) then
+                            return
+                        end
+                        
+                        if localRoot.Velocity.Magnitude < 50 then
+                            _G.OldPos = localRoot.CFrame
+                        end
+                        
+                        workspace.CurrentCamera.CameraSubject = targetHead or targetHum
+                        
+                        local function ApplyForce(part, offset, rotation)
+                            localRoot.CFrame = CFrame.new(part.Position) * offset * rotation
+                            localChar:SetPrimaryPartCFrame(CFrame.new(part.Position) * offset * rotation)
+                            localRoot.Velocity = Vector3.new(90000000, 900000000, 90000000)
+                            localRoot.RotVelocity = Vector3.new(900000000, 900000000, 900000000)
+                        end
+                        
+                        local function ThrowLoop(part)
+                            local angle = 0
+                            while localRoot and _G.autofling do
+                                if part.Velocity.Magnitude < 50 then
+                                    angle = angle + 100
+                                    ApplyForce(part, CFrame.new(0, 1.5, 0) + targetHum.MoveDirection * part.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
+                                    task.wait()
+                                    ApplyForce(part, CFrame.new(0, -1.5, 0) + targetHum.MoveDirection * part.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
+                                    task.wait()
+                                    ApplyForce(part, CFrame.new(2.25, 1.5, -2.25) + targetHum.MoveDirection * part.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
+                                    task.wait()
+                                    ApplyForce(part, CFrame.new(-2.25, -1.5, 2.25) + targetHum.MoveDirection * part.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
+                                    task.wait()
+                                    ApplyForce(part, CFrame.new(0, 1.5, 0) + targetHum.MoveDirection, CFrame.Angles(math.rad(angle), 0, 0))
+                                    task.wait()
+                                    ApplyForce(part, CFrame.new(0, -1.5, 0) + targetHum.MoveDirection, CFrame.Angles(math.rad(angle), 0, 0))
+                                    task.wait()
+                                else
+                                    ApplyForce(part, CFrame.new(0, 1.5, targetHum.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                                    task.wait()
+                                    ApplyForce(part, CFrame.new(0, -1.5, -targetHum.WalkSpeed), CFrame.Angles(0, 0, 0))
+                                    task.wait()
+                                    ApplyForce(part, CFrame.new(0, 1.5, targetHum.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                                    task.wait()
+                                    ApplyForce(part, CFrame.new(0, 1.5, targetRoot.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
+                                    task.wait()
+                                    ApplyForce(part, CFrame.new(0, -1.5, -targetRoot.Velocity.Magnitude / 1.25), CFrame.Angles(0, 0, 0))
+                                    task.wait()
+                                    ApplyForce(part, CFrame.new(0, 1.5, targetRoot.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
+                                    task.wait()
+                                    ApplyForce(part, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
+                                    task.wait()
+                                    ApplyForce(part, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                                    task.wait()
+                                    ApplyForce(part, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(-90), 0, 0))
+                                    task.wait()
+                                    ApplyForce(part, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                                    task.wait()
+                                end
+                                if part.Velocity.Magnitude <= 500 then
+                                    break
+                                end
+                            end
+                        end
+                        
+                        workspace.FallenPartsDestroyHeight = 0 / 0
+                        local bv = Instance.new("BodyVelocity")
+                        bv.Name = "EpixVel"
+                        bv.Parent = localRoot
+                        bv.Velocity = Vector3.new(900000000, 900000000, 900000000)
+                        bv.MaxForce = Vector3.new(1 / 0, 1 / 0, 1 / 0)
+                        localHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+                        
+                        if targetRoot and targetHead then
+                            if (targetRoot.CFrame.p - targetHead.CFrame.p).Magnitude > 5 then
+                                ThrowLoop(targetHead)
+                            else
+                                ThrowLoop(targetRoot)
+                            end
+                        elseif targetRoot then
+                            ThrowLoop(targetRoot)
+                        elseif targetHead then
+                            ThrowLoop(targetHead)
+                        end
+                        
+                        bv:Destroy()
+                        localHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+                        workspace.CurrentCamera.CameraSubject = localHum
+                        
+                        repeat
+                            localRoot.CFrame = _G.OldPos * CFrame.new(0, 0.5, 0)
+                            localChar:SetPrimaryPartCFrame(_G.OldPos * CFrame.new(0, 0.5, 0))
+                            localHum:ChangeState("GettingUp")
+                            for _, child in pairs(localChar:GetChildren()) do
+                                if child:IsA("BasePart") then
+                                    child.Velocity = Vector3.new()
+                                    child.RotVelocity = Vector3.new()
+                                end
+                            end
+                            task.wait()
+                        until (localRoot.Position - _G.OldPos.p).Magnitude < 25
+                        
+                        workspace.FallenPartsDestroyHeight = _G.FPDH or -1000
+                    end)
+                end
+            end)
+        else
+            _G.autofling = false
         end
     end})
 
