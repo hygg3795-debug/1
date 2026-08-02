@@ -1,4 +1,4 @@
-local WindUI = loadstring(game:HttpGet("https://hygg3795-debug.github.io/1/main.txt"))()
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/refs/heads/main/dist/main.lua"))()
 local BRAND = {name = "hygg脚本", version = "v1.0", author = "hygg", folder = "hyggHub", icon = "zap", theme = "Dark", accent = "#FF6B35"}
 
 local Window = WindUI:CreateWindow({
@@ -167,15 +167,15 @@ local masterToggle = suggestSection:Toggle({
     Value = false,
     Callback = function(val)
         allSuggestEnabled = val
-        for i, toggle in ipairs(suggestToggles) do
+        for _, toggle in ipairs(suggestToggles) do
             if toggle and toggle.SetValue then
-                toggle:SetValue(val)
+                pcall(function()
+                    toggle:SetValue(val)
+                end)
             end
         end
     end
 })
-table.insert(suggestToggles, masterToggle)
-
 suggestSection:Divider()
 
 local function createSuggestToggle(title, callback)
@@ -1201,9 +1201,6 @@ local playerDropdown = playerSection:Dropdown({
     Callback = function(selected)
         targetPlayer = playerMap[selected]
     end,
-    OnOpen = function()
-        playerDropdown:SetValues(getPlayerNames())
-    end
 })
 
 local function refreshDropdown()
