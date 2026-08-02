@@ -1040,6 +1040,84 @@ local function createGeneralTab(Window, WindUI)
     return tab
 end
 
+local function createTeleportTab(Window, WindUI)
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local LocalPlayer = Players.LocalPlayer
+
+    local tab = Window:Tab({Title = "传送", Icon = "map-pin"})
+
+    local teleportSection = tab:Section({Title = "坐标传送", Box = true})
+    local coordLabel = teleportSection:Label({Title = "X: 0.00  Y: 0.00  Z: 0.00"})
+    local inputValue = ""
+
+    teleportSection:Input({Title = "输入坐标", Placeholder = "例如: 100, 200, 300", Callback = function(text) inputValue = text end})
+
+    teleportSection:Button({Title = "复制坐标", Callback = function()
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local pos = char.HumanoidRootPart.Position
+            local coordText = string.format("%.2f,%.2f,%.2f", pos.X, pos.Y, pos.Z)
+            if setclipboard then
+                setclipboard(coordText)
+                WindUI:Notify({Title = "复制成功", Content = coordText, Duration = 2, Icon = "check"})
+            else
+                WindUI:Notify({Title = "复制失败", Content = "当前环境不支持复制", Duration = 2, Icon = "x"})
+            end
+        end
+    end})
+
+    teleportSection:Button({Title = "传送", Callback = function()
+        if inputValue == "" then
+            WindUI:Notify({Title = "提示", Content = "请先输入坐标", Duration = 2, Icon = "alert"})
+            return
+        end
+        local parts = {}
+        for part in inputValue:gmatch("[^,，%s]+") do
+            local num = tonumber(part)
+            if num then table.insert(parts, num) end
+        end
+        if #parts >= 3 then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(parts[1], parts[2], parts[3]))
+                WindUI:Notify({Title = "传送成功", Content = string.format("已传送到 (%.2f, %.2f, %.2f)", parts[1], parts[2], parts[3]), Duration = 2, Icon = "check"})
+            end
+        else
+            WindUI:Notify({Title = "格式错误", Content = "请输入如: 100,200,300", Duration = 2, Icon = "alert"})
+        end
+    end})
+
+    RunService.Heartbeat:Connect(function()
+        if coordLabel then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local pos = char.HumanoidRootPart.Position
+                coordLabel.Text = string.format("X: %.2f  Y: %.2f  Z: %.2f", pos.X, pos.Y, pos.Z)
+            end
+        end
+    end)
+
+    local quickTeleportSection = tab:Section({Title = "快速传送", Box = true})
+    local function createTeleportToggle(name, coords)
+        quickTeleportSection:Toggle({Title = name, Value = false, Callback = function(val)
+            if val then
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    char.HumanoidRootPart.CFrame = CFrame.new(coords)
+                    WindUI:Notify({Title = name, Content = "已传送", Duration = 2, Icon = "check"})
+                end
+                task.wait(0.1)
+            end
+        end})
+    end
+    createTeleportToggle("传送出生岛", Vector3.new(-247.14, 180.45, 309.40))
+    createTeleportToggle("传送岛屿", Vector3.new(-104.44, 48.65, 13.03))
+    createTeleportToggle("传送虚空", Vector3.new(0, 100000000, 0))
+
+    return tab
+end
+
 local function createPlayerTab(Window, WindUI)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
@@ -1052,7 +1130,7 @@ local function createPlayerTab(Window, WindUI)
     local playerMap = {}
 
     local function getPlayerNames()
-        local names = {}
+        local names = {"-- 请选择玩家 --"}
         playerMap = {}
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= LocalPlayer then
@@ -1069,13 +1147,21 @@ local function createPlayerTab(Window, WindUI)
         Title = "选择目标玩家",
         Values = getPlayerNames(),
         Callback = function(selected)
-            targetPlayer = playerMap[selected]
+            if selected and selected ~= "-- 请选择玩家 --" then
+                targetPlayer = playerMap[selected]
+            end
         end
     })
 
     local function refreshDropdown()
-        if playerDropdown and playerDropdown.SetValues then
-            playerDropdown:SetValues(getPlayerNames())
+        if playerDropdown then
+            pcall(function()
+                if playerDropdown.SetValues then
+                    playerDropdown:SetValues(getPlayerNames())
+                elseif playerDropdown.Update then
+                    playerDropdown:Update(getPlayerNames())
+                end
+            end)
         end
     end
     Players.PlayerAdded:Connect(refreshDropdown)
@@ -1331,84 +1417,6 @@ local function createSuperTab(Window, WindUI)
     return tab
 end
 
-local function createTeleportTab(Window, WindUI)
-    local Players = game:GetService("Players")
-    local RunService = game:GetService("RunService")
-    local LocalPlayer = Players.LocalPlayer
-
-    local tab = Window:Tab({Title = "传送", Icon = "map-pin"})
-
-    local teleportSection = tab:Section({Title = "坐标传送", Box = true})
-    local coordLabel = teleportSection:Label({Title = "X: 0.00  Y: 0.00  Z: 0.00"})
-    local inputValue = ""
-
-    teleportSection:Input({Title = "输入坐标", Placeholder = "例如: 100, 200, 300", Callback = function(text) inputValue = text end})
-
-    teleportSection:Button({Title = "复制坐标", Callback = function()
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            local pos = char.HumanoidRootPart.Position
-            local coordText = string.format("%.2f,%.2f,%.2f", pos.X, pos.Y, pos.Z)
-            if setclipboard then
-                setclipboard(coordText)
-                WindUI:Notify({Title = "复制成功", Content = coordText, Duration = 2, Icon = "check"})
-            else
-                WindUI:Notify({Title = "复制失败", Content = "当前环境不支持复制", Duration = 2, Icon = "x"})
-            end
-        end
-    end})
-
-    teleportSection:Button({Title = "传送", Callback = function()
-        if inputValue == "" then
-            WindUI:Notify({Title = "提示", Content = "请先输入坐标", Duration = 2, Icon = "alert"})
-            return
-        end
-        local parts = {}
-        for part in inputValue:gmatch("[^,，%s]+") do
-            local num = tonumber(part)
-            if num then table.insert(parts, num) end
-        end
-        if #parts >= 3 then
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                char.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(parts[1], parts[2], parts[3]))
-                WindUI:Notify({Title = "传送成功", Content = string.format("已传送到 (%.2f, %.2f, %.2f)", parts[1], parts[2], parts[3]), Duration = 2, Icon = "check"})
-            end
-        else
-            WindUI:Notify({Title = "格式错误", Content = "请输入如: 100,200,300", Duration = 2, Icon = "alert"})
-        end
-    end})
-
-    RunService.Heartbeat:Connect(function()
-        if coordLabel then
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local pos = char.HumanoidRootPart.Position
-                coordLabel:SetTitle(string.format("X: %.2f  Y: %.2f  Z: %.2f", pos.X, pos.Y, pos.Z))
-            end
-        end
-    end)
-
-    local quickTeleportSection = tab:Section({Title = "快速传送", Box = true})
-    local function createTeleportToggle(name, coords)
-        quickTeleportSection:Toggle({Title = name, Value = false, Callback = function(val)
-            if val then
-                local char = LocalPlayer.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    char.HumanoidRootPart.CFrame = CFrame.new(coords)
-                    WindUI:Notify({Title = name, Content = "已传送", Duration = 2, Icon = "check"})
-                end
-                task.wait(0.1)
-            end
-        end})
-    end
-    createTeleportToggle("传送出生岛", Vector3.new(-247.14, 180.45, 309.40))
-    createTeleportToggle("传送岛屿", Vector3.new(-104.44, 48.65, 13.03))
-    createTeleportToggle("传送虚空", Vector3.new(0, 100000000, 0))
-
-    return tab
-end
-
 local function createActionTab(Window, WindUI)
     local Players = game:GetService("Players")
     local Workspace = game:GetService("Workspace")
@@ -1434,7 +1442,11 @@ local function createActionTab(Window, WindUI)
         if player and player.Character then
             local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
             if humanoid then
-                local animator = humanoid:FindFirstChildOfClass("Animator") or humanoid
+                local animator = humanoid:FindFirstChildOfClass("Animator")
+                if not animator then
+                    animator = Instance.new("Animator")
+                    animator.Parent = humanoid
+                end
                 for _, track in pairs(active) do
                     if track then track:Stop() end
                 end
@@ -1624,7 +1636,8 @@ local function createBlackholeTab(Window, WindUI)
         enabled2 = true
         setupH2()
         for _, v in next, Workspace:GetDescendants() do ForcePart(v) end
-        Workspace.DescendantAdded:Connect(function(v) if enabled2 then ForcePart(v) end end)
+        local conn = Workspace.DescendantAdded:Connect(function(v) if enabled2 then ForcePart(v) end end)
+        _G.BlackholeDescendantConn = conn
         heartbeatCon2 = RunService.Heartbeat:Connect(function()
             if enabled2 and attachment1 and hrPart then
                 attachment1.WorldCFrame = hrPart.CFrame
@@ -1635,6 +1648,7 @@ local function createBlackholeTab(Window, WindUI)
     local function stopH2()
         enabled2 = false
         if heartbeatCon2 then heartbeatCon2:Disconnect() heartbeatCon2 = nil end
+        if _G.BlackholeDescendantConn then _G.BlackholeDescendantConn:Disconnect() _G.BlackholeDescendantConn = nil end
         if folder then folder:Destroy() folder = nil end
         hrPart = nil
         attachment1 = nil
@@ -1866,13 +1880,69 @@ local function createLightingTab(Window, WindUI)
     return tab
 end
 
-createGeneralTab(Window, WindUI)
-createTeleportTab(Window, WindUI)
-createPlayerTab(Window, WindUI)
-createBlackholeTab(Window, WindUI)
-createSuperTab(Window, WindUI)
-createActionTab(Window, WindUI)
-createLightingTab(Window, WindUI)
+local success, err = pcall(function()
+    createGeneralTab(Window, WindUI)
+end)
+if not success then
+    warn("通用Tab加载失败:", err)
+end
+
+local success, err = pcall(function()
+    createTeleportTab(Window, WindUI)
+end)
+if not success then
+    warn("传送Tab加载失败:", err)
+end
+
+local success, err = pcall(function()
+    createPlayerTab(Window, WindUI)
+end)
+if not success then
+    warn("玩家Tab加载失败:", err)
+    local fallbackTab = Window:Tab({Title = "玩家", Icon = "users"})
+    local fallbackSection = fallbackTab:Section({Title = "加载失败"})
+    fallbackSection:Label({Title = "玩家Tab加载失败，请查看控制台"})
+end
+
+local success, err = pcall(function()
+    createSuperTab(Window, WindUI)
+end)
+if not success then
+    warn("超人Tab加载失败:", err)
+    local fallbackTab = Window:Tab({Title = "超人", Icon = "zap"})
+    local fallbackSection = fallbackTab:Section({Title = "加载失败"})
+    fallbackSection:Label({Title = "超人Tab加载失败，请查看控制台"})
+end
+
+local success, err = pcall(function()
+    createActionTab(Window, WindUI)
+end)
+if not success then
+    warn("动作Tab加载失败:", err)
+    local fallbackTab = Window:Tab({Title = "动作", Icon = "sparkles"})
+    local fallbackSection = fallbackTab:Section({Title = "加载失败"})
+    fallbackSection:Label({Title = "动作Tab加载失败，请查看控制台"})
+end
+
+local success, err = pcall(function()
+    createBlackholeTab(Window, WindUI)
+end)
+if not success then
+    warn("黑洞Tab加载失败:", err)
+    local fallbackTab = Window:Tab({Title = "黑洞", Icon = "circle"})
+    local fallbackSection = fallbackTab:Section({Title = "加载失败"})
+    fallbackSection:Label({Title = "黑洞Tab加载失败，请查看控制台"})
+end
+
+local success, err = pcall(function()
+    createLightingTab(Window, WindUI)
+end)
+if not success then
+    warn("光影Tab加载失败:", err)
+    local fallbackTab = Window:Tab({Title = "光影", Icon = "sun"})
+    local fallbackSection = fallbackTab:Section({Title = "加载失败"})
+    fallbackSection:Label({Title = "光影Tab加载失败，请查看控制台"})
+end
 
 _G._LCF_WindUI = WindUI
 _G._LCF_TmplWin = Window
