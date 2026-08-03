@@ -4,9 +4,17 @@ return function(Window, WindUI)
     local LocalPlayer = Players.LocalPlayer
 
     local tab = Window:Tab({Title = "动作", Icon = "sparkles"})
-    local section = tab:Section({Title = "动作列表", Box = true})
+
+    local section1 = tab:Section({Title = "动作列表", Box = true, Collapsible = true, DefaultOpen = true})
+
+    tab:Divider()
+
+    local section2 = tab:Section({Title = "动画包", Box = true, Collapsible = true, DefaultOpen = false})
 
     local active = {}
+    local currentEmoteTrack = nil
+    local animationPackActive = false
+    local currentPackTrack = nil
 
     local function clik()
         local s = Instance.new("Sound")
@@ -18,48 +26,240 @@ return function(Window, WindUI)
         game:GetService("Debris"):AddItem(s, 3)
     end
 
-    local function playAnimation(id, speed, timepos)
+    local function playAnimationPublic(animId, speed, timePos)
+        local player = game.Players.LocalPlayer
+        if not player or not player.Character then return end
+        
+        local character = player.Character
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if not humanoid then return end
+        
+        local description = humanoid:FindFirstChild("HumanoidDescription")
+        if not description then
+            description = Instance.new("HumanoidDescription")
+            description.Parent = humanoid
+        end
+        
+        local animName = "CustomAnim_" .. tostring(animId)
+        local emoteTable = {}
+        local equipped = {}
+        
+        local existingEquipped = description:GetEquippedEmotes() or {}
+        for _, name in pairs(existingEquipped) do
+            if name ~= animName then
+                table.insert(equipped, name)
+            end
+        end
+        
+        emoteTable[animName] = {animId}
+        table.insert(equipped, animName)
+        
+        description:SetEmotes(emoteTable)
+        description:SetEquippedEmotes(equipped)
+        
+        task.wait(0.05)
+        local ok, track = pcall(function()
+            return humanoid:PlayEmoteAndGetAnimTrackById(animId)
+        end)
+        
+        if ok and track and typeof(track) == "Instance" and track:IsA("AnimationTrack") then
+            if currentEmoteTrack and currentEmoteTrack.IsPlaying then
+                currentEmoteTrack:Stop()
+            end
+            currentEmoteTrack = track
+            track.Looped = true
+            track:Play()
+            if speed then track:AdjustSpeed(speed) end
+            if timePos then track.TimePosition = timePos end
+        end
+        
+        local animate = character:FindFirstChild("Animate")
+        if animate then
+            local idleFolder = animate:FindFirstChild("idle")
+            if not idleFolder then
+                idleFolder = Instance.new("Folder")
+                idleFolder.Name = "idle"
+                idleFolder.Parent = animate
+            end
+            
+            local animObj = idleFolder:FindFirstChild("Animation1")
+            if not animObj then
+                animObj = Instance.new("Animation")
+                animObj.Name = "Animation1"
+                animObj.Parent = idleFolder
+            end
+            
+            animObj.AnimationId = "rbxassetid://" .. tostring(animId)
+            
+            animate.Disabled = true
+            task.wait(0.05)
+            animate.Disabled = false
+        end
+        
+        local animator = humanoid:FindFirstChildOfClass("Animator")
+        if not animator then
+            animator = Instance.new("Animator")
+            animator.Parent = humanoid
+        end
+        
+        if active[animId] and active[animId].IsPlaying then
+            active[animId]:Stop()
+        end
+        
+        local animation = Instance.new("Animation")
+        animation.AnimationId = "rbxassetid://" .. tostring(animId)
+        local track2 = animator:LoadAnimation(animation)
+        if track2 then
+            track2.Looped = true
+            track2.Priority = Enum.AnimationPriority.Action
+            track2:Play()
+            if speed then track2:AdjustSpeed(speed) end
+            if timePos then track2.TimePosition = timePos end
+            active[animId] = track2
+        end
+        
+        getgenv().LastPlayedAnimation = {
+            id = animId,
+            speed = speed or 1,
+            timePos = timePos or 0
+        }
+    end
+
+    local function stopAnimation()
+        clik()
+        if currentEmoteTrack and currentEmoteTrack.IsPlaying then
+            currentEmoteTrack:Stop()
+        end
+        for _, track in pairs(active) do
+            if track and track.IsPlaying then
+                track:Stop()
+            end
+        end
+        active = {}
+        currentEmoteTrack = nil
+        
         local player = game.Players.LocalPlayer
         if player and player.Character then
             local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
             if humanoid then
-                local animator = humanoid:FindFirstChildOfClass("Animator")
-                if not animator then
-                    animator = Instance.new("Animator")
-                    animator.Parent = humanoid
-                end
-                for _, track in pairs(active) do
-                    if track then track:Stop() end
-                end
-                active = {}
-                local animation = Instance.new("Animation")
-                animation.AnimationId = "rbxassetid://" .. tostring(id)
-                local track = animator:LoadAnimation(animation)
-                if track then
-                    track.Looped = true
-                    track:Play()
-                    track:AdjustSpeed(speed or 1)
-                    track.TimePosition = timepos or 0
-                    active[id] = track
+                local description = humanoid:FindFirstChild("HumanoidDescription")
+                if description then
+                    description:SetEmotes({})
+                    description:SetEquippedEmotes({})
                 end
             end
         end
     end
 
-    local function stopAnimation()
+    local function playAnimationPack(packId, packName)
         clik()
-        for _, track in pairs(active) do
-            if track then track:Stop() end
+        if currentPackTrack and currentPackTrack.IsPlaying then
+            currentPackTrack:Stop()
         end
-        active = {}
+        if animationPackActive then
+            animationPackActive = false
+            currentPackTrack = nil
+        end
+        
+        local player = game.Players.LocalPlayer
+        if not player or not player.Character then return end
+        
+        local character = player.Character
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if not humanoid then return end
+        
+        local description = humanoid:FindFirstChild("HumanoidDescription")
+        if not description then
+            description = Instance.new("HumanoidDescription")
+            description.Parent = humanoid
+        end
+        
+        local animName = "PackAnim_" .. tostring(packId)
+        local emoteTable = {}
+        local equipped = {}
+        
+        local existingEquipped = description:GetEquippedEmotes() or {}
+        for _, name in pairs(existingEquipped) do
+            if name ~= animName then
+                table.insert(equipped, name)
+            end
+        end
+        
+        emoteTable[animName] = {packId}
+        table.insert(equipped, animName)
+        
+        description:SetEmotes(emoteTable)
+        description:SetEquippedEmotes(equipped)
+        
+        task.wait(0.05)
+        local ok, track = pcall(function()
+            return humanoid:PlayEmoteAndGetAnimTrackById(packId)
+        end)
+        
+        if ok and track and typeof(track) == "Instance" and track:IsA("AnimationTrack") then
+            animationPackActive = true
+            currentPackTrack = track
+            track.Looped = true
+            track:Play()
+            
+            local animate = character:FindFirstChild("Animate")
+            if animate then
+                local idleFolder = animate:FindFirstChild("idle")
+                if not idleFolder then
+                    idleFolder = Instance.new("Folder")
+                    idleFolder.Name = "idle"
+                    idleFolder.Parent = animate
+                end
+                
+                local animObj = idleFolder:FindFirstChild("Animation1")
+                if not animObj then
+                    animObj = Instance.new("Animation")
+                    animObj.Name = "Animation1"
+                    animObj.Parent = idleFolder
+                end
+                
+                animObj.AnimationId = "rbxassetid://" .. tostring(packId)
+                
+                animate.Disabled = true
+                task.wait(0.05)
+                animate.Disabled = false
+            end
+        end
     end
 
-    section:Button({Title = "悬浮躺", Callback = function() clik() playAnimation(77840765435893, 1, 0) end})
-    section:Button({Title = "JOJO姿势", Callback = function() clik() playAnimation(120629563851640, 1, 0) end})
-    section:Button({Title = "直升机", Callback = function() clik() playAnimation(95301257497525, 1, 0) end})
-    section:Button({Title = "俄罗斯舞蹈", Callback = function() clik() playAnimation(97148848007002, 1, 0) end})
-    section:Button({Title = "俯卧撑", Callback = function() clik() playAnimation(108313130500811, 1, 0) end})
-    section:Button({Title = "停止当前动作", Desc = "打断并停止所有正在播放的动作", Callback = function() stopAnimation() end})
+    local function stopAnimationPack()
+        clik()
+        if currentPackTrack and currentPackTrack.IsPlaying then
+            currentPackTrack:Stop()
+        end
+        animationPackActive = false
+        currentPackTrack = nil
+    end
+
+    section1:Button({Title = "悬浮躺", Callback = function() clik() playAnimationPublic(77840765435893, 1, 0) end})
+    section1:Button({Title = "JOJO姿势", Callback = function() clik() playAnimationPublic(120629563851640, 1, 0) end})
+    section1:Button({Title = "直升机", Callback = function() clik() playAnimationPublic(95301257497525, 1, 0) end})
+    section1:Button({Title = "俄罗斯舞蹈", Callback = function() clik() playAnimationPublic(97148848007002, 1, 0) end})
+    section1:Button({Title = "俯卧撑", Callback = function() clik() playAnimationPublic(108313130500811, 1, 0) end})
+    section1:Button({Title = "停止当前动作", Desc = "打断并停止所有正在播放的动作", Callback = function() stopAnimation() end})
+
+    section2:Button({
+        Title = "阿迪达斯社区动画包",
+        Desc = "ID: 2623795",
+        Callback = function() playAnimationPack(2623795, "adidas Community Animation Pack") end
+    })
+
+    section2:Button({
+        Title = "僵尸动画包",
+        Desc = "ID: 80",
+        Callback = function() playAnimationPack(80, "Zombie Animation Pack") end
+    })
+    
+    section2:Button({
+        Title = "关闭动画包",
+        Desc = "停止当前播放的动画包",
+        Callback = function() stopAnimationPack() end
+    })
 
     return tab
 end
