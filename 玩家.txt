@@ -33,30 +33,52 @@ return function(Window, WindUI)
         end
     })
 
-    playerSection:Button({Title = "刷新玩家列表", Callback = function()
-        if playerDropdown then
-            pcall(function()
-                if playerDropdown.SetValues then
-                    playerDropdown:SetValues(getPlayerNames())
-                elseif playerDropdown.Update then
-                    playerDropdown:Update(getPlayerNames())
-                end
-                WindUI:Notify({Title = "刷新成功", Content = "玩家列表已更新", Duration = 2, Icon = "check"})
-            end)
-        end
-    end})
-
     local function refreshDropdown()
+        local newNames = getPlayerNames()
         if playerDropdown then
-            pcall(function()
-                if playerDropdown.SetValues then
-                    playerDropdown:SetValues(getPlayerNames())
-                elseif playerDropdown.Update then
-                    playerDropdown:Update(getPlayerNames())
+            if playerDropdown.SetValues then
+                playerDropdown:SetValues(newNames)
+            elseif playerDropdown.Update then
+                playerDropdown:Update(newNames)
+            elseif playerDropdown.UpdateValues then
+                playerDropdown:UpdateValues(newNames)
+            elseif playerDropdown.Refresh then
+                playerDropdown:Refresh(newNames)
+            else
+                local oldCallback = playerDropdown.Callback
+                if playerDropdown.Remove then
+                    playerDropdown:Remove()
+                elseif playerDropdown.Destroy then
+                    playerDropdown:Destroy()
                 end
-            end)
+                playerDropdown = playerSection:Dropdown({
+                    Title = "选择目标玩家",
+                    Values = newNames,
+                    Callback = oldCallback or function(selected)
+                        if selected then
+                            targetPlayer = playerMap[selected]
+                        end
+                    end
+                })
+            end
+        else
+            playerDropdown = playerSection:Dropdown({
+                Title = "选择目标玩家",
+                Values = newNames,
+                Callback = function(selected)
+                    if selected then
+                        targetPlayer = playerMap[selected]
+                    end
+                end
+            })
         end
     end
+
+    playerSection:Button({Title = "刷新玩家列表", Callback = function()
+        refreshDropdown()
+        WindUI:Notify({Title = "刷新成功", Content = "玩家列表已更新", Duration = 2, Icon = "check"})
+    end})
+
     Players.PlayerAdded:Connect(refreshDropdown)
     Players.PlayerRemoving:Connect(refreshDropdown)
 
@@ -482,12 +504,12 @@ return function(Window, WindUI)
         end
     end
 
-    playerSection:Toggle({Title = "甩飞", Value = false, Callback = function(val)
-        if val then
-            StartFling()
-        else
-            StopFling()
-        end
+    playerSection:Button({Title = "甩飞", Callback = function()
+        StartFling()
+    end})
+
+    playerSection:Button({Title = "停止甩飞", Callback = function()
+        StopFling()
     end})
 
     playerSection:Toggle({Title = "循环甩飞", Value = false, Callback = function(val)
