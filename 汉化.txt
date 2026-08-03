@@ -1,0 +1,1031 @@
+-- 按键绑定：逗号 ","
+
+-- 作者: Gi#7331
+local env = getgenv()
+if env.LastExecuted and tick()-env.LastExecuted<30 then return end
+env.LastExecuted = tick()
+
+print("脚本已执行！")
+
+game:GetService("StarterGui"):SetCore("SendNotification",{
+    Title = "请稍候",
+    Text = "正在加载表情菜单，请稍等...",
+    Duration = 15
+})
+
+-- 删除已有的表情界面
+if game:GetService("CoreGui"):FindFirstChild("Emotes") then
+    game:GetService("CoreGui"):FindFirstChild("Emotes"):Destroy()
+end
+
+wait(1)
+
+local ContextActionService = game:GetService("ContextActionService")
+local HttpService = game:GetService("HttpService")
+local GuiService = game:GetService("GuiService")
+local CoreGui = game:GetService("CoreGui")
+local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
+
+local LoadedEmotes, Emotes = {}, {}
+
+-- 所有表情数据
+local 表情数据 = {
+    { name = "Around Town", id = 3576747102, price = 1000, lastupdated = 1663264200 },
+    { name = "TWICE TAKEDOWN DANCE 2", id = 85623000473425, price = 100, lastupdated = 1752192000 },
+    { name = "Fashionable", id = 3576745472, price = 750, lastupdated = 1663281649 },
+    { name = "Swish", id = 3821527813, price = 750, lastupdated = 1663281651 },
+    { name = "Top Rock", id = 3570535774, price = 750, lastupdated = 1663281651 },
+    { name = "Fancy Feet", id = 3934988903, price = 500, lastupdated = 1663281649 },
+    { name = "Idol", id = 4102317848, price = 500, lastupdated = 1663281650 },
+    { name = "Sneaky", id = 3576754235, price = 500, lastupdated = 1663281651 },
+    { name = "Elton John - Piano Jump", id = 11453096488, price = 500, lastupdated = 1668382206 },
+    { name = "Cartwheel - George Ezra", id = 10370929905, price = 450, lastupdated = 1659650848 },
+    { name = "Super Charge", id = 10478368365, price = 450, lastupdated = 1659649594 },
+    { name = "Rise Above - The Chainsmokers", id = 13071993910, price = 400, lastupdated = 1681411386 },
+    { name = "Elton John - Elevate", id = 11394056822, price = 400, lastupdated = 1667432393 },
+    { name = "Sturdy Dance - Ice Spice", id = 17746270218, price = 300, lastupdated = 1717619314 },
+    { name = "YUNGBLUD – HIGH KICK", id = 14022978026, price = 300, lastupdated = 1691769382 },
+    { name = "Robot", id = 3576721660, price = 250, lastupdated = 1663281650 },
+    { name = "Louder", id = 3576751796, price = 250, lastupdated = 1663281650 },
+    { name = "Twirl", id = 3716633898, price = 250, lastupdated = 1663281651 },
+    { name = "Bodybuilder", id = 3994130516, price = 200, lastupdated = 1663281649 },
+    { name = "NBA Monster Dunk", id = 117511481049460, price = 200, lastupdated = 1739396302 },
+    { name = "Jacks", id = 3570649048, price = 200, lastupdated = 1663281650 },
+    { name = "Shuffle", id = 4391208058, price = 200, lastupdated = 1663281651 },
+    { name = "Elton John - Still Standing", id = 11435177473, price = 200, lastupdated = 1667779047 },
+    { name = "Elton John - Cat Man", id = 11435175895, price = 200, lastupdated = 1667535727 },
+    { name = "Shrek Roar", id = 18524331128, price = 200, lastupdated = 1721176055 },
+    { name = "Dorky Dance", id = 4212499637, price = 200, lastupdated = 1663281649 },
+    { name = "HOLIDAY Dance - Lil Nas X", id = 5938396308, price = 190, lastupdated = 1663281650 },
+    { name = "Old Town Road Dance - Lil Nas X", id = 5938394742, price = 190, lastupdated = 1663281650 },
+    { name = "Panini Dance - Lil Nas X", id = 5915781665, price = 190, lastupdated = 1663281650 },
+    { name = "Rodeo Dance - Lil Nas X", id = 5938397555, price = 190, lastupdated = 1663281651 },
+    { name = "Drum Master - Royal Blood", id = 6531538868, price = 190, lastupdated = 1663281649 },
+    { name = "It Ain't My Fault - Zara Larsson", id = 6797948622, price = 190, lastupdated = 1663281650 },
+    { name = "Flex Walk", id = 15506506103, price = 175, lastupdated = 1705451683 },
+    { name = "Dizzy", id = 3934986896, price = 175, lastupdated = 1663281649 },
+    { name = "Uprise - Tommy Hilfiger", id = 10275057230, price = 170, lastupdated = 1660240736 },
+    { name = "Tommy - Archer", id = 13823339506, price = 170, lastupdated = 1687980934 },
+    { name = "Mean Mug - Tommy Hilfiger", id = 10214415687, price = 170, lastupdated = 1660240753 },
+    { name = "Rock Star - Royal Blood", id = 6533100850, price = 170, lastupdated = 1663281651 },
+    { name = "Floor Rock Freeze - Tommy Hilfiger", id = 10214411646, price = 170, lastupdated = 1658271615 },
+    { name = "Saturday Dance - Twenty One Pilots", id = 7422833723, price = 170, lastupdated = 1663281651 },
+    { name = "V Pose - Tommy Hilfiger", id = 10214418283, price = 170, lastupdated = 1660240743 },
+    { name = "Boxing Punch - KSI", id = 7202896732, price = 170, lastupdated = 1663281649 },
+    { name = "Drum Solo - Royal Blood", id = 6532844183, price = 170, lastupdated = 1663281649 },
+    { name = "Frosty Flair - Tommy Hilfiger", id = 10214406616, price = 170, lastupdated = 1658271594 },
+    { name = "Hips Poppin' - Zara Larsson", id = 6797919579, price = 170, lastupdated = 1663281650 },
+    { name = "Drummer Moves - Twenty One Pilots", id = 7422838770, price = 160, lastupdated = 1663281649 },
+    { name = "On The Outside - Twenty One Pilots", id = 7422841700, price = 160, lastupdated = 1663281650 },
+    { name = "Thanos Happy Jump - Squid Game", id = 82217023310738, price = 150, lastupdated = 1750314239 },
+    { name = "Block Partier", id = 6865011755, price = 150, lastupdated = 1663281649 },
+    { name = "Up and Down - Twenty One Pilots", id = 7422843994, price = 150, lastupdated = 1663281651 },
+    { name = "Ay-Yo Dance Move - NCT 127", id = 12804173616, price = 150, lastupdated = 1679554914 },
+    { name = "Young-hee Head Spin - Squid Game", id = 134615135651900, price = 150, lastupdated = 1750314256 },
+    { name = "T", id = 3576719440, price = 150, lastupdated = 1663281651 },
+    { name = "Air Dance", id = 4646302011, price = 150, lastupdated = 1663264200 },
+    { name = "TMNT Dance", id = 18665886405, price = 150, lastupdated = 1722010678 },
+    { name = "Take Me Under - Zara Larsson", id = 6797938823, price = 150, lastupdated = 1663281651 },
+    { name = "Sticker Dance Move - NCT 127", id = 12259885838, price = 150, lastupdated = 1675067049 },
+    { name = "Line Dance", id = 4049646104, price = 150, lastupdated = 1663281650 },
+    { name = "NBA WNBA Fadeaway", id = 18526373545, price = 150, lastupdated = 1721396854 },
+    { name = "SpongeBob Imaginaaation 🌈", id = 18443268949, price = 150, lastupdated = 1720822244 },
+    { name = "Chill Vibes - George Ezra", id = 10370918044, price = 150, lastupdated = 1659650823 },
+    { name = "Wake Up Call - KSI", id = 7202900159, price = 150, lastupdated = 1663281651 },
+    { name = "Kick It Dance Move - NCT 127", id = 12259888240, price = 150, lastupdated = 1674794102 },
+    { name = "The Weeknd Starboy Strut", id = 130245358716273, price = 150, lastupdated = 1747429898 },
+    { name = "2 Baddies Dance Move - NCT 127", id = 12259890638, price = 150, lastupdated = 1674793873 },
+    { name = "Rock Guitar - Royal Blood", id = 6532155086, price = 150, lastupdated = 1663281650 },
+    { name = "Show Dem Wrists - KSI", id = 7202898984, price = 140, lastupdated = 1663281651 },
+    { name = "Dancin' Shoes - Twenty One Pilots", id = 7405123844, price = 140, lastupdated = 1663281649 },
+    { name = "Arm Twist", id = 9710992846, price = 140, lastupdated = 1691019410 },
+    { name = "AOK - Tai Verdes", id = 7942960760, price = 140, lastupdated = 1663281649 },
+    { name = "M3GAN's Dance", id = 127271798262177, price = 140, lastupdated = 1749963148 },
+    { name = "High Hands", id = 9710994651, price = 140, lastupdated = 1691019393 },
+    { name = "Cobra Arms - Tai Verdes", id = 7942964447, price = 130, lastupdated = 1663281649 },
+    { name = "Lasso Turn - Tai Verdes", id = 7942972744, price = 130, lastupdated = 1663281650 },
+    { name = "Beauty Touchdown", id = 16303091119, price = 125, lastupdated = 1709320484 },
+    { name = "Sidekicks - George Ezra", id = 10370922566, price = 125, lastupdated = 1659650831 },
+    { name = "Boom Boom Clap - George Ezra", id = 10370934040, price = 125, lastupdated = 1659650857 },
+    { name = "DearALICE - Ariana", id = 133765015173412, price = 125, lastupdated = 1748015544 },
+    { name = "Chappell Roan HOT TO GO!", id = 79312439851071, price = 125, lastupdated = 1728072364 },
+    { name = "Bone Chillin' Bop", id = 15123050663, price = 125, lastupdated = 1698882605 },
+    { name = "Power Blast", id = 4849497510, price = 120, lastupdated = 1663281650 },
+    { name = "Flowing Breeze", id = 7466047578, price = 110, lastupdated = 1663281650 },
+    { name = "Swan Dance", id = 7466048475, price = 110, lastupdated = 1663281651 },
+    { name = "Quiet Waves", id = 7466046574, price = 110, lastupdated = 1663281650 },
+    { name = "Rolling Stones Guitar Strum", id = 18148839527, price = 100, lastupdated = 1718999383 },
+    { name = "Break Dance", id = 5915773992, price = 100, lastupdated = 1663281649 },
+    { name = "KATSEYE - Touch", id = 139021427684680, price = 100, lastupdated = 1732569484 },
+    { name = "Zombie", id = 4212496830, price = 100, lastupdated = 1663281651 },
+    { name = "Olivia Rodrigo Head Bop", id = 15554010118, price = 100, lastupdated = 1701888912 },
+    { name = "Rasputin – Boney M.", id = 133477296392756, price = 100, lastupdated = 1750102356 },
+    { name = "Tommy K-Pop Mic Drop", id = 14024722653, price = 100, lastupdated = 1691505558 },
+    { name = "TWICE Feel Special", id = 14900153406, price = 100, lastupdated = 1695849104 },
+    { name = "Olivia Rodrigo good 4 u", id = 15554013003, price = 100, lastupdated = 1701899524 },
+    { name = "Olivia Rodrigo Fall Back to Float", id = 15554016057, price = 100, lastupdated = 1704909517 },
+    { name = "Air Guitar", id = 15506499986, price = 100, lastupdated = 1705451692 },
+    { name = "Fashion Klossette - Runway my way", id = 126683684984862, price = 100, lastupdated = 1725032194 },
+    { name = "Elton John - Heart Skip", id = 11309263077, price = 100, lastupdated = 1667432377 },
+    { name = "Baby Dance", id = 4272484885, price = 100, lastupdated = 1663264200 },
+    { name = "Cha Cha", id = 6865013133, price = 100, lastupdated = 1625675362 },
+    { name = "Dolphin Dance", id = 5938365243, price = 100, lastupdated = 1663281649 },
+    { name = "Elton John - Rock Out", id = 11753545334, price = 100, lastupdated = 1670628204 },
+    { name = "ALTÉGO - Couldn't Care Less", id = 92859581691366, price = 100, lastupdated = 1726765025 },
+    { name = "Fashion Roadkill", id = 73683655527605, price = 100, lastupdated = 1727716460 },
+    { name = "Paris Hilton Sanasa", id = 16126526506, price = 100, lastupdated = 1706312634 },
+    { name = "TWICE I GOT YOU part 1", id = 16215060261, price = 100, lastupdated = 1708450164 },
+    { name = "The Zabb", id = 71389516735424, price = 100, lastupdated = 1725033197 },
+    { name = "Y", id = 4391211308, price = 100, lastupdated = 1663281651 },
+    { name = "Wanna play?", id = 16646438742, price = 100, lastupdated = 1709741603 },
+    { name = "TWICE I GOT YOU part 2", id = 16256253954, price = 100, lastupdated = 1708450173 },
+    { name = "Nicki Minaj Starships", id = 15571540519, price = 100, lastupdated = 1704780058 },
+    { name = "Mean Girls Dance Break", id = 15963348695, price = 100, lastupdated = 1705126454 },
+    { name = "TWICE Takedown", id = 94796833553521, price = 100, lastupdated = 1750434081 },
+    { name = "Samba", id = 6869813008, price = 100, lastupdated = 1663281651 },
+    { name = "Rock Out - Bebe Rexha", id = 18225077553, price = 100, lastupdated = 1719448619 },
+    { name = "TWICE LIKEY", id = 14900151704, price = 100, lastupdated = 1695849068 },
+    { name = "Sol de Janeiro - Samba", id = 16276506814, price = 100, lastupdated = 1707323755 },
+    { name = "The Weeknd Opening Night", id = 105098895743105, price = 100, lastupdated = 1747430460 },
+    { name = "Paris Hilton - Sliving For The Groove", id = 15392927897, price = 100, lastupdated = 1700334418 },
+    { name = "Paris Hilton - Checking My Angles", id = 15392937495, price = 100, lastupdated = 1700334434 },
+    { name = "Nicki Minaj Boom Boom Boom", id = 15571538346, price = 100, lastupdated = 1704779662 },
+    { name = "Stray Kids Walkin On Water", id = 100773414188482, price = 100, lastupdated = 1738351370 },
+    { name = "Team USA Breaking Emote", id = 18526338976, price = 100, lastupdated = 1721666622 },
+    { name = "Side to Side", id = 3762641826, price = 100, lastupdated = 1663281651 },
+    { name = "Skibidi Toilet - Titan Speakerman Laser Spin", id = 103102322875221, price = 100, lastupdated = 1727890994 },
+    { name = "Paris Hilton - Iconic IT-Grrrl", id = 15392932768, price = 100, lastupdated = 1700334426 },
+    { name = "Dave's Spin Move - Glass Animals", id = 16276501655, price = 95, lastupdated = 1707321025 },
+    { name = "HUGO Let's Drive!", id = 17360720445, price = 95, lastupdated = 1721145133 },
+    { name = "Fast Hands", id = 4272351660, price = 80, lastupdated = 1663281649 },
+    { name = "Tree", id = 4049634387, price = 80, lastupdated = 1663281651 },
+    { name = "Godlike", id = 3823158750, price = 80, lastupdated = 1663281650 },
+    { name = "Keeping Time", id = 4646306072, price = 80, lastupdated = 1663281650 },
+    { name = "Elton John - Heart Shuffle", id = 17748346932, price = 80, lastupdated = 1720191180 },
+    { name = "Tantrum", id = 5104374556, price = 80, lastupdated = 1663281651 },
+    { name = "Rock On", id = 5915782672, price = 80, lastupdated = 1663281650 },
+    { name = "Hero Landing", id = 5104377791, price = 80, lastupdated = 1663281650 },
+    { name = "Fishing", id = 3994129128, price = 80, lastupdated = 1663281650 },
+    { name = "Floss Dance", id = 5917570207, price = 80, lastupdated = 1663281650 },
+    { name = "Get Out", id = 3934984583, price = 80, lastupdated = 1663281650 },
+    { name = "Victory Dance", id = 15506503658, price = 75, lastupdated = 1705451709 },
+    { name = "d4vd - Backflip", id = 15694504637, price = 50, lastupdated = 1703220450 },
+    { name = "GloRilla - \"Tomorrow\" Dance", id = 15689315657, price = 50, lastupdated = 1703220424 },
+    { name = "Monkey", id = 3716636630, price = 50, lastupdated = 1663281650 },
+    { name = "Imagine Dragons - \"Bones\" Dance", id = 15689314578, price = 50, lastupdated = 1703220437 },
+    { name = "Greatest", id = 3762654854, price = 50, lastupdated = 1663281650 },
+    { name = "Jawny - Stomp", id = 16392120020, price = 50, lastupdated = 1708707354 },
+    { name = "Jumping Wave", id = 4940602656, price = 50, lastupdated = 1663281650 },
+    { name = "HIPMOTION - Amaarae", id = 16572756230, price = 50, lastupdated = 1709321680 },
+    { name = "Haha", id = 4102315500, price = 50, lastupdated = 1663281650 },
+    { name = "Agree", id = 4849487550, price = 50, lastupdated = 1663264200 },
+    { name = "Mae Stephens - Piano Hands", id = 16553249658, price = 50, lastupdated = 1713462132 },
+    { name = "Mini Kong", id = 17000058939, price = 50, lastupdated = 1712176275 },
+    { name = "Mae Stephens – Arm Wave", id = 16584496781, price = 50, lastupdated = 1713462122 },
+    { name = "Festive Dance", id = 15679955281, price = 50, lastupdated = 1703018450 },
+    { name = "Jumping Cheer", id = 5895009708, price = 50, lastupdated = 1604988014 },
+    { name = "Sleep", id = 4689362868, price = 50, lastupdated = 1663281651 },
+    { name = "ericdoa - dance", id = 15698510244, price = 50, lastupdated = 1703220462 },
+    { name = "Disagree", id = 4849495710, price = 50, lastupdated = 1663281649 },
+    { name = "Happy", id = 4849499887, price = 50, lastupdated = 1663281650 },
+    { name = "Bored", id = 5230661597, price = 50, lastupdated = 1663281649 },
+    { name = "High Wave", id = 5915776835, price = 50, lastupdated = 1663281650 },
+    { name = "Alo Yoga Pose - Warrior II", id = 12507106431, price = 50, lastupdated = 1677711229 },
+    { name = "Cower", id = 4940597758, price = 50, lastupdated = 1591404331 },
+    { name = "Wisp - air guitar", id = 17370797454, price = 50, lastupdated = 1714753031 },
+    { name = "Alo Yoga Pose - Triangle", id = 12507120275, price = 50, lastupdated = 1677711156 },
+    { name = "Cuco - Levitate", id = 15698511500, price = 50, lastupdated = 1708707329 },
+    { name = "Rock n Roll", id = 15506496093, price = 50, lastupdated = 1705451701 },
+    { name = "Shy", id = 3576717965, price = 50, lastupdated = 1663281651 },
+    { name = "Alo Yoga Pose - Lotus Position", id = 12507097350, price = 50, lastupdated = 1677711092 },
+    { name = "Curtsy", id = 4646306583, price = 50, lastupdated = 1663281649 },
+    { name = "Celebrate", id = 3994127840, price = 50, lastupdated = 1663281649 },
+    { name = "Yungblud Happier Jump", id = 15610015346, price = 50, lastupdated = 1702326238 },
+    { name = "Baby Queen - Face Frame", id = 14353421343, price = 50, lastupdated = 1692371043 },
+    { name = "Confused", id = 4940592718, price = 50, lastupdated = 1590791657 },
+    { name = "Beckon", id = 5230615437, price = 50, lastupdated = 1663281649 },
+    { name = "Secret Handshake Dance", id = 120642514156293, price = 50, lastupdated = 1733254849 },
+    { name = "Baby Queen - Air Guitar & Knee Slide", id = 14353417553, price = 50, lastupdated = 1692371054 },
+    { name = "Baby Queen - Bouncy Twirl", id = 14353423348, price = 50, lastupdated = 1692371037 },
+    { name = "Baby Queen - Strut", id = 14353425085, price = 50, lastupdated = 1692371026 },
+    { name = "Baby Queen - Dramatic Bow", id = 14353419229, price = 50, lastupdated = 1692371048 },
+    { name = "Sad", id = 4849502101, price = 50, lastupdated = 1663281651 },
+    { name = "Robot M3GAN", id = 90569436057900, price = 1, lastupdated = 1749316525 },
+    { name = "Nicki Minaj Anaconda", id = 15571539403, price = 0, lastupdated = 1702052956 },
+    { name = "Cha-Cha", id = 3696764866, price = 0, lastupdated = 1663281649 },
+    { name = "BURBERRY LOLA ATTITUDE - BLOOM", id = 10147919199, price = 0, lastupdated = 1663281649 },
+    { name = "Skadoosh Emote - Kung Fu Panda 4", id = 16371235025, price = 0, lastupdated = 1708496660 },
+    { name = "Chicken Dance", id = 4849493309, price = 0, lastupdated = 1663281649 },
+    { name = "BLACKPINK Don't know what to do", id = 18855609889, price = 0, lastupdated = 1723090163 },
+    { name = "Man City Scorpion Kick", id = 13694139364, price = 0, lastupdated = 1688061827 },
+    { name = "Gashina - SUNMI", id = 9528294735, price = 0, lastupdated = 1651539455 },
+    { name = "Fashion Spin", id = 130046968468383, price = 0, lastupdated = 1732653968 },
+    { name = "Country Line Dance - Lil Nas X", id = 5915780563, price = 0, lastupdated = 1605561299 },
+    { name = "Sandwich Dance", id = 4390121879, price = 0, lastupdated = 1663281651 },
+    { name = "BLACKPINK LISA Money", id = 15679957363, price = 0, lastupdated = 1703004397 },
+    { name = "Nicki Minaj That's That Super Bass Emote", id = 15571536896, price = 0, lastupdated = 1702052899 },
+    { name = "Salute", id = 3360689775, price = 0, lastupdated = 1663281651 },
+    { name = "Olympic Dismount", id = 18666650035, price = 0, lastupdated = 1722014387 },
+    { name = "MANIAC - Stray Kids", id = 11309309359, price = 0, lastupdated = 1668458448 },
+    { name = "BLACKPINK JISOO Flower", id = 15439454888, price = 0, lastupdated = 1701124495 },
+    { name = "Man City Bicycle Kick", id = 13422286833, price = 0, lastupdated = 1684429651 },
+    { name = "Man City Backflip", id = 13694140956, price = 0, lastupdated = 1688061856 },
+    { name = "BLACKPINK Pink Venom - Straight to Ya Dome", id = 14548711723, price = 0, lastupdated = 1732579764 },
+    { name = "BLACKPINK Pink Venom - I Bring the Pain Like…", id = 14548710952, price = 0, lastupdated = 1732579780 },
+    { name = "Stadium", id = 3360686498, price = 0, lastupdated = 1663281651 },
+    { name = "BLACKPINK ROSÉ On The Ground", id = 15679958535, price = 0, lastupdated = 1703004441 },
+    { name = "Bunny Hop", id = 4646296016, price = 0, lastupdated = 1663281649 },
+    { name = "BLACKPINK Shut Down - Part 1", id = 14901369589, price = 0, lastupdated = 1732579788 },
+    { name = "BLACKPINK Kill This Love", id = 16181843366, price = 0, lastupdated = 1706724495 },
+    { name = "SpongeBob Dance", id = 18443271885, price = 0, lastupdated = 1720722377 },
+    { name = "Borock's Rage", id = 3236848555, price = 0, lastupdated = 1663281649 },
+    { name = "The Conductor - George Ezra", id = 10370926562, price = 0, lastupdated = 1658879306 },
+    { name = "Swag Walk", id = 10478377385, price = 0, lastupdated = 1659642405 },
+    { name = "BLACKPINK Shut Down - Part 2", id = 14901371589, price = 0, lastupdated = 1732579772 },
+    { name = "BLACKPINK Ice Cream", id = 16181840356, price = 0, lastupdated = 1706724478 },
+    { name = "Superhero Reveal", id = 3696759798, price = 0, lastupdated = 1663281651 },
+    { name = "BLACKPINK Pink Venom - Get em Get em Get em", id = 14548709888, price = 0, lastupdated = 1732579749 },
+    { name = "NBA Monster Dunk", id = 82163305721376, price = 0, lastupdated = 1739396236 },
+    { name = "TWICE ABCD by Nayeon", id = 18933761755, price = 0, lastupdated = 1723561480 },
+    { name = "BURBERRY LOLA ATTITUDE - NIMBUS", id = 10147924028, price = 0, lastupdated = 1657728069 },
+    { name = "Ud'zal's Summoning", id = 3307604888, price = 0, lastupdated = 1663281651 },
+    { name = "TWICE Pop by Nayeon", id = 13768975574, price = 0, lastupdated = 1687549777 },
+    { name = "TWICE Set Me Free - Dance 1", id = 12715395038, price = 0, lastupdated = 1678474186 },
+    { name = "TWICE Set Me Free - Dance 2", id = 12715397488, price = 0, lastupdated = 1678474350 },
+    { name = "Hyperfast 5G Dance Move", id = 9408642191, price = 0, lastupdated = 1663281650 },
+    { name = "You can't sit with us - Sunmi", id = 9983549160, price = 0, lastupdated = 1657679637 },
+    { name = "Hype Dance", id = 3696757129, price = 0, lastupdated = 1663281650 },
+    { name = "BLACKPINK - How You Like That", id = 16874596971, price = 0, lastupdated = 1711414303 },
+    { name = "BLACKPINK - Lovesick Girls", id = 16874600526, price = 0, lastupdated = 1711414329 },
+    { name = "TWICE Like Ooh-Ahh", id = 14124050904, price = 0, lastupdated = 1689868872 },
+    { name = "Heisman Pose", id = 3696763549, price = 0, lastupdated = 1663281650 },
+    { name = "BLACKPINK As If It's Your Last", id = 18855603653, price = 0, lastupdated = 1723090177 },
+    { name = "TWICE Moonlight Sunrise ", id = 12715393154, price = 0, lastupdated = 1678474249 },
+    { name = "TWICE Fancy", id = 13520623514, price = 0, lastupdated = 1685112803 },
+    { name = "Point2", id = 3576823880, price = 0, lastupdated = 1663281650 },
+    { name = "BURBERRY LOLA ATTITUDE - GEM", id = 10147916560, price = 0, lastupdated = 1663281649 },
+    { name = "Vroom Vroom", id = 18526410572, price = 0, lastupdated = 1721931643 },
+    { name = "Hwaiting (화이팅)", id = 9528291779, price = 0, lastupdated = 1663281650 },
+    { name = "BLACKPINK JENNIE You and Me", id = 15439457146, price = 0, lastupdated = 1701124471 },
+    { name = "Tilt", id = 3360692915, price = 0, lastupdated = 1663281651 },
+    { name = "Applaud", id = 5915779043, price = 0, lastupdated = 1663264200 },
+    { name = "BLACKPINK DDU-DU DDU-DU", id = 16553262614, price = 0, lastupdated = 1709100790 },
+    { name = "BURBERRY LOLA ATTITUDE - HYDRO", id = 10147926081, price = 0, lastupdated = 1657814503 },
+    { name = "BURBERRY LOLA ATTITUDE - REFLEX", id = 10147921916, price = 0, lastupdated = 1663281649 },
+    { name = "Air Guitar", id = 3696761354, price = 0, lastupdated = 1663264200 },
+    { name = "Annyeong (안녕)", id = 9528286240, price = 0, lastupdated = 1651539455 },
+    { name = "BLACKPINK Boombayah Emote", id = 16553259683, price = 0, lastupdated = 1709339907 },
+    { name = "Victory - 24kGoldn", id = 9178397781, price = 0, lastupdated = 1663281651 },
+    { name = "Hello", id = 3576686446, price = 0, lastupdated = 1663281650 },
+    { name = "Vans Ollie", id = 18305539673, price = 0, lastupdated = 1719938530 },
+    { name = "TWICE Strategy", id = 106862678450011, price = 0, lastupdated = 1734540744 },
+    { name = "TWICE The Feels", id = 12874468267, price = 0, lastupdated = 1679673336 },
+    { name = "TWICE What Is Love", id = 13344121112, price = 0, lastupdated = 1683906913 },
+    { name = "Shrug", id = 3576968026, price = 0, lastupdated = 1663281651 },
+}
+
+-- 额外添加的表情（通过 addEmote 添加的）
+local 额外表情 = {
+    { name = "PARROT PARTY DANCE", id = 121067808279598, price = 39, date = "Aug 08, 2025" },
+    { name = "Dance n' Prance", id = 99031916674986, price = 39, date = "Aug 08, 2025" },
+    { name = "R15 Death (Accurate)", id = 114899970878842, price = 39, date = "Aug 08, 2025" },
+    { name = "Wally West", id = 133948663586698, price = 39, date = "Aug 08, 2025" },
+    { name = "Take The L", id = 123159156696507, price = 39, date = "Aug 08, 2025" },
+    { name = "Xaviersobased", id = 131763631172236, price = 39, date = "Aug 09, 2025" },
+    { name = "Belly Dancing", id = 131939729732240, price = 39, date = "Aug 08, 2025" },
+    { name = "RAT DANCE", id = 133461102795137, price = 78, date = "Aug 08, 2025" },
+    { name = "CaramellDansen", id = 93105950995997, price = 39, date = "Aug 08, 2025" },
+    { name = "Biblically Accurate", id = 133596366979822, price = 39, date = "Aug 08, 2025" },
+    { name = "Rambunctious", id = 134311528115559, price = 39, date = "Aug 08, 2025" },
+    { name = "Ballin", id = 96293409369770, price = 39, date = "Aug 17, 2025" },
+    { name = "Die Lit", id = 121001502815813, price = 39, date = "Aug 08, 2025" },
+    { name = "Nyan Nyan!", id = 73796726960568, price = 39, date = "Aug 08, 2025" },
+    { name = "Teto Territory", id = 114428584463004, price = 39, date = "Aug 08, 2025" },
+    { name = "Skibidi", id = 124828909173982, price = 39, date = "Aug 08, 2025" },
+    { name = "Chronoshift", id = 92600655160976, price = 39, date = "Aug 08, 2025" },
+    { name = "Floating on Clouds", id = 111426928948833, price = 39, date = "Aug 08, 2025" },
+    { name = "Jersey Joe", id = 134149640725489, price = 39, date = "Aug 08, 2025" },
+    { name = "Virtual Insanity", id = 83261816934732, price = 39, date = "Aug 09, 2025" },
+    { name = "Doodle Dance", id = 107091254142209, price = 39, date = "Aug 08, 2025" },
+    { name = "Subject 3", id = 83732367439808, price = 39, date = "Aug 08, 2025" },
+    { name = "Club Penguin", id = 98099211500155, price = 39, date = "Aug 09, 2025" },
+    { name = "Kazotsky", id = 97629500912487, price = 39, date = "Aug 08, 2025" },
+    { name = "Miku Dance", id = 117734400993750, price = 39, date = "Aug 08, 2025" },
+    { name = "Deltarune - Tenna Swing", id = 103139492736941, price = 39, date = "Aug 08, 2025" },
+    { name = "Hakari Dance", id = 80270168146449, price = 39, date = "Aug 08, 2025" },
+    { name = "Addendum Dance [R6]", id = 134442882516163, price = 39, date = "Aug 09, 2025" },
+    { name = "Gangnam Style", id = 77205409178702, price = 39, date = "Aug 08, 2025" },
+    { name = "Push-Up", id = 117922227854118, price = 39, date = "Aug 09, 2025" },
+    { name = "Split", id = 98522218962476, price = 39, date = "Aug 08, 2025" },
+    { name = "PROXIMA", id = 81390693780805, price = 39, date = "Aug 08, 2025" },
+    { name = "HeadBanging", id = 87447252507832, price = 39, date = "Aug 08, 2025" },
+    { name = "Assumptions", id = 127507691649322, price = 39, date = "Aug 08, 2025" },
+    { name = "Jumpstyle", id = 99563839802389, price = 39, date = "Aug 08, 2025" },
+    { name = "Flopping Fish", id = 133142324349281, price = 39, date = "Aug 08, 2025" },
+    { name = "Kicking Feet Sit", id = 78758922757947, price = 39, date = "Aug 08, 2025" },
+    { name = "Fancy Feets", id = 124512151372711, price = 39, date = "Aug 08, 2025" },
+    { name = "Cute Sit", id = 90244178386698, price = 39, date = "Aug 08, 2025" },
+    { name = "Absolute Cinema", id = 97258018304125, price = 39, date = "Aug 08, 2025" },
+    { name = "Bubbly Sit", id = 112758073578333, price = 39, date = "Aug 08, 2025" },
+    { name = "Become A Car", id = 131544122623505, price = 39, date = "Aug 08, 2025" },
+    { name = "Hiding Human Box", id = 124935873390035, price = 39, date = "Aug 08, 2025" },
+    { name = "Magical Pose", id = 135489824748823, price = 39, date = "Aug 08, 2025" },
+    { name = "Griddy", id = 116065653184749, price = 39, date = "Aug 08, 2025" },
+    { name = "Gon Rage", id = 139639173024927, price = 39, date = "Aug 10, 2025" },
+    { name = "Become Couch", id = 93335594132613, price = 39, date = "Aug 10, 2025" },
+    { name = "Spare Change", id = 126749574427431, price = 39, date = "Aug 10, 2025" },
+    { name = "Paranoid", id = 123407922818447, price = 39, date = "Aug 10, 2025" },
+    { name = "Kawaii Groove", id = 77152953688098, price = 39, date = "Aug 18, 2025" },
+    { name = "Ai Cat dance", id = 136593170936320, price = 39, date = "Aug 18, 2025" },
+    { name = "Smeeze", id = 131683926643291, price = 39, date = "Aug 18, 2025" },
+    { name = "Onion", id = 113890289455724, price = 39, date = "Aug 18, 2025" },
+    { name = "Thinking", id = 124584711308900, price = 39, date = "Aug 18, 2025" },
+    { name = "Little Obbyist", id = 134584040095037, price = 39, date = "Aug 10, 2025" },
+    { name = "Aura Fly", id = 78755795767408, price = 39, date = "Aug 10, 2025" },
+    { name = "Invisible", id = 109899950448992, price = 39, date = "Aug 10, 2025" },
+    { name = "Slenderman", id = 81926508907412, price = 39, date = "Aug 10, 2025" },
+    { name = "Chill pose", id = 77058107325712, price = 39, date = "Aug 10, 2025" },
+    { name = "house", id = 93552301087938, price = 39, date = "Aug 10, 2025" },
+    { name = "baby", id = 82824758023484, price = 39, date = "Aug 10, 2025" },
+    { name = "zenitsu", id = 92750276568993, price = 39, date = "Aug 10, 2025" },
+    { name = "gun", id = 73562814360939, price = 39, date = "Aug 10, 2025" },
+    { name = "Spy Laugh tf2", id = 137720205462499, price = 39, date = "Aug 10, 2025" },
+    { name = "Head Juggling", id = 82224981519682, price = 39, date = "Aug 09, 2025" },
+    { name = "Omniman Think", id = 70560694892323, price = 39, date = "Aug 09, 2025" },
+    { name = "Ishowspeed Shake Dancing", id = 138386881919239, price = 39, date = "Aug 09, 2025" },
+    { name = "Wait", id = 106569806588657, price = 39, date = "Aug 09, 2025" },
+    { name = "Shinji Pose", id = 97629500912487, price = 39, date = "Aug 09, 2025" },
+    { name = "Come At Me [ R6 ]", id = 107758370940834, price = 39, date = "Aug 09, 2025" },
+    { name = "Oscillating Fan", id = 71493999860590, price = 39, date = "Aug 09, 2025" },
+    { name = "Locked In", id = 110145155419199, price = 39, date = "Aug 10, 2025" },
+    { name = "BirdBrain", id = 105730788757021, price = 39, date = "Aug 10, 2025" },
+    { name = "Hakari (FULL)", id = 71056659089869, price = 39, date = "Aug 09, 2025" },
+    { name = "How A Creeper Walk", id = 108714986908463, price = 39, date = "Aug 10, 2025" },
+    { name = "Hakari (R6)", id = 127103118569243, price = 39, date = "Aug 10, 2025" },
+    { name = "Strongest Stance", id = 80146495484274, price = 39, date = "Aug 09, 2025" },
+    { name = "Cat Things", id = 131193808160056, price = 39, date = "Aug 09, 2025" },
+    { name = "Doggy Things", id = 105206768873249, price = 39, date = "Aug 09, 2025" },
+    { name = "Wally West Edit", id = 72247161810866, price = 39, date = "Aug 09, 2025" },
+    { name = "24 Hour Cinderella", id = 122972776209997, price = 39, date = "Aug 09, 2025" },
+    { name = "Mesmerizer", id = 92707348383277, price = 39, date = "Aug 15, 2025" },
+    { name = "Stylish Float", id = 97497383284399, price = 39, date = "Aug 15, 2025" },
+    { name = "SpongeBob Shuffle", id = 107899954696611, price = 39, date = "Aug 15, 2025" },
+    { name = "Electro Shuffle", id = 96426537876059, price = 39, date = "Aug 13, 2025" },
+    { name = "Foreign Shuffle", id = 101507732056031, price = 39, date = "Aug 13, 2025" },
+    { name = "Caipirinha", id = 100165303717371, price = 39, date = "Aug 15, 2025" },
+    { name = "Squidward Yell", id = 109244554368414, price = 39, date = "Aug 15, 2025" },
+    { name = "Hakari (Forsaken)", id = 73271793399763, price = 39, date = "Aug 15, 2025" },
+    { name = "Teto Dance", id = 93031502567721, price = 39, date = "Aug 15, 2025" },
+    { name = "Michael Myers", id = 88229016850146, price = 39, date = "Aug 15, 2025" },
+    { name = "Gun Shoot", id = 105055412595333, price = 39, date = "Aug 15, 2025" },
+    { name = "Torture Dance", id = 116099356619436, price = 39, date = "Aug 16, 2025" },
+    { name = "Yapping Yap Yap Gesture", id = 119870339321091, price = 39, date = "Aug 16, 2025" },
+    { name = "Luxurious / Springtrap", id = 132151459316300, price = 39, date = "Aug 16, 2025" },
+    { name = "Hand Drill", id = 103882178542598, price = 39, date = "Aug 16, 2025" },
+    { name = "exclamation", id = 82714556886471, price = 39, date = "Aug 16, 2025" },
+    { name = "Mewing / Mogging", id = 135493514352956, price = 39, date = "Aug 16, 2025" },
+    { name = "lemon melon cookie - Miku", id = 79874689836683, price = 39, date = "Aug 16, 2025" },
+    { name = "Cute Jump", id = 80556794144838, price = 39, date = "Aug 16, 2025" },
+    { name = "Billy Bounce", id = 126516908191316, price = 39, date = "Aug 15, 2025" },
+    { name = "What U Want / Prince Egypt", id = 133751526608969, price = 39, date = "Aug 15, 2025" },
+    { name = "Rabbit Hole - Miku", id = 133481721436918, price = 39, date = "Aug 15, 2025" },
+    { name = "Garou", id = 86200585395371, price = 39, date = "Aug 09, 2025" },
+    { name = "Dio Pose", id = 76736978166708, price = 39, date = "Aug 09, 2025" },
+    { name = "Golden Freddy", id = 122463450997235, price = 39, date = "Aug 09, 2025" },
+    { name = "Noclip, Speed", id = 137006085779408, price = 39, date = "Aug 09, 2025" },
+    { name = "Static [Hatsune Miku]", id = 84534006084837, price = 39, date = "Aug 09, 2025" },
+    { name = "GOALL", id = 78830825254717, price = 39, date = "Aug 09, 2025" },
+    { name = "Lethal Dance", id = 77108921633993, price = 39, date = "Aug 09, 2025" },
+    { name = "Plug Walk", id = 100359724990859, price = 39, date = "Aug 09, 2025" },
+    { name = "At Ease", id = 76993139936388, price = 39, date = "Aug 09, 2025" },
+    { name = "Conga", id = 97547955535086, price = 39, date = "Aug 09, 2025" },
+    { name = "Barrel", id = 84511772437190, price = 39, date = "Aug 08, 2025" },
+    { name = "Helicopter", id = 84555218084038, price = 39, date = "Aug 08, 2025" },
+    { name = "Aura Farm Boat", id = 88042995626011, price = 39, date = "Aug 09, 2025" },
+    { name = "Prince Of Egypt", id = 134063402217274, price = 39, date = "Aug 08, 2025" },
+    { name = "Jersey Joe2", id = 115782117564871, price = 39, date = "Aug 09, 2025" },
+    { name = "Deltarune - Tenna Dance", id = 73715378215546, price = 39, date = "Aug 08, 2025" },
+    { name = "California Girl", id = 132074413582912, price = 39, date = "Aug 08, 2025" },
+    { name = "Default Dance", id = 80877772569772, price = 39, date = "Aug 08, 2025" },
+    { name = "Shocked meme", id = 129501229484294, price = 39, date = "Aug 08, 2025" },
+    { name = "Family Guy", id = 78459263478161, price = 39, date = "Aug 08, 2025" },
+    { name = "Car Transformation", id = 96887377943085, price = 39, date = "Aug 08, 2025" },
+    { name = "Insanity", id = 129843344424281, price = 39, date = "Aug 08, 2025" },
+    { name = "Honored One", id = 121643381580730, price = 39, date = "Aug 08, 2025" },
+    { name = "Sukuna", id = 91839607010745, price = 39, date = "Aug 08, 2025" },
+    { name = "Dropper", id = 130358790702800, price = 39, date = "Aug 08, 2025" },
+    { name = "Be Not Afraid", id = 70635223083942, price = 39, date = "Aug 08, 2025" },
+    { name = "Macarena", id = 91274761264433, price = 39, date = "Aug 08, 2025" },
+    { name = "Helicopter2", id = 119431985170060, price = 39, date = "Aug 08, 2025" },
+    { name = "RONALDO", id = 97547486465713, price = 39, date = "Aug 08, 2025" },
+    { name = "Nya Anime Dance", id = 126647057611522, price = 39, date = "Aug 08, 2025" },
+    { name = "Do that thang", id = 113772829398170, price = 39, date = "Aug 08, 2025" },
+    { name = "Squat?", id = 95441477641149, price = 39, date = "Aug 08, 2025" },
+    { name = "Slickback", id = 103789826265487, price = 39, date = "Aug 08, 2025" },
+}
+
+-- 转换日期为时间戳
+local function 日期转时间戳(日期字符串)
+    local 月份 = {Jan=1, Feb=2, Mar=3, Apr=4, May=5, Jun=6, Jul=7, Aug=8, Sep=9, Oct=10, Nov=11, Dec=12}
+    local 月, 日, 年 = 日期字符串:match("(%a+)%s+(%d+),%s*(%d+)")
+    return os.time({
+        year = tonumber(年),
+        month = 月份[月],
+        day = tonumber(日),
+        hour = 0,
+        min = 0,
+        sec = 0
+    })
+end
+
+-- 添加额外表情
+for _, 表情 in ipairs(额外表情) do
+    table.insert(表情数据, {
+        name = 表情.name,
+        id = 表情.id,
+        price = 表情.price,
+        lastupdated = 日期转时间戳(表情.date)
+    })
+end
+
+-- 将数据导入 Emotes 表
+for _, 表情 in ipairs(表情数据) do
+    table.insert(Emotes, {
+        name = 表情.name,
+        id = 表情.id,
+        icon = "rbxthumb://type=Asset&id=".. 表情.id .."&w=150&h=150",
+        price = 表情.price or 0,
+        lastupdated = 表情.lastupdated or os.time(),
+        sort = {}
+    })
+end
+
+-- 创建主界面
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "Emotes"
+ScreenGui.DisplayOrder = 2
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Enabled = true
+
+-- 主框架
+local BackFrame = Instance.new("Frame")
+BackFrame.Size = UDim2.new(0.9, 0, 0.5, 0)
+BackFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+BackFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+BackFrame.SizeConstraint = Enum.SizeConstraint.RelativeYY
+BackFrame.BackgroundTransparency = 1
+BackFrame.BorderSizePixel = 0
+BackFrame.Parent = ScreenGui
+
+-- 打开按钮
+Open = Instance.new("TextButton")
+Open.Name = "Open"
+Open.Parent = ScreenGui
+Open.Draggable = true
+Open.Size = UDim2.new(0.05,0,0.114,0)
+Open.Position = UDim2.new(0.05, 0, 0.25, 0)
+Open.Text = "关闭"
+Open.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Open.TextColor3 = Color3.fromRGB(255, 255, 255)
+Open.TextScaled = true
+Open.TextSize = 20
+Open.Visible = true
+Open.BackgroundTransparency = 0.5
+
+local UICorner = Instance.new("UICorner")
+UICorner.Name = "UICorner"
+UICorner.Parent = Open
+UICorner.CornerRadius = UDim.new(1, 0)
+
+Open.MouseButton1Up:Connect(function()
+    if Open.Text == "打开" then
+        Open.Text = "关闭"
+        BackFrame.Visible = true
+    else
+        if Open.Text == "关闭" then
+            Open.Text = "打开"
+            BackFrame.Visible = false
+        end
+    end
+end)
+
+-- 表情名称显示
+local EmoteName = Instance.new("TextLabel")
+EmoteName.Name = "EmoteName"
+EmoteName.TextScaled = true
+EmoteName.AnchorPoint = Vector2.new(0.5, 0.5)
+EmoteName.Position = UDim2.new(-0.1, 0, 0.5, 0)
+EmoteName.Size = UDim2.new(0.2, 0, 0.2, 0)
+EmoteName.SizeConstraint = Enum.SizeConstraint.RelativeYY
+EmoteName.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+EmoteName.TextColor3 = Color3.new(1, 1, 1)
+EmoteName.BorderSizePixel = 0
+EmoteName.Parent = BackFrame
+EmoteName.Text = "选择表情"
+
+local Corner = Instance.new("UICorner")
+Corner.Parent = EmoteName
+
+-- 加载提示（已移除，因为不需要等待加载）
+local Loading = Instance.new("TextLabel", BackFrame)
+Loading.AnchorPoint = Vector2.new(0.5, 0.5)
+Loading.Text = "加载中..."
+Loading.TextColor3 = Color3.new(1, 1, 1)
+Loading.BackgroundColor3 = Color3.new(0, 0, 0)
+Loading.TextScaled = true
+Loading.BackgroundTransparency = 0.5
+Loading.Size = UDim2.fromScale(0.2, 0.1)
+Loading.Position = UDim2.fromScale(0.5, 0.2)
+Corner:Clone().Parent = Loading
+Loading:Destroy() -- 直接移除，无需等待
+
+-- 滚动框架
+local Frame = Instance.new("ScrollingFrame")
+Frame.Size = UDim2.new(1, 0, 1, 0)
+Frame.CanvasSize = UDim2.new(0, 0, 0, 0)
+Frame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Frame.ScrollingDirection = Enum.ScrollingDirection.Y
+Frame.AnchorPoint = Vector2.new(0.5, 0.5)
+Frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+Frame.BackgroundTransparency = 1
+Frame.ScrollBarThickness = 5
+Frame.BorderSizePixel = 0
+Frame.MouseLeave:Connect(function()
+    EmoteName.Text = "选择表情"
+end)
+Frame.Parent = BackFrame
+
+-- 网格布局
+local Grid = Instance.new("UIGridLayout")
+Grid.CellSize = UDim2.new(0.105, 0, 0, 0)
+Grid.CellPadding = UDim2.new(0.006, 0, 0.006, 0)
+Grid.SortOrder = Enum.SortOrder.LayoutOrder
+Grid.Parent = Frame
+
+-- 排序框架
+local SortFrame = Instance.new("Frame")
+SortFrame.Visible = false
+SortFrame.BorderSizePixel = 0
+SortFrame.Position = UDim2.new(1, 5, -0.125, 0)
+SortFrame.Size = UDim2.new(0.2, 0, 0, 0)
+SortFrame.AutomaticSize = Enum.AutomaticSize.Y
+SortFrame.BackgroundTransparency = 1
+Corner:Clone().Parent = SortFrame
+SortFrame.Parent = BackFrame
+
+local SortList = Instance.new("UIListLayout")
+SortList.Padding = UDim.new(0.02, 0)
+SortList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+SortList.VerticalAlignment = Enum.VerticalAlignment.Top
+SortList.SortOrder = Enum.SortOrder.LayoutOrder
+SortList.Parent = SortFrame
+
+-- 排序函数
+local CurrentSort = "recentfirst"
+
+local function 排序表情()
+    for i,Emote in pairs(Emotes) do
+        local EmoteButton = Frame:FindFirstChild(tostring(Emote.id))
+        if not EmoteButton then
+            continue
+        end
+        local IsFavorited = table.find(FavoritedEmotes, Emote.id)
+        EmoteButton.LayoutOrder = Emote.sort[CurrentSort] + ((IsFavorited and 0) or #Emotes)
+        local number = EmoteButton:FindFirstChild("number")
+        if number then
+            number.Text = Emote.sort[CurrentSort]
+        end
+    end
+end
+
+-- 创建排序选项
+local function 创建排序(顺序, 文本, 排序方式)
+    local CreatedSort = Instance.new("TextButton")
+    CreatedSort.SizeConstraint = Enum.SizeConstraint.RelativeXX
+    CreatedSort.Size = UDim2.new(1, 0, 0.2, 0)
+    CreatedSort.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    CreatedSort.LayoutOrder = 顺序
+    CreatedSort.TextColor3 = Color3.new(1, 1, 1)
+    CreatedSort.Text = 文本
+    CreatedSort.TextScaled = true
+    CreatedSort.BorderSizePixel = 0
+    Corner:Clone().Parent = CreatedSort
+    CreatedSort.Parent = SortFrame
+    CreatedSort.MouseButton1Click:Connect(function()
+        SortFrame.Visible = false
+        Open.Text = "打开"
+        CurrentSort = 排序方式
+        排序表情()
+    end)
+    return CreatedSort
+end
+
+创建排序(1, "最新更新优先", "recentfirst")
+创建排序(2, "最早更新优先", "recentlast")
+创建排序(3, "名称 A-Z", "alphabeticfirst")
+创建排序(4, "名称 Z-A", "alphabeticlast")
+创建排序(5, "价格从高到低", "highestprice")
+创建排序(6, "价格从低到高", "lowestprice")
+
+-- 排序按钮
+local SortButton = Instance.new("TextButton")
+SortButton.BorderSizePixel = 0
+SortButton.AnchorPoint = Vector2.new(0.5, 0.5)
+SortButton.Position = UDim2.new(0.925, -5, -0.075, 0)
+SortButton.Size = UDim2.new(0.15, 0, 0.1, 0)
+SortButton.TextScaled = true
+SortButton.TextColor3 = Color3.new(1, 1, 1)
+SortButton.BackgroundColor3 = Color3.new(0, 0, 0)
+SortButton.BackgroundTransparency = 0.3
+SortButton.Text = "排序"
+SortButton.MouseButton1Click:Connect(function()
+    SortFrame.Visible = not SortFrame.Visible
+    Open.Text = "打开"
+end)
+Corner:Clone().Parent = SortButton
+SortButton.Parent = BackFrame
+
+-- 关闭GUI按钮
+local CloseButton = Instance.new("TextButton")
+CloseButton.BorderSizePixel = 0
+CloseButton.AnchorPoint = Vector2.new(0.5, 0.5)
+CloseButton.Position = UDim2.new(0.075, 0, -0.075, 0)
+CloseButton.Size = UDim2.new(0.15, 0, 0.1, 0)
+CloseButton.TextScaled = true
+CloseButton.TextColor3 = Color3.new(1, 1, 1)
+CloseButton.BackgroundColor3 = Color3.new(0.5, 0, 0)
+CloseButton.BackgroundTransparency = 0.3
+CloseButton.Text = "关闭界面"
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+Corner:Clone().Parent = CloseButton
+CloseButton.Parent = BackFrame
+
+-- 搜索框
+local SearchBar = Instance.new("TextBox")
+SearchBar.BorderSizePixel = 0
+SearchBar.AnchorPoint = Vector2.new(0.5, 0.5)
+SearchBar.Position = UDim2.new(0.5, 0, -0.075, 0)
+SearchBar.Size = UDim2.new(0.55, 0, 0.1, 0)
+SearchBar.TextScaled = true
+SearchBar.PlaceholderText = "搜索表情"
+SearchBar.TextColor3 = Color3.new(1, 1, 1)
+SearchBar.BackgroundColor3 = Color3.new(0, 0, 0)
+SearchBar.BackgroundTransparency = 0.3
+SearchBar:GetPropertyChangedSignal("Text"):Connect(function()
+    local text = SearchBar.Text:lower()
+    local buttons = Frame:GetChildren()
+    if text ~= text:sub(1,50) then
+        SearchBar.Text = SearchBar.Text:sub(1,50)
+        text = SearchBar.Text:lower()
+    end
+    if text ~= "" then
+        for i,button in pairs(buttons) do
+            if button:IsA("GuiButton") then
+                local name = button:GetAttribute("name"):lower()
+                if name:match(text) then
+                    button.Visible = true
+                else
+                    button.Visible = false
+                end
+            end
+        end
+    else
+        for i,button in pairs(buttons) do
+            if button:IsA("GuiButton") then
+                button.Visible = true
+            end
+        end
+    end
+end)
+Corner:Clone().Parent = SearchBar
+SearchBar.Parent = BackFrame
+
+-- 快捷键绑定
+local function 打开表情菜单(name, state, input)
+    if state == Enum.UserInputState.Begin then
+        BackFrame.Visible = not BackFrame.Visible
+        Open.Text = "打开"
+    end
+end
+
+ContextActionService:BindCoreActionAtPriority(
+    "Emote Menu",
+    打开表情菜单,
+    true,
+    2001,
+    Enum.KeyCode.Comma
+)
+
+-- 收藏功能
+local FavoriteOff = "rbxassetid://10651060677"
+local FavoriteOn = "rbxassetid://10651061109"
+local FavoritedEmotes = {}
+
+-- 读取收藏文件
+if isfile("FavoritedEmotes.txt") then
+    if not pcall(function()
+        FavoritedEmotes = HttpService:JSONDecode(readfile("FavoritedEmotes.txt"))
+    end) then
+        FavoritedEmotes = {}
+    end
+else
+    writefile("FavoritedEmotes.txt", HttpService:JSONEncode(FavoritedEmotes))
+end
+
+-- 更新收藏列表（按名称转ID）
+local UpdatedFavorites = {}
+for i,name in pairs(FavoritedEmotes) do
+    if typeof(name) == "string" then
+        for i,emote in pairs(Emotes) do
+            if emote.name == name then
+                table.insert(UpdatedFavorites, emote.id)
+                break
+            end
+        end
+    end
+end
+if #UpdatedFavorites ~= 0 then
+    FavoritedEmotes = UpdatedFavorites
+    writefile("FavoritedEmotes.txt", HttpService:JSONEncode(FavoritedEmotes))
+end
+
+-- 辅助函数
+local function WaitForChildOfClass(parent, class)
+    local child = parent:FindFirstChildOfClass(class)
+    while not child or child.ClassName ~= class do
+        child = parent.ChildAdded:Wait()
+    end
+    return child
+end
+
+local LocalPlayer = Players.LocalPlayer
+
+-- 播放表情
+local function PlayEmote(name: string, id: number)
+    BackFrame.Visible = false
+    Open.Text = "打开"
+    SearchBar.Text = ""
+    local Humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    local Description = Humanoid and Humanoid:FindFirstChildOfClass("HumanoidDescription")
+    if not Description then
+        return
+    end
+    if LocalPlayer.Character.Humanoid.RigType ~= Enum.HumanoidRigType.R6 then
+        local succ, err = pcall(function()
+            Humanoid:PlayEmoteAndGetAnimTrackById(id)
+        end)
+        if not succ then
+            Description:AddEmote(name, id)
+            Humanoid:PlayEmoteAndGetAnimTrackById(id)
+        end
+    else
+        StarterGui:SetCore("SendNotification", {
+            Title = "R6 角色",
+            Text = "请使用 R15 角色才能播放表情！"
+        })
+    end
+end
+
+-- 角色加载事件
+local function 角色加载(Character)
+    for i,v in pairs(Frame:GetChildren()) do
+        if not v:IsA("UIGridLayout") then
+            v:Destroy()
+        end
+    end
+    local Humanoid = WaitForChildOfClass(Character, "Humanoid")
+    local Description = Humanoid:FindFirstChild("HumanoidDescription") or Instance.new("HumanoidDescription", Humanoid)
+    local Ratio = Instance.new("UIAspectRatioConstraint")
+    Ratio.AspectType = Enum.AspectType.ScaleWithParentSize
+
+    -- 随机表情按钮
+    local random = Instance.new("TextButton")
+    Ratio:Clone().Parent = random
+    random.LayoutOrder = 0
+    random.TextColor3 = Color3.new(1, 1, 1)
+    random.BorderSizePixel = 0
+    random.BackgroundTransparency = 0.5
+    random.BackgroundColor3 = Color3.new(0, 0, 0)
+    random.TextScaled = true
+    random.Text = "随机"
+    random:SetAttribute("name", "")
+    Corner:Clone().Parent = random
+    random.MouseButton1Click:Connect(function()
+        local randomemote = Emotes[math.random(1, #Emotes)]
+        PlayEmote(randomemote.name, randomemote.id)
+    end)
+    random.MouseEnter:Connect(function()
+        EmoteName.Text = "随机"
+    end)
+    random.Parent = Frame
+
+    -- 创建每个表情按钮
+    for i,Emote in pairs(Emotes) do
+        Description:AddEmote(Emote.name, Emote.id)
+        local EmoteButton = Instance.new("ImageButton")
+        local IsFavorited = table.find(FavoritedEmotes, Emote.id)
+        EmoteButton.LayoutOrder = Emote.sort[CurrentSort] + ((IsFavorited and 0) or #Emotes)
+        EmoteButton.Name = tostring(Emote.id)
+        EmoteButton:SetAttribute("name", Emote.name)
+        Corner:Clone().Parent = EmoteButton
+        EmoteButton.Image = Emote.icon
+        EmoteButton.BackgroundTransparency = 0.5
+        EmoteButton.BackgroundColor3 = Color3.new(0, 0, 0)
+        EmoteButton.BorderSizePixel = 0
+        Ratio:Clone().Parent = EmoteButton
+
+        local EmoteNumber = Instance.new("TextLabel")
+        EmoteNumber.Name = "number"
+        EmoteNumber.TextScaled = true
+        EmoteNumber.BackgroundTransparency = 1
+        EmoteNumber.TextColor3 = Color3.new(1, 1, 1)
+        EmoteNumber.BorderSizePixel = 0
+        EmoteNumber.AnchorPoint = Vector2.new(0.5, 0.5)
+        EmoteNumber.Size = UDim2.new(0.2, 0, 0.2, 0)
+        EmoteNumber.Position = UDim2.new(0.1, 0, 0.9, 0)
+        EmoteNumber.Text = Emote.sort[CurrentSort]
+        EmoteNumber.TextXAlignment = Enum.TextXAlignment.Center
+        EmoteNumber.TextYAlignment = Enum.TextYAlignment.Center
+        local UIStroke = Instance.new("UIStroke")
+        UIStroke.Transparency = 0.5
+        UIStroke.Parent = EmoteNumber
+        EmoteNumber.Parent = EmoteButton
+
+        EmoteButton.Parent = Frame
+
+        EmoteButton.MouseButton1Click:Connect(function()
+            PlayEmote(Emote.name, Emote.id)
+        end)
+
+        EmoteButton.MouseEnter:Connect(function()
+            EmoteName.Text = Emote.name
+        end)
+
+        -- 收藏按钮
+        local Favorite = Instance.new("ImageButton")
+        Favorite.Name = "favorite"
+        if table.find(FavoritedEmotes, Emote.id) then
+            Favorite.Image = FavoriteOn
+        else
+            Favorite.Image = FavoriteOff
+        end
+        Favorite.AnchorPoint = Vector2.new(0.5, 0.5)
+        Favorite.Size = UDim2.new(0.2, 0, 0.2, 0)
+        Favorite.Position = UDim2.new(0.9, 0, 0.9, 0)
+        Favorite.BorderSizePixel = 0
+        Favorite.BackgroundTransparency = 1
+        Favorite.Parent = EmoteButton
+
+        Favorite.MouseButton1Click:Connect(function()
+            local index = table.find(FavoritedEmotes, Emote.id)
+            if index then
+                table.remove(FavoritedEmotes, index)
+                Favorite.Image = FavoriteOff
+                EmoteButton.LayoutOrder = Emote.sort[CurrentSort] + #Emotes
+            else
+                table.insert(FavoritedEmotes, Emote.id)
+                Favorite.Image = FavoriteOn
+                EmoteButton.LayoutOrder = Emote.sort[CurrentSort]
+            end
+            writefile("FavoritedEmotes.txt", HttpService:JSONEncode(FavoritedEmotes))
+        end)
+    end
+
+    -- 填充空白格子
+    for i=1,9 do
+        local EmoteButton = Instance.new("Frame")
+        EmoteButton.LayoutOrder = 2147483647
+        EmoteButton.Name = "filler"
+        EmoteButton.BackgroundTransparency = 1
+        EmoteButton.BorderSizePixel = 0
+        Ratio:Clone().Parent = EmoteButton
+        EmoteButton.Visible = true
+        EmoteButton.Parent = Frame
+        EmoteButton.MouseEnter:Connect(function()
+            EmoteName.Text = "选择表情"
+        end)
+    end
+end
+
+-- 初始化角色
+if LocalPlayer.Character then
+    角色加载(LocalPlayer.Character)
+end
+LocalPlayer.CharacterAdded:Connect(角色加载)
+
+-- 排序数据初始化
+table.sort(Emotes, function(a, b)
+    return a.lastupdated > b.lastupdated
+end)
+for i,v in pairs(Emotes) do
+    v.sort.recentfirst = i
+end
+
+table.sort(Emotes, function(a, b)
+    return a.lastupdated < b.lastupdated
+end)
+for i,v in pairs(Emotes) do
+    v.sort.recentlast = i
+end
+
+table.sort(Emotes, function(a, b)
+    return a.name:lower() < b.name:lower()
+end)
+for i,v in pairs(Emotes) do
+    v.sort.alphabeticfirst = i
+end
+
+table.sort(Emotes, function(a, b)
+    return a.name:lower() > b.name:lower()
+end)
+for i,v in pairs(Emotes) do
+    v.sort.alphabeticlast = i
+end
+
+table.sort(Emotes, function(a, b)
+    return a.price < b.price
+end)
+for i,v in pairs(Emotes) do
+    v.sort.lowestprice = i
+end
+
+table.sort(Emotes, function(a, b)
+    return a.price > b.price
+end)
+for i,v in pairs(Emotes) do
+    v.sort.highestprice = i
+end
+
+-- 界面启用/禁用处理
+local inputconnect
+ScreenGui:GetPropertyChangedSignal("Enabled"):Connect(function()
+    if BackFrame.Visible == false then
+        EmoteName.Text = "选择表情"
+        SearchBar.Text = ""
+        SortFrame.Visible = false
+        GuiService:SetEmotesMenuOpen(false)
+        if inputconnect then
+            inputconnect:Disconnect()
+        end
+        inputconnect = UserInputService.InputBegan:Connect(function(input, processed)
+            if not processed then
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    BackFrame.Visible = false
+                    Open.Text = "打开"
+                end
+            end
+        end)
+    else
+        if inputconnect then
+            inputconnect:Disconnect()
+        end
+    end
+end)
+
+GuiService.EmotesMenuOpenChanged:Connect(function(isopen)
+    if isopen then
+        BackFrame.Visible = false
+        Open.Text = "打开"
+    end
+end)
+
+GuiService.MenuOpened:Connect(function()
+    BackFrame.Visible = false
+    Open.Text = "打开"
+end)
+
+-- 等待游戏加载
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+-- 注入界面
+local SynV3 = syn and DrawingImmediate
+if (not is_sirhurt_closure) and (not SynV3) and (syn and syn.protect_gui) then
+    syn.protect_gui(ScreenGui)
+    ScreenGui.Parent = CoreGui
+elseif get_hidden_gui or gethui then
+    local hiddenUI = get_hidden_gui or gethui
+    ScreenGui.Parent = hiddenUI()
+else
+    ScreenGui.Parent = CoreGui
+end
+
+-- 显示完成通知
+game:GetService("StarterGui"):SetCore("SendNotification",{
+    Title = "完成！",
+    Text = "表情菜单已加载，按逗号键打开",
+    Duration = 10
+})
+
+-- 删除原有的 ContextActionGui（可选）
+pcall(function()
+    game.Players.LocalPlayer.PlayerGui.ContextActionGui:Destroy()
+end)
+
+print("表情菜单已加载！按逗号键(,)打开")
