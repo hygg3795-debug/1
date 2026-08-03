@@ -27053,41 +27053,20 @@ end
 af=af or"Dialog"
 
 if not ae then
-    aj.UIElements.FullScreen=ab("Frame",{
-        ZIndex=999,
-        BackgroundTransparency=1,
-        BackgroundColor3=Color3.new(0,0,0),
-        Size=UDim2.new(1,0,1,0),
-        Active=false,
-        Visible=false,
-        Parent=ad.Parent
-        or(ag and ag.UIElements and ag.UIElements.Main and ag.UIElements.Main.Main),
-    },{
-        ab("ImageLabel",{
-            Size=UDim2.new(1,0,1,0),
-            Image="rbxassetid://8992230677",
-            ScaleType="Slice",
-            SliceCenter=Rect.new(99,99,99,99),
-            BackgroundTransparency=1,
-            ImageTransparency=0.65,
-            ThemeTag={
-                ImageColor3="WindowShadow",
-            },
-            Name="BlurBackground",
-        }),
-        ab("Frame",{
-            Size=UDim2.new(1,0,1,0),
-            BackgroundColor3=Color3.new(0,0,0),
-            BackgroundTransparency=0.35,
-        },{
-            ab("UICorner",{
-                CornerRadius=UDim.new(0,ag.UICorner),
-            }),
-        }),
-        ab("UICorner",{
-            CornerRadius=UDim.new(0,ag.UICorner),
-        }),
-    })
+aj.UIElements.FullScreen=ab("Frame",{
+ZIndex=999,
+BackgroundTransparency=1,
+BackgroundColor3=Color3.fromHex"#000000",
+Size=UDim2.new(1,0,1,0),
+Active=false,
+Visible=false,
+Parent=ad.Parent
+or(ag and ag.UIElements and ag.UIElements.Main and ag.UIElements.Main.Main),
+},{
+ab("UICorner",{
+CornerRadius=UDim.new(0,ag.UICorner),
+}),
+})
 end
 
 ab("ImageLabel",{
@@ -27168,24 +27147,25 @@ aj.UIElements.Main,
 })
 
 function aj.Open(ak)
-    if not ae then
-        aj.UIElements.FullScreen.Visible=true
-        aj.UIElements.FullScreen.Active=true
-    end
+if not ae then
+aj.UIElements.FullScreen.Visible=true
+aj.UIElements.FullScreen.Active=true
+end
 
-    task.spawn(function()
-        aj.UIElements.MainContainer.Visible=true
+task.spawn(function()
+aj.UIElements.MainContainer.Visible=true
 
-        if not ae then
-            ac(aj.UIElements.FullScreen,0.2,{BackgroundTransparency=0.35}):Play()
-        end
-        ac(aj.UIElements.MainContainer,0.1,{ImageTransparency=0}):Play()
+if not ae then
+ac(aj.UIElements.FullScreen,0.1,{BackgroundTransparency=0.65}):Play()
+end
+ac(aj.UIElements.MainContainer,0.1,{ImageTransparency=0}):Play()
 
-        task.spawn(function()
-            task.wait(0.05)
-            aj.UIElements.Main.Visible=true
-        end)
-    end)
+
+task.spawn(function()
+task.wait(0.05)
+aj.UIElements.Main.Visible=true
+end)
+end)
 end
 function aj.Close(ak)
 if not ae then
@@ -39008,6 +38988,14 @@ Buttons=L.Buttons or{},
 TextPadding=14,
 }
 local N=H.Create(false,"Dialog",aw,av.WindUI,aw.UIElements.Main.Main)
+local FullScreen = N.UIElements.FullScreen
+if FullScreen and aw.AcrylicPaint and aw.AcrylicPaint.Model then
+    local AcrylicModel = aw.AcrylicPaint.Model:Clone()
+    AcrylicModel.Parent = FullScreen
+    AcrylicModel.Transparency = 0.98
+    FullScreen.BackgroundTransparency = 1
+    AcrylicModel.ZIndex = 0
+end
 
 N.UIElements.Main.Size=UDim2.new(0,M.Width,0,0)
 
@@ -39210,7 +39198,7 @@ J=true
 
 aw:Dialog{
     Title="关闭UI",
-    Content="确定要关闭UI吗？关闭后可再次打开。",
+    Content="确定要关闭UI？",
     Buttons={
         {
             Title="取消",
