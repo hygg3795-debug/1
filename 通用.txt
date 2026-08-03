@@ -218,36 +218,68 @@ return function(Window, WindUI)
         end
     end)
 
-    createSuggestToggle("点击传送工具", function(val)
-        if val then
-            pcall(function()
-                local Mouse = LocalPlayer:GetMouse()
-                local Camera = workspace.CurrentCamera
-                local Tool = Instance.new("Tool")
-                Tool.Name = "点击传送"
-                Tool.RequiresHandle = false
-                Tool.Activated:Connect(function()
-                    local Character = LocalPlayer.Character
-                    if not Character then return end
-                    local HRP = Character:FindFirstChild("HumanoidRootPart")
-                    if not HRP then return end
-                    local params = RaycastParams.new()
-                    params.FilterDescendantsInstances = {Character}
-                    params.FilterType = Enum.RaycastFilterType.Blacklist
-                    local unitRay = Camera:ScreenPointToRay(Mouse.X, Mouse.Y)
-                    local result = workspace:Raycast(unitRay.Origin, unitRay.Direction * 100000, params)
-                    if not result then return end
-                    local hitPos = result.Position + Vector3.new(0, 3, 0)
-                    HRP.CFrame = CFrame.new(hitPos)
-                end)
-                _G.TeleportTool = Tool
-                Tool.Parent = LocalPlayer:WaitForChild("Backpack")
-            end)
-        else
-            if _G.TeleportTool then
-                _G.TeleportTool:Destroy()
-                _G.TeleportTool = nil
+    -- ===== 点击传送工具（防丢失版本） =====
+    local teleportToolEnabled = false
+    local teleportToolConnection = nil
+    local teleportTool = nil
+
+    local function createTeleportTool()
+        if teleportTool then return end
+        local Mouse = LocalPlayer:GetMouse()
+        local Camera = workspace.CurrentCamera
+        local Tool = Instance.new("Tool")
+        Tool.Name = "点击传送"
+        Tool.RequiresHandle = false
+        Tool.Activated:Connect(function()
+            local Character = LocalPlayer.Character
+            if not Character then return end
+            local HRP = Character:FindFirstChild("HumanoidRootPart")
+            if not HRP then return end
+            local params = RaycastParams.new()
+            params.FilterDescendantsInstances = {Character}
+            params.FilterType = Enum.RaycastFilterType.Blacklist
+            local unitRay = Camera:ScreenPointToRay(Mouse.X, Mouse.Y)
+            local result = workspace:Raycast(unitRay.Origin, unitRay.Direction * 100000, params)
+            if not result then return end
+            local hitPos = result.Position + Vector3.new(0, 3, 0)
+            HRP.CFrame = CFrame.new(hitPos)
+        end)
+        teleportTool = Tool
+        -- 将工具放入背包，并监听角色重生重新放入
+        local function equipTool()
+            if teleportToolEnabled and teleportTool then
+                local backpack = LocalPlayer:FindFirstChild("Backpack")
+                if backpack and teleportTool.Parent ~= backpack then
+                    teleportTool.Parent = backpack
+                end
             end
+        end
+        equipTool()
+        -- 监听角色重生，重新把工具放入背包
+        if teleportToolConnection then teleportToolConnection:Disconnect() end
+        teleportToolConnection = LocalPlayer.CharacterAdded:Connect(function()
+            task.wait(0.5) -- 等待角色和背包初始化
+            equipTool()
+        end)
+    end
+
+    local function destroyTeleportTool()
+        if teleportToolConnection then
+            teleportToolConnection:Disconnect()
+            teleportToolConnection = nil
+        end
+        if teleportTool then
+            teleportTool:Destroy()
+            teleportTool = nil
+        end
+    end
+
+    createSuggestToggle("点击传送工具", function(val)
+        teleportToolEnabled = val
+        if val then
+            pcall(createTeleportTool)
+        else
+            destroyTeleportTool()
         end
     end)
 
@@ -1023,67 +1055,6 @@ return function(Window, WindUI)
         if char then
             local hum = char:FindFirstChildOfClass("Humanoid")
             if hum then hum.Health = 0 end
-        end
-    end})
-
-    local soundSpamRunning = false
-    local soundSpamConnection = nil
-
-    independentSection:Toggle({Title = "声音折磨", Value = false, Callback = function(val)
-        if val then
-            soundSpamRunning = true
-            soundSpamConnection = RunService.Heartbeat:Connect(function()
-                if not soundSpamRunning then return end
-                pcall(function()
-                    for _, v in pairs(game:GetDescendants()) do
-                        if v:IsA("Sound") then
-                            v.Volume = 10
-                            v.Looped = true
-                            v:Play()
-                        end
-                    end
-                    
-                    for _, player in pairs(Players:GetPlayers()) do
-                        local char = player.Character
-                        if char then
-                            for i = 1, 5 do
-                                local s = Instance.new("Sound")
-                                s.SoundId = "rbxassetid://" .. math.random(1000000, 99999999)
-                                s.Volume = 10
-                                s.Looped = true
-                                s.Parent = char:FindFirstChild("Head") or char
-                                s:Play()
-                                game:GetService("Debris"):AddItem(s, 10)
-                            end
-                        end
-                    end
-                    
-                    for i = 1, 20 do
-                        local s = Instance.new("Sound")
-                        s.SoundId = "rbxassetid://" .. math.random(1000000, 99999999)
-                        s.Volume = 10
-                        s.PlaybackSpeed = math.random(5, 30) / 10
-                        s.Parent = workspace
-                        s:Play()
-                        game:GetService("Debris"):AddItem(s, 5)
-                    end
-                end)
-                task.wait(0.03)
-            end)
-        else
-            soundSpamRunning = false
-            if soundSpamConnection then
-                soundSpamConnection:Disconnect()
-                soundSpamConnection = nil
-            end
-            for _, v in pairs(game:GetDescendants()) do
-                if v:IsA("Sound") then
-                    pcall(function()
-                        v:Stop()
-                        v:Destroy()
-                    end)
-                end
-            end
         end
     end})
 
