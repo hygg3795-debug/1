@@ -1050,6 +1050,181 @@ return function(Window, WindUI)
         end
     end})
 
+    -- ==================== 新增：隐身碰飞功能 ====================
+    local invisibleFlingActive = false
+    local invisibleFlingConnections = {
+        touch = nil,
+        noclip = nil,
+        charAdded = nil
+    }
+    local invisibleFlingSeat = nil
+    local invisibleFlingChar = nil
+
+    -- 设置角色透明度
+    local function setInvisibleFlingTransparency(character, transparency)
+        if not character then return end
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") or part:IsA("Decal") then
+                part.Transparency = transparency
+            end
+        end
+    end
+
+    -- 创建隐身椅子
+    local function createInvisibleFlingSeat(char)
+        if invisibleFlingSeat then
+            invisibleFlingSeat:Destroy()
+            invisibleFlingSeat = nil
+        end
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        local savedpos = root.CFrame
+        task.wait()
+        char:MoveTo(Vector3.new(-25.95, 84, 3537.55))
+        task.wait(0.15)
+        local Seat = Instance.new('Seat', workspace)
+        Seat.Anchored = false
+        Seat.CanCollide = false
+        Seat.Name = 'invisflingseat'
+        Seat.Transparency = 1
+        Seat.Position = Vector3.new(-25.95, 84, 3537.55)
+        local Weld = Instance.new("Weld", Seat)
+        Weld.Part0 = Seat
+        Weld.Part1 = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+        task.wait()
+        Seat.CFrame = savedpos
+        invisibleFlingSeat = Seat
+        return Seat
+    end
+
+    -- 设置碰飞逻辑
+    local function setupInvisibleFling(char)
+        invisibleFlingChar = char
+        
+        -- 隐身 + 椅子
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            createInvisibleFlingSeat(char)
+            setInvisibleFlingTransparency(char, 0.5)
+        end
+
+        -- NoClip
+        if invisibleFlingConnections.noclip then
+            invisibleFlingConnections.noclip:Disconnect()
+        end
+        invisibleFlingConnections.noclip = RunService.Stepped:Connect(function()
+            local c = LocalPlayer.Character
+            if c and c.Parent then
+                for _, child in pairs(c:GetDescendants()) do
+                    if child:IsA("BasePart") then
+                        child.CanCollide = false
+                    end
+                end
+            else
+                if invisibleFlingConnections.noclip then
+                    invisibleFlingConnections.noclip:Disconnect()
+                    invisibleFlingConnections.noclip = nil
+                end
+            end
+        end)
+
+        -- 碰飞逻辑
+        local function onTouched(hit)
+            if not invisibleFlingActive then return end
+            local targetChar = hit.Parent
+            local humanoid = targetChar and targetChar:FindFirstChildWhichIsA("Humanoid")
+            if humanoid and targetChar ~= char then
+                local root = targetChar:FindFirstChild("HumanoidRootPart") or hit
+                root.Velocity = Vector3.new(
+                    math.random(-500, 500),
+                    math.random(200, 800),
+                    math.random(-500, 500)
+                )
+            end
+        end
+
+        local function bindTouches(part)
+            if part:IsA("BasePart") then
+                part.Touched:Connect(onTouched)
+            end
+        end
+
+        -- 为当前所有部件绑定
+        for _, part in pairs(char:GetDescendants()) do
+            bindTouches(part)
+        end
+
+        -- 为新添加的部件绑定
+        if invisibleFlingConnections.touch then
+            invisibleFlingConnections.touch:Disconnect()
+        end
+        invisibleFlingConnections.touch = char.DescendantAdded:Connect(bindTouches)
+    end
+
+    local function startInvisibleFling()
+        local char = LocalPlayer.Character
+        if not char then
+            if invisibleFlingConnections.charAdded then
+                invisibleFlingConnections.charAdded:Disconnect()
+            end
+            invisibleFlingConnections.charAdded = LocalPlayer.CharacterAdded:Connect(function(newChar)
+                invisibleFlingConnections.charAdded:Disconnect()
+                invisibleFlingConnections.charAdded = nil
+                setupInvisibleFling(newChar)
+            end)
+            return
+        end
+        setupInvisibleFling(char)
+    end
+
+    local function stopInvisibleFling()
+        invisibleFlingActive = false
+        
+        -- 断开所有连接
+        if invisibleFlingConnections.touch then
+            invisibleFlingConnections.touch:Disconnect()
+            invisibleFlingConnections.touch = nil
+        end
+        if invisibleFlingConnections.noclip then
+            invisibleFlingConnections.noclip:Disconnect()
+            invisibleFlingConnections.noclip = nil
+        end
+        if invisibleFlingConnections.charAdded then
+            invisibleFlingConnections.charAdded:Disconnect()
+            invisibleFlingConnections.charAdded = nil
+        end
+
+        -- 删除隐身椅子
+        if invisibleFlingSeat then
+            invisibleFlingSeat:Destroy()
+            invisibleFlingSeat = nil
+        end
+
+        -- 恢复透明度和碰撞
+        local char = LocalPlayer.Character
+        if char then
+            setInvisibleFlingTransparency(char, 0)
+            for _, child in pairs(char:GetDescendants()) do
+                if child:IsA("BasePart") then
+                    child.CanCollide = true
+                end
+            end
+        end
+        invisibleFlingChar = nil
+    end
+
+    independentSection:Toggle({Title = "隐身碰飞", Value = false, Callback = function(val)
+        invisibleFlingActive = val
+        if val then
+            startInvisibleFling()
+            print("隐身碰飞已开启")
+        else
+            stopInvisibleFling()
+            print("隐身碰飞已关闭")
+        end
+    end})
+    -- =====================================================
+
     independentSection:Button({Title = "自杀", Callback = function()
         local char = LocalPlayer.Character
         if char then
