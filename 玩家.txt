@@ -160,6 +160,9 @@ return function(Window, WindUI)
         end
     end})
 
+    -- ===== 分割线 =====
+    playerSection:Divider()
+
     -- ===== 恶搞折叠列表 =====
     local trollingSection = playerSection:Section({Title = "恶搞", Collapsible = true, Box = true})
 
@@ -345,6 +348,9 @@ return function(Window, WindUI)
             if getSuckedGravity then Workspace.Gravity = getSuckedGravity getSuckedGravity = nil end
         end
     end})
+
+    -- ===== 分割线 =====
+    playerSection:Divider()
 
     -- ===== 甩飞折叠列表 =====
     local flingSection = playerSection:Section({Title = "甩飞", Collapsible = true, Box = true})
@@ -684,6 +690,83 @@ return function(Window, WindUI)
             _G.autofling = false
         end
     end})
+
+    -- ===== 分割线 =====
+    playerSection:Divider()
+
+    -- ===== 血量折叠列表 =====
+    local healthSection = playerSection:Section({Title = "血量", Collapsible = true, Box = true})
+
+    -- 回血（按钮）
+    healthSection:Button({Title = "回血", Callback = function()
+        local p = LocalPlayer
+        local c = p.Character
+        if c then
+            local h = c:FindFirstChild("Humanoid")
+            if h and h.Health > 0 then
+                h.Health = math.min(h.Health + 10000, h.MaxHealth)
+                WindUI:Notify({Title = "回血成功", Content = "已恢复血量", Duration = 1.5, Icon = "check"})
+            end
+        end
+    end})
+
+    -- 循环回血（开关）
+    local loopHealConnection = nil
+    healthSection:Toggle({Title = "循环回血", Value = false, Callback = function(val)
+        if val then
+            loopHealConnection = RunService.Heartbeat:Connect(function()
+                local p = LocalPlayer
+                local c = p.Character
+                if c then
+                    local h = c:FindFirstChild("Humanoid")
+                    if h and h.Health > 0 then
+                        h.Health = math.min(h.Health + 10000, h.MaxHealth)
+                    end
+                end
+            end)
+        else
+            if loopHealConnection then
+                loopHealConnection:Disconnect()
+                loopHealConnection = nil
+            end
+        end
+    end})
+
+    -- 自定义血量上限（滑块）
+    healthSection:Slider({
+        Title = "自定义血量上限",
+        Min = 5,
+        Max = 10000,
+        Default = 100,
+        Callback = function(maxHealth)
+            local p = LocalPlayer
+            local c = p.Character
+            if c then
+                local h = c:FindFirstChild("Humanoid")
+                if h then
+                    h.MaxHealth = maxHealth
+                end
+            end
+        end
+    })
+
+    -- 自定义血量（滑块）
+    healthSection:Slider({
+        Title = "自定义血量",
+        Min = 5,
+        Max = 10000,
+        Default = 100,
+        Callback = function(health)
+            local p = LocalPlayer
+            local c = p.Character
+            if c then
+                local h = c:FindFirstChild("Humanoid")
+                if h and h.Health > 0 then
+                    h.Health = health
+                end
+            end
+        end
+    })
 
     return tab
 end
