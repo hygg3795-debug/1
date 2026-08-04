@@ -82,7 +82,10 @@ return function(Window, WindUI)
     Players.PlayerAdded:Connect(refreshDropdown)
     Players.PlayerRemoving:Connect(refreshDropdown)
 
-    playerSection:Toggle({Title = "平滑跟随", Value = false, Callback = function(val)
+    -- ===== 传送折叠列表 =====
+    local teleportSection = playerSection:Section({Title = "传送", Collapsible = true, Box = true})
+
+    teleportSection:Toggle({Title = "平滑跟随", Value = false, Callback = function(val)
         if val then
             if not targetPlayer then
                 WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
@@ -108,7 +111,7 @@ return function(Window, WindUI)
         end
     end})
 
-    playerSection:Button({Title = "传送至选中玩家", Callback = function()
+    teleportSection:Button({Title = "传送至选中玩家", Callback = function()
         if not targetPlayer then
             WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
             return
@@ -121,7 +124,46 @@ return function(Window, WindUI)
         myChar.HumanoidRootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 0, 3))
     end})
 
-    playerSection:Button({Title = "r15道馆", Callback = function()
+    teleportSection:Button({Title = "传送最近玩家", Callback = function()
+        local nearest = nil
+        local minDist = math.huge
+        local myChar = LocalPlayer.Character
+        if not myChar then return end
+        local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+        local myPos = myRoot.Position
+        
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer then
+                local pChar = p.Character
+                if pChar then
+                    local pRoot = pChar:FindFirstChild("HumanoidRootPart")
+                    if pRoot then
+                        local dist = (pRoot.Position - myPos).Magnitude
+                        if dist < minDist then
+                            minDist = dist
+                            nearest = p
+                        end
+                    end
+                end
+            end
+        end
+        
+        if nearest then
+            local targetRoot = nearest.Character and nearest.Character:FindFirstChild("HumanoidRootPart")
+            if targetRoot and myRoot then
+                myRoot.CFrame = targetRoot.CFrame + Vector3.new(0, 0, 3)
+                WindUI:Notify({Title = "传送成功", Content = "已传送至 " .. nearest.DisplayName, Duration = 2, Icon = "check"})
+            end
+        else
+            WindUI:Notify({Title = "提示", Content = "未找到可传送的玩家", Duration = 2, Icon = "alert"})
+        end
+    end})
+
+    -- ===== 恶搞折叠列表 =====
+    local trollingSection = playerSection:Section({Title = "恶搞", Collapsible = true, Box = true})
+
+    trollingSection:Button({Title = "r15道馆", Callback = function()
         pcall(function()
             loadstring(game:HttpGet("https://pastefy.app/YZoglOyJ/raw"))()
         end)
@@ -130,7 +172,7 @@ return function(Window, WindUI)
     local suckConnection = nil
     local suckAnimation = nil
     local originalGravity = nil
-    playerSection:Toggle({Title = "口人", Value = false, Callback = function(val)
+    trollingSection:Toggle({Title = "口人", Value = false, Callback = function(val)
         if val then
             if not targetPlayer then
                 WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
@@ -171,7 +213,7 @@ return function(Window, WindUI)
 
     local bangConnection = nil
     local bangAnimation = nil
-    playerSection:Toggle({Title = "配人", Value = false, Callback = function(val)
+    trollingSection:Toggle({Title = "配人", Value = false, Callback = function(val)
         if val then
             if not targetPlayer then
                 WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
@@ -213,7 +255,7 @@ return function(Window, WindUI)
 
     local susConnection = nil
     local susAnimation = nil
-    playerSection:Toggle({Title = "被配", Value = false, Callback = function(val)
+    trollingSection:Toggle({Title = "被配", Value = false, Callback = function(val)
         if val then
             if not targetPlayer then
                 WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
@@ -256,7 +298,7 @@ return function(Window, WindUI)
     local getSuckedAnimation = nil
     local getSuckedGravity = nil
     local getSuckedRunning = false
-    playerSection:Toggle({Title = "人口", Value = false, Callback = function(val)
+    trollingSection:Toggle({Title = "人口", Value = false, Callback = function(val)
         if val then
             if not targetPlayer then
                 WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
@@ -303,6 +345,9 @@ return function(Window, WindUI)
             if getSuckedGravity then Workspace.Gravity = getSuckedGravity getSuckedGravity = nil end
         end
     end})
+
+    -- ===== 甩飞折叠列表 =====
+    local flingSection = playerSection:Section({Title = "甩飞", Collapsible = true, Box = true})
 
     local flingTarget = nil
     local flingRunning = false
@@ -504,15 +549,11 @@ return function(Window, WindUI)
         end
     end
 
-    playerSection:Button({Title = "甩飞", Callback = function()
+    flingSection:Button({Title = "甩飞", Callback = function()
         StartFling()
     end})
 
-    playerSection:Button({Title = "停止甩飞", Callback = function()
-        StopFling()
-    end})
-
-    playerSection:Toggle({Title = "循环甩飞", Value = false, Callback = function(val)
+    flingSection:Toggle({Title = "循环甩飞", Value = false, Callback = function(val)
         if val then
             if not targetPlayer then
                 WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
