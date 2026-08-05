@@ -1,0 +1,654 @@
+return function(Window, WindUI)
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Workspace = game:GetService("Workspace")
+    local Lighting = game:GetService("Lighting")
+
+    -- 巴掌模拟器 Place ID
+    local SLAP_BATTLES_ID = 6403373529
+    local isSlapBattles = (game.PlaceId == SLAP_BATTLES_ID)
+
+    local tab = Window:Tab({Title = "巴掌模拟器", Icon = "settings"})
+
+    -- 状态提示
+    if isSlapBattles then
+        tab:Label({Title = "当前游戏: 巴掌模拟器"})
+    else
+        tab:Label({Title = "未检测到巴掌模拟器"})
+        tab:Label({Title = "功能不可用"})
+    end
+
+    -- 无CD
+    tab:Toggle({
+        Title = "无CD",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.NoCooldown = val
+            while _G.NoCooldown do
+                pcall(function()
+                    local tool = (LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()):FindFirstChildOfClass("Tool") or LocalPlayer.Backpack:FindFirstChildOfClass("Tool")
+                    if tool then
+                        local script = tool:FindFirstChildOfClass("LocalScript")
+                        if script then
+                            local clone = script:Clone()
+                            script:Destroy()
+                            clone.Parent = tool
+                        end
+                    end
+                end)
+                task.wait(0.1)
+            end
+        end
+    })
+
+    -- 获取计数器手套
+    tab:Button({
+        Title = "获取计数器手套",
+        Callback = function()
+            if not isSlapBattles then return end
+            pcall(function()
+                fireclickdetector(Workspace.CounterLever.ClickDetector)
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    char.HumanoidRootPart.CFrame = CFrame.new(0, 100, 0)
+                    task.wait(0.2)
+                    char.HumanoidRootPart.Anchored = true
+                    task.wait(121)
+                    for _, detector in pairs(Workspace.Maze:GetDescendants()) do
+                        if detector:IsA("ClickDetector") then
+                            fireclickdetector(detector)
+                        end
+                    end
+                end
+            end)
+        end
+    })
+
+    -- 地牢亮度
+    tab:Toggle({
+        Title = "地牢亮度",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.DungeonBrightness = val
+            if not _G.DungeonBrightness then
+                Lighting.Ambient = Color3.new(0, 0, 0)
+            end
+        end
+    })
+
+    -- 传送
+    tab:Dropdown({
+        Title = "传送",
+        Value = "请选择",
+        Options = {"安全区", "竞技场", "埃及岛", "果实岛", "盘子", "锦标赛", "默认竞技场"},
+        Callback = function(option)
+            if not isSlapBattles then return end
+            local char = LocalPlayer.Character
+            if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+            local hrp = char.HumanoidRootPart
+            local destinations = {
+                ["安全区"] = function()
+                    hrp.CFrame = Workspace.Spot.CFrame * CFrame.new(0, 40, 0)
+                end,
+                ["竞技场"] = function()
+                    hrp.CFrame = Workspace.Origo.CFrame * CFrame.new(0, -5, 0)
+                end,
+                ["埃及岛"] = function()
+                    hrp.CFrame = CFrame.new(215, -15.5, 0.5)
+                end,
+                ["果实岛"] = function()
+                    hrp.CFrame = Workspace.Arena.island5.Union.CFrame * CFrame.new(0, 3.25, 0)
+                end,
+                ["盘子"] = function()
+                    hrp.CFrame = Workspace.Arena.Plate.CFrame * CFrame.new(0, 2, 0)
+                end,
+                ["锦标赛"] = function()
+                    hrp.CFrame = Workspace.Battlearena.Arena.CFrame * CFrame.new(0, 10, 0)
+                end,
+                ["默认竞技场"] = function()
+                    hrp.CFrame = CFrame.new(120, 360, -3)
+                end
+            }
+            if destinations[option] then
+                pcall(destinations[option])
+            end
+        end
+    })
+
+    -- 复古技能
+    tab:Toggle({
+        Title = "复古技能",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.RetroSpam = val
+            while _G.RetroSpam do
+                pcall(function()
+                    ReplicatedStorage.RetroAbility:FireServer(_G.RetroAbility or "Rocket Launcher")
+                end)
+                task.wait()
+            end
+        end
+    })
+
+    -- 复古技能选择
+    tab:Dropdown({
+        Title = "复古技能选择",
+        Value = "Rocket Launcher",
+        Options = {"Rocket Launcher", "Ban Hammer", "Bomb"},
+        Callback = function(option)
+            _G.RetroAbility = option
+        end
+    })
+
+    -- 自动捡糖果
+    tab:Toggle({
+        Title = "自动捡糖果",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.CandyCornFarm = val
+            while _G.CandyCornFarm do
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        for _, candy in pairs(Workspace.CandyCorns:GetChildren()) do
+                            if candy:FindFirstChildWhichIsA("TouchTransmitter") then
+                                candy.CFrame = char.HumanoidRootPart.CFrame
+                            end
+                        end
+                    end
+                end)
+                task.wait()
+            end
+        end
+    })
+
+    -- 获取炼金术师材料
+    tab:Toggle({
+        Title = "获取炼金术师材料",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.AlchemistIngredients = val
+            pcall(function()
+                if LocalPlayer.leaderstats.Glove.Value == "Alchemist" then
+                    local materials = {
+                        "Mushroom", "Glowing Mushroom", "Fire Flower", "Winter Rose",
+                        "Dark Root", "Dire Flower", "Autumn Sprout", "Elder Wood",
+                        "Hazel Lily", "Wild Vine", "Jade Stone", "Lamp Grass",
+                        "Plane Flower", "Blood Rose", "Red Crystal", "Blue Crystal"
+                    }
+                    while _G.AlchemistIngredients do
+                        for _, material in ipairs(materials) do
+                            ReplicatedStorage.AlchemistEvent:FireServer("AddItem", material)
+                        end
+                        task.wait()
+                    end
+                end
+            end)
+        end
+    })
+
+    -- 自动加入竞技场
+    tab:Toggle({
+        Title = "自动加入竞技场",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.AutoEnterArena = val
+            while _G.AutoEnterArena do
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    if char then
+                        if not char:FindFirstChild("entered") then
+                            local head = char:FindFirstChild("Head")
+                            local teleport = Workspace.Lobby.Teleport1
+                            if head and teleport then
+                                firetouchinterest(head, teleport, 0)
+                                firetouchinterest(head, teleport, 1)
+                            end
+                        end
+                    end
+                end)
+                task.wait()
+            end
+        end
+    })
+
+    -- 自动光波球
+    tab:Toggle({
+        Title = "自动光波球",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.RojoSpam = val
+            while _G.RojoSpam do
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        ReplicatedStorage:WaitForChild("RojoAbility"):FireServer("Release", {
+                            char.HumanoidRootPart.CFrame
+                        })
+                    end
+                end)
+                task.wait()
+            end
+        end
+    })
+
+    -- Rojo技能
+    tab:Button({
+        Title = "Rojo技能",
+        Callback = function()
+            if not isSlapBattles then return end
+            pcall(function()
+                ReplicatedStorage:WaitForChild("RojoAbility"):FireServer("Charge")
+                task.wait(6)
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    ReplicatedStorage:WaitForChild("RojoAbility"):FireServer("Release", {
+                        char.HumanoidRootPart.CFrame
+                    })
+                end
+            end)
+        end
+    })
+
+    -- 音符技能
+    tab:Toggle({
+        Title = "音符技能",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.RhythmSpam = val
+            while _G.RhythmSpam do
+                pcall(function()
+                    ReplicatedStorage.rhythmevent:FireServer("AoeExplosion", 0)
+                end)
+                task.wait()
+            end
+        end
+    })
+
+    -- Null技能
+    tab:Toggle({
+        Title = "Null技能",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.NullSpam = val
+            while _G.NullSpam do
+                pcall(function()
+                    ReplicatedStorage.NullAbility:FireServer()
+                end)
+                task.wait()
+            end
+        end
+    })
+
+    -- 自动拾取黄金果实
+    tab:Toggle({
+        Title = "自动拾取黄金果实",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.SlappleFarm = val
+            while _G.SlappleFarm do
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("entered") then
+                        for _, descendant in ipairs(Workspace.Arena.island5.Slapples:GetDescendants()) do
+                            if descendant.Name == "Glove" and descendant:FindFirstChildWhichIsA("TouchTransmitter") then
+                                firetouchinterest(char.HumanoidRootPart, descendant, 0)
+                                firetouchinterest(char.HumanoidRootPart, descendant, 1)
+                            end
+                        end
+                    end
+                end)
+                task.wait()
+            end
+        end
+    })
+
+    -- 自动捡飞行宝珠
+    tab:Toggle({
+        Title = "自动捡飞行宝珠",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.Jetfarm = val
+            while _G.Jetfarm do
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    if char then
+                        local head = char:FindFirstChild("Head")
+                        if head then
+                            for _, child in pairs(Workspace:GetChildren()) do
+                                if child.Name == "JetOrb" and child:FindFirstChild("TouchInterest") then
+                                    firetouchinterest(head, child, 0)
+                                    firetouchinterest(head, child, 1)
+                                end
+                            end
+                        end
+                    end
+                end)
+                task.wait()
+            end
+        end
+    })
+
+    -- 自动捡相位球
+    tab:Toggle({
+        Title = "自动捡相位球",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.Phasefarm = val
+            while _G.Phasefarm do
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    if char then
+                        local head = char:FindFirstChild("Head")
+                        if head then
+                            for _, child in pairs(Workspace:GetChildren()) do
+                                if child.Name == "PhaseOrb" and child:FindFirstChild("TouchInterest") then
+                                    firetouchinterest(head, child, 0)
+                                    firetouchinterest(head, child, 1)
+                                end
+                            end
+                        end
+                    end
+                end)
+                task.wait()
+            end
+        end
+    })
+
+    -- 自动刷bob
+    tab:Toggle({
+        Title = "自动刷bob",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.ReplicaFarm = val
+            while _G.ReplicaFarm do
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    if char then
+                        for _, child in pairs(Workspace:GetChildren()) do
+                            if child.Name:match(LocalPlayer.Name) and child:FindFirstChild("HumanoidRootPart") then
+                                ReplicatedStorage.b:FireServer(child:WaitForChild("HumanoidRootPart"))
+                            end
+                        end
+                    end
+                    ReplicatedStorage.Duplicate:FireServer()
+                end)
+                task.wait(7)
+            end
+        end
+    })
+
+    -- 无限反转
+    tab:Toggle({
+        Title = "无限反转",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.InfReverse = val
+            while _G.InfReverse do
+                pcall(function()
+                    ReplicatedStorage.ReverseAbility:FireServer()
+                end)
+                task.wait(6)
+            end
+        end
+    })
+
+    -- 彩虹角色
+    tab:Toggle({
+        Title = "彩虹角色",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.Rainbow = val
+            while _G.Rainbow do
+                pcall(function()
+                    for hue = 0, 1, 0.025 do
+                        ReplicatedStorage.Goldify:FireServer(false, BrickColor.new(Color3.fromHSV(hue, 1, 1)))
+                        task.wait()
+                    end
+                end)
+            end
+        end
+    })
+
+    -- 防击飞
+    tab:Toggle({
+        Title = "防击飞",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.AntiRagdoll = val
+            pcall(function()
+                if _G.AntiRagdoll then
+                    local char = LocalPlayer.Character
+                    if char and char:FindFirstChild("Humanoid") then
+                        char.Humanoid.Health = 0
+                    end
+                    LocalPlayer.CharacterAdded:Connect(function()
+                        local newChar = LocalPlayer.Character
+                        if newChar then
+                            newChar:WaitForChild("Ragdolled").Changed:Connect(function()
+                                if newChar:WaitForChild("Ragdolled").Value == true and _G.AntiRagdoll then
+                                    repeat
+                                        task.wait()
+                                        newChar.Torso.Anchored = true
+                                    until newChar:WaitForChild("Ragdolled").Value == false
+                                    newChar.Torso.Anchored = false
+                                end
+                            end)
+                        end
+                    end)
+                end
+            end)
+        end
+    })
+
+    -- 反虚空
+    tab:Toggle({
+        Title = "反虚空",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            pcall(function()
+                Workspace.dedBarrier.CanCollide = val
+                Workspace.TAntiVoid.CanCollide = val
+            end)
+        end
+    })
+
+    -- 防死亡屏障
+    tab:Toggle({
+        Title = "防死亡屏障",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            pcall(function()
+                local barriers = {
+                    Workspace.DEATHBARRIER,
+                    Workspace.DEATHBARRIER2,
+                    Workspace.dedBarrier,
+                    Workspace.ArenaBarrier,
+                    Workspace.AntiDefaultArena
+                }
+                for _, barrier in ipairs(barriers) do
+                    if barrier then
+                        barrier.CanTouch = not val
+                    end
+                end
+                for _, child in pairs(Workspace.DEATHBARRIER:GetChildren()) do
+                    if child.ClassName == "Part" and child.Name == "BLOCK" then
+                        child.CanTouch = not val
+                    end
+                end
+            end)
+        end
+    })
+
+    -- 反巴西
+    tab:Toggle({
+        Title = "反巴西",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            pcall(function()
+                for _, child in pairs(Workspace.Lobby.brazil:GetChildren()) do
+                    child.CanTouch = not val
+                end
+            end)
+        end
+    })
+
+    -- 反死亡方块
+    tab:Toggle({
+        Title = "反死亡方块",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            pcall(function()
+                local cube = Workspace.Arena.CubeOfDeathArea["the cube of death(i heard it kills)"]
+                if cube then
+                    cube.CanTouch = not val
+                end
+            end)
+        end
+    })
+
+    -- 反上帝技能
+    tab:Toggle({
+        Title = "反上帝技能",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.AntiTimestop = val
+            while _G.AntiTimestop do
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    if char then
+                        for _, part in pairs(char:GetChildren()) do
+                            if part.ClassName == "Part" then
+                                part.Anchored = false
+                            end
+                        end
+                    end
+                end)
+                task.wait()
+            end
+        end
+    })
+
+    -- 反鱿鱼
+    tab:Toggle({
+        Title = "反鱿鱼",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.AntiSquid = val
+            pcall(function()
+                if not _G.AntiSquid then
+                    local squidGui = LocalPlayer.PlayerGui:FindFirstChild("SquidInk")
+                    if squidGui then
+                        squidGui.Enabled = true
+                    end
+                end
+                while _G.AntiSquid do
+                    local squidGui = LocalPlayer.PlayerGui:FindFirstChild("SquidInk")
+                    if squidGui then
+                        squidGui.Enabled = false
+                    end
+                    task.wait()
+                end
+            end)
+        end
+    })
+
+    -- 反神圣杰克
+    tab:Toggle({
+        Title = "反神圣杰克",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            pcall(function()
+                local script = LocalPlayer.PlayerScripts:FindFirstChild("HallowJackAbilities")
+                if script then
+                    script.Disabled = val
+                end
+            end)
+        end
+    })
+
+    -- 反传送带
+    tab:Toggle({
+        Title = "反传送带",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            pcall(function()
+                local script = LocalPlayer.PlayerScripts:FindFirstChild("ConveyorVictimized")
+                if script then
+                    script.Disabled = val
+                end
+            end)
+        end
+    })
+
+    -- 反板砖
+    tab:Toggle({
+        Title = "反板砖",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.AntiBrick = val
+            while _G.AntiBrick do
+                pcall(function()
+                    for _, child in pairs(Workspace:GetChildren()) do
+                        if child.Name == "Union" then
+                            child.CanTouch = false
+                        end
+                    end
+                end)
+                task.wait()
+            end
+        end
+    })
+
+    -- 反Null
+    tab:Toggle({
+        Title = "反Null",
+        Value = false,
+        Callback = function(val)
+            if not isSlapBattles then return end
+            _G.AntiNull = val
+            while _G.AntiNull do
+                pcall(function()
+                    for _, child in pairs(Workspace:GetChildren()) do
+                        if child.Name == "Imp" and child:FindFirstChild("Body") then
+                            local glove = LocalPlayer.leaderstats.Glove.Value
+                            local hitEvent = ReplicatedStorage:FindFirstChild(glove .. "Hit")
+                            if hitEvent then
+                                hitEvent:FireServer(child.Body, true)
+                            end
+                        end
+                    end
+                end)
+                task.wait()
+            end
+        end
+    })
+
+    return tab
+end

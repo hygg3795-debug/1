@@ -1,0 +1,146 @@
+return function(Window, WindUI)
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local RunService = game:GetService("RunService")
+
+    -- 扔出一枚硬币 Place ID
+    local COIN_FLIP_ID = 1594137255
+    local isCoinFlip = (game.PlaceId == COIN_FLIP_ID)
+
+    local tab = Window:Tab({Title = "扔出一枚硬币", Icon = "coin"})
+
+    -- 状态提示
+    if isCoinFlip then
+        tab:Label({Title = "当前游戏: 扔出一枚硬币"})
+    else
+        tab:Label({Title = "未检测到扔出一枚硬币"})
+        tab:Label({Title = "功能不可用"})
+    end
+
+    -- 全局变量
+    _G.ThrowRemote = nil
+    _G.ThrowArgs = {}
+    _G.SellRemote = nil
+    _G.SellArgs = {}
+    _G.UpgradeRemote = nil
+    _G.UpgradeArgs = {}
+
+    -- 扫描远程事件
+    local function scanRemotes()
+        if not isCoinFlip then return end
+        for _, item in ipairs(ReplicatedStorage:GetDescendants()) do
+            if item:IsA("RemoteEvent") or item:IsA("RemoteFunction") then
+                local name = string.lower(item.Name)
+                if string.find(name, "throw") or string.find(name, "toss") or string.find(name, "coin") then
+                    if not _G.ThrowRemote then
+                        _G.ThrowRemote = item
+                        _G.ThrowArgs = {}
+                    end
+                elseif string.find(name, "sell") then
+                    if not _G.SellRemote then
+                        _G.SellRemote = item
+                        _G.SellArgs = {}
+                    end
+                elseif string.find(name, "upgrade") or string.find(name, "buy") then
+                    if not _G.UpgradeRemote then
+                        _G.UpgradeRemote = item
+                        _G.UpgradeArgs = {}
+                    end
+                end
+            end
+        end
+    end
+
+    -- 自动投币
+    tab:Toggle({
+        Title = "自动投币",
+        Value = false,
+        Callback = function(val)
+            if not isCoinFlip then return end
+            _G.AutoThrowActive = val
+            if val then
+                pcall(scanRemotes)
+                _G.ThrowTask = RunService.Heartbeat:Connect(function()
+                    if _G.AutoThrowActive and _G.ThrowRemote then
+                        local args = _G.ThrowArgs or {}
+                        pcall(function()
+                            if _G.ThrowRemote:IsA("RemoteEvent") then
+                                _G.ThrowRemote:FireServer(unpack(args))
+                            elseif _G.ThrowRemote:IsA("RemoteFunction") then
+                                _G.ThrowRemote:InvokeServer(unpack(args))
+                            end
+                        end)
+                    end
+                end)
+            else
+                if _G.ThrowTask then
+                    _G.ThrowTask:Disconnect()
+                    _G.ThrowTask = nil
+                end
+            end
+        end
+    })
+
+    -- 自动出售
+    tab:Toggle({
+        Title = "自动出售",
+        Value = false,
+        Callback = function(val)
+            if not isCoinFlip then return end
+            _G.AutoSellActive = val
+            if val then
+                pcall(scanRemotes)
+                _G.SellTask = RunService.Heartbeat:Connect(function()
+                    if _G.AutoSellActive and _G.SellRemote then
+                        local args = _G.SellArgs or {}
+                        pcall(function()
+                            if _G.SellRemote:IsA("RemoteEvent") then
+                                _G.SellRemote:FireServer(unpack(args))
+                            elseif _G.SellRemote:IsA("RemoteFunction") then
+                                _G.SellRemote:InvokeServer(unpack(args))
+                            end
+                        end)
+                    end
+                end)
+            else
+                if _G.SellTask then
+                    _G.SellTask:Disconnect()
+                    _G.SellTask = nil
+                end
+            end
+        end
+    })
+
+    -- 自动升级
+    tab:Toggle({
+        Title = "自动升级",
+        Value = false,
+        Callback = function(val)
+            if not isCoinFlip then return end
+            _G.AutoUpgradeActive = val
+            if val then
+                pcall(scanRemotes)
+                _G.UpgradeTask = RunService.Heartbeat:Connect(function()
+                    if _G.AutoUpgradeActive and _G.UpgradeRemote then
+                        local args = _G.UpgradeArgs or {}
+                        pcall(function()
+                            if _G.UpgradeRemote:IsA("RemoteEvent") then
+                                _G.UpgradeRemote:FireServer(unpack(args))
+                            elseif _G.UpgradeRemote:IsA("RemoteFunction") then
+                                _G.UpgradeRemote:InvokeServer(unpack(args))
+                            end
+                        end)
+                    end
+                end)
+            else
+                if _G.UpgradeTask then
+                    _G.UpgradeTask:Disconnect()
+                    _G.UpgradeTask = nil
+                end
+            end
+        end
+    })
+
+    return tab
+end
