@@ -1,722 +1,229 @@
 return function(Window, WindUI)
-    local Players = game:GetService("Players")
-    local UserInputService = game:GetService("UserInputService")
-    local RunService = game:GetService("RunService")
-    local Workspace = game:GetService("Workspace")
+    local GameName = "扔出一枚硬币"
+    local CreatorName = "Badshah"
+
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local TweenService = game:GetService("TweenService")
-    local TeleportService = game:GetService("TeleportService")
-    local HttpService = game:GetService("HttpService")
-    local VirtualUser = game:GetService("VirtualUser")
-
+    local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
-    local player = LocalPlayer
-    local UIS = UserInputService
-    local PlayerGui = player:WaitForChild("PlayerGui")
+    local UserInputService = game:GetService("UserInputService")
 
-    -- 创建Logo按钮
-    local logoGui = Instance.new("ScreenGui")
-    logoGui.Name = "PinatHubLogo"
-    logoGui.ResetOnSpawn = false
-    logoGui.Parent = player:WaitForChild("PlayerGui", 5)
+    local tab = Window:Tab({Title = GameName, Icon = "coins"})
 
-    local logoButton = Instance.new("ImageButton")
-    logoButton.Name = "LogoButton"
-    logoButton.Size = UDim2.new(0, 60, 0, 60)
-    logoButton.Position = UDim2.new(0.5, -30, 0.5, -30)
-    logoButton.BackgroundTransparency = 1
-    logoButton.Image = "rbxassetid://118264723961739"
-    logoButton.ImageColor3 = Color3.fromRGB(180, 0, 255)
-    logoButton.ScaleType = Enum.ScaleType.Fit
-    logoButton.Parent = logoGui
+    local autoThrowKey = "T"
+    local autoSellKey = "Y"
+    local autoUpgradeKey = "U"
 
-    local uiCornerLogo = Instance.new("UICorner")
-    uiCornerLogo.CornerRadius = UDim.new(1, 0)
-    uiCornerLogo.Parent = logoButton
+    _G.AutoThrowActive = false
+    _G.AutoSellActive = false
+    _G.AutoUpgradeActive = false
 
-    local hoverTween = TweenService:Create(logoButton, TweenInfo.new(0.2), {Size = UDim2.new(0, 70, 0, 70)})
-    local unhoverTween = TweenService:Create(logoButton, TweenInfo.new(0.2), {Size = UDim2.new(0, 60, 0, 60)})
+    _G.ThrowRemote = nil
+    _G.ThrowArgs = {}
 
-    logoButton.MouseEnter:Connect(function() hoverTween:Play() end)
-    logoButton.MouseLeave:Connect(function() unhoverTween:Play() end)
+    _G.SellRemote = nil
+    _G.SellArgs = {}
 
-    local dragging = false
-    local dragStart = nil
-    local startPos = nil
+    _G.UpgradeRemote = nil
+    _G.UpgradeArgs = {}
 
-    logoButton.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = logoButton.Position
-        end
-    end)
-
-    logoButton.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-            dragStart = nil
-            startPos = nil
-        end
-    end)
-
-    UIS.InputChanged:Connect(function(input)
-        if dragging and dragStart and startPos then
-            if input.UserInputType == Enum.UserInputType.MouseMovement then
-                local delta = input.Position - dragStart
-                local newX = startPos.X.Offset + delta.X
-                local newY = startPos.Y.Offset + delta.Y
-                logoButton.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
+    local function scanRemotes()
+        for _, item in ipairs(ReplicatedStorage:GetDescendants()) do
+            if item:IsA("RemoteEvent") or item:IsA("RemoteFunction") then
+                local name = string.lower(item.Name)
+                if string.find(name, "throw") or string.find(name, "toss") or string.find(name, "coin") then
+                    if not _G.ThrowRemote then
+                        _G.ThrowRemote = item
+                        print("[自动挂机] 找到投币远程事件:", item:GetFullName())
+                        _G.ThrowArgs = {}
+                    end
+                elseif string.find(name, "sell") then
+                    if not _G.SellRemote then
+                        _G.SellRemote = item
+                        print("[自动挂机] 找到出售远程事件:", item:GetFullName())
+                        _G.SellArgs = {}
+                    end
+                elseif string.find(name, "upgrade") or string.find(name, "buy") then
+                    if not _G.UpgradeRemote then
+                        _G.UpgradeRemote = item
+                        print("[自动挂机] 找到升级远程事件:", item:GetFullName())
+                        _G.UpgradeArgs = {}
+                    end
+                end
             end
         end
-    end)
-
-    local guiVisible = true
-    logoButton.MouseButton1Click:Connect(function()
-        guiVisible = not guiVisible
-        if Window then
-            pcall(function()
-                if guiVisible then
-                    Window:Open()
-                else
-                    Window:Minimize()
-                end
-            end)
-        end
-    end)
-
-    -- 创建标签页
-    local tabs = {
-        main = Window:Tab({Title = "主要", Icon = "sword"}),
-        collect = Window:Tab({Title = "收集", Icon = "dollar-sign"}),
-        upgrade = Window:Tab({Title = "升级", Icon = "arrow-up"}),
-        buy = Window:Tab({Title = "购买", Icon = "shopping-cart"}),
-        sell = Window:Tab({Title = "出售", Icon = "trash"}),
-        settings = Window:Tab({Title = "设置", Icon = "settings"}),
-    }
-
-    local Net = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Packages"):WaitForChild("Network")
-
-    local kickValues = {
-        ["完美"] = 1,
-        ["优秀"] = 0.8670379929244518,
-        ["良好"] = 0.6358855310827494,
-        ["中等"] = 0.2641407661139965,
-        ["差劲"] = 0.06738599948585033
-    }
-
-    local currentKickMode = "完美"
-    local kickPowerValue = 100
-
-    local mutationList = {"普通", "黄金", "钻石", "等离子", "熔岩", "放射性", "暗影", "电气化", "彩虹"}
-    local targetMutations = {}
-
-    local upList = {}
-    for i = 1, 30 do table.insert(upList, tostring(i)) end
-    local targetUpgrade = "1"
-
-    local weightList = {
-        "木棒    免费", "骨制杠铃    $7.5K", "石块    $75K", "铜板    $500K", 
-        "铁板    $7.2M", "冰制杠铃    $350M", "甜甜圈杠铃    $6.2B", "黄金杠铃    $85B", 
-        "天堂板    $1.2T", "巨型黄金杠铃    $18T", "霓虹脉冲    $500T", "巨型金星杠铃    $20Q"
-    }
-    local targetWeight = weightList[1]
-
-    local autoKick = false
-    local autoTrain = false
-    local autoCollect = false
-    local instantInteract = false
-    local autoUpSel = false
-    local autoUpAll = false
-    local autoBuyWeight = false
-    local kickTick = 0
-    local trainTick = 0
-    local collectTick = 0
-    local grabTick = 0
-    local upSelTick = 0
-    local upAllTick = 0
-    local buyTick = 0
-
-    -- 辅助函数
-    local function get_connections(obj)
-        local connections = getconnections or (syn and syn.getconnections)
-        if connections then
-            return connections(obj)
-        end
-        return {}
     end
+    pcall(scanRemotes)
 
-    -- 主要设置
-    local mainSection = tabs.main:Section({Title = "踢击设置"})
-
-    mainSection:Slider({
-        Title = "踢击力度 (0-100%)",
-        Value = {Min = 0, Max = 100, Default = 100, Decimals = 0},
-        Callback = function(value)
-            kickPowerValue = value
-            if value >= 95 then
-                currentKickMode = "完美"
-            elseif value >= 70 then
-                currentKickMode = "优秀"
-            elseif value >= 45 then
-                currentKickMode = "良好"
-            elseif value >= 20 then
-                currentKickMode = "中等"
-            else
-                currentKickMode = "差劲"
-            end
-        end,
-    })
-
-    mainSection:Paragraph({Title = "当前力度", Desc = "完美"})
-
-    mainSection:Paragraph({Title = "目标变异筛选", Desc = "选择要保留的变异（全不选则保留全部）"})
-
-    for _, mutation in ipairs(mutationList) do
-        mainSection:Toggle({
-            Title = mutation,
-            Value = false,
-            Callback = function(state)
-                targetMutations[mutation] = state
-            end,
-        })
-    end
-
-    mainSection:Divider()
-
-    mainSection:Toggle({
-        Title = "自动踢击",
-        Value = false,
-        Callback = function(state)
-            autoKick = state
-            kickTick = kickTick + 1
-            local currentTick = kickTick
+    local hookSuccess, hookError = pcall(function()
+        local oldNamecall
+        oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+            local method = getnamecallmethod()
+            local args = {...}
             
-            if autoKick then
-                task.spawn(function()
-                    while autoKick and currentTick == kickTick do
-                        pcall(function()
-                            local char = player.Character
-                            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                            local hum = char and char:FindFirstChild("Humanoid")
-                            
-                            if hrp and hum and hum.Health > 0 then
-                                hrp.Velocity = Vector3.new(0,0,0)
-                                hrp.CFrame = workspace.Areas.KickReady.CFrame + Vector3.new(0, 5, 0)
-                                task.wait(0.3)
-                                
-                                local guiBtn = PlayerGui.HUD.KickButton
-                                local conns = get_connections(guiBtn.MouseButton1Click)
-                                for _, c in pairs(conns) do 
-                                    c:Fire() 
-                                end
-                                
-                                if currentKickMode == "完美" then
-                                    pcall(function()
-                                        local vfx = ReplicatedStorage.Objects.VFX:FindFirstChild("PerfectKick")
-                                        if vfx then
-                                            local vfxClone = vfx:Clone()
-                                            vfxClone.Parent = hrp
-                                            if vfxClone:IsA("ParticleEmitter") then vfxClone:Emit(30) end
-                                            for _, d in pairs(vfxClone:GetDescendants()) do 
-                                                if d:IsA("ParticleEmitter") then d:Emit(30) end 
-                                            end
-                                            game:GetService("Debris"):AddItem(vfxClone, 2)
-                                        end
-                                    end)
-                                end
-                                
-                                local startPos = hrp.Position
-                                local kickMultiplier = kickValues[currentKickMode] or 1
-                                Net.rev_KickEvent:FireServer(kickMultiplier)
-                                Net.rev_Transformed:FireServer()
-                                Net.rev_KickZman:FireServer()
-                                
-                                local teleported = false
-                                local waitTimeout = 0
-                                while waitTimeout < 15 and hum.Health > 0 do
-                                    task.wait(0.1)
-                                    waitTimeout = waitTimeout + 0.2
-                                    if hrp and (hrp.Position - startPos).Magnitude > 50 then
-                                        teleported = true
-                                        break
-                                    end
-                                end
-                                
-                                if teleported then
-                                    task.wait(0.1)
-                                    local foundTarget = false
-                                    local selectedCount = 0
-                                    for k, isSelected in pairs(targetMutations) do 
-                                        if isSelected then selectedCount = selectedCount + 1 end 
-                                    end
-                                    
-                                    if selectedCount == 0 then
-                                        foundTarget = true
-                                    else
-                                        for _, obj in pairs(workspace.Debris:GetChildren()) do
-                                            if obj:IsA("Model") and obj.PrimaryPart then
-                                                if (obj.PrimaryPart.Position - hrp.Position).Magnitude < 100 then
-                                                    for _, m in ipairs({"黄金", "钻石", "等离子", "熔岩", "放射性", "暗影", "电气化", "彩虹"}) do
-                                                        if obj:FindFirstChild(m) or obj:FindFirstChild(m, true) then
-                                                            if targetMutations[m] then foundTarget = true end
-                                                        end
-                                                    end
-                                                    if targetMutations["普通"] then foundTarget = true end
-                                                    break
-                                                end
-                                            end
-                                        end
-                                    end
-                                    
-                                    if foundTarget then
-                                        local safeZone = workspace.Lobby:FindFirstChild("Safe")
-                                        if safeZone then 
-                                            hrp.Velocity = Vector3.new(0,0,0)
-                                            hrp.CFrame = safeZone.CFrame + Vector3.new(0, 5, 0) 
-                                        end
-                                        task.wait(0.1)
-                                    else
-                                        local deathTimeout = 0
-                                        local died = false
-                                        local deathConn
-                                        if hum then
-                                            deathConn = hum.Died:Connect(function() died = true end)
-                                        end
-                                        
-                                        while hum and hum.Health > 0 and not died and deathTimeout < 15 do
-                                            task.wait(0.1)
-                                            deathTimeout = deathTimeout + 0.1
-                                            
-                                            local waveFound = false
-                                            local wavesFolder = workspace:FindFirstChild("Waves")
-                                            if wavesFolder then
-                                                for _, waveObj in pairs(wavesFolder:GetChildren()) do
-                                                    local targetPart = waveObj:IsA("Model") and (waveObj.PrimaryPart or waveObj:FindFirstChildWhichIsA("BasePart")) or (waveObj:IsA("BasePart") and waveObj)
-                                                    
-                                                    if targetPart and hrp then
-                                                        hrp.Velocity = Vector3.new(0,0,0)
-                                                        hrp.CFrame = targetPart.CFrame
-                                                        waveFound = true
-                                                        break
-                                                    end
-                                                end
-                                            end
-                                            
-                                            if not waveFound and hrp then
-                                                hrp.Velocity = Vector3.new(0,0,0)
-                                            end
-                                        end
-                                        
-                                        if deathConn then deathConn:Disconnect() end
-                                        task.wait(1.5)
-                                    end
-                                end
-                            end
-                        end)
-                        task.wait(0.1)
-                    end
-                end)
-            end
-        end,
-    })
-
-    mainSection:Toggle({
-        Title = "自动训练与双倍奖励",
-        Value = false,
-        Callback = function(state)
-            autoTrain = state
-            trainTick = trainTick + 1
-            local currentTick = trainTick
-            
-            if autoTrain then
-                task.spawn(function()
-                    while autoTrain and currentTick == trainTick do
-                        pcall(function()
-                            local char = player.Character
-                            local hum = char and char:FindFirstChild("Humanoid")
-                            local backpack = player:FindFirstChild("Backpack")
-                            local currentTool = char and char:FindFirstChildOfClass("Tool")
-                            
-                            if not currentTool then
-                                local slot1 = PlayerGui:FindFirstChild("Backpack") 
-                                    and PlayerGui.Backpack:FindFirstChild("Bar") 
-                                    and PlayerGui.Backpack.Bar:FindFirstChild("Slot1")
-                                
-                                if slot1 then
-                                    local targets = {slot1, slot1:FindFirstChild("ToolImage")}
-                                    for _, t in pairs(targets) do
-                                        if t then
-                                            local conns = get_connections(t.MouseButton1Down)
-                                            for _, c in pairs(conns) do c:Fire() end
-                                        end
-                                    end
-                                end
-                                
-                                task.wait(0.1)
-                                
-                                if not char:FindFirstChildOfClass("Tool") and backpack and hum then
-                                    for _, tool in pairs(backpack:GetChildren()) do
-                                        if tool:IsA("Tool") then
-                                            local isBrainrot = tool:GetAttribute("Rarity") or tool:FindFirstChild("Rarity")
-                                            if not isBrainrot then
-                                                hum:EquipTool(tool)
-                                                break
-                                            end
-                                        end
-                                    end
-                                end
-                            else
-                                currentTool:Activate()
-                            end
-                        end)
-                        
-                        pcall(function()
-                            local kickUpgrades = PlayerGui:FindFirstChild("KickUpgrades")
-                            if kickUpgrades then
-                                for _, bonus in pairs(kickUpgrades:GetChildren()) do
-                                    if bonus.Name == "Bonus" or bonus.Name == "PopBonus" then
-                                        if bonus.Visible then
-                                            if not bonus:GetAttribute("AutoClicked") then
-                                                bonus:SetAttribute("AutoClicked", true)
-                                                task.spawn(function()
-                                                    task.wait(0.2)
-                                                    local imgLabel = bonus:FindFirstChild("ImageLabel")
-                                                    local targets = {bonus}
-                                                    if imgLabel then table.insert(targets, imgLabel) end
-                                                    
-                                                    for _, target in pairs(targets) do
-                                                        local conns = get_connections(target.MouseButton1Down)
-                                                        for _, c in pairs(conns) do c:Fire() end
-                                                    end
-                                                end)
-                                            end
-                                        else
-                                            bonus:SetAttribute("AutoClicked", nil)
-                                        end
-                                    end
-                                end
-                            end
-                        end)
-                        task.wait(0.1)
-                    end
-                end)
-            end
-        end,
-    })
-
-    mainSection:Button({
-        Title = "传送到踢击位置",
-        Callback = function()
-            pcall(function() 
-                player.Character.HumanoidRootPart.CFrame = workspace.Areas.KickReady.CFrame + Vector3.new(0, 5, 0) 
-            end)
-        end,
-    })
-
-    -- 收集标签
-    local collectSection = tabs.collect:Section({Title = "收集设置"})
-
-    collectSection:Toggle({
-        Title = "自动收集金钱",
-        Value = false,
-        Callback = function(state)
-            autoCollect = state
-            collectTick = collectTick + 1
-            local currentTick = collectTick
-            
-            if autoCollect then
-                task.spawn(function()
-                    while autoCollect and currentTick == collectTick do
-                        for i = 1, 30 do 
-                            pcall(function() Net.rev_B_Collect:FireServer(i) end) 
-                        end
-                        task.wait(1)
-                    end
-                end)
-            end
-        end,
-    })
-
-    collectSection:Toggle({
-        Title = "瞬时拾取/孵化（无延迟）",
-        Value = false,
-        Callback = function(state)
-            instantInteract = state
-            grabTick = grabTick + 1
-            local currentTick = grabTick
-            
-            if instantInteract then
-                task.spawn(function()
-                    while instantInteract and currentTick == grabTick do
-                        pcall(function()
-                            for _, obj in pairs(workspace:GetDescendants()) do
-                                if obj:IsA("ProximityPrompt") then
-                                    obj.HoldDuration = 0
-                                end
-                            end
-                        end)
-                        task.wait(1)
-                    end
-                end)
-            end
-        end,
-    })
-
-    collectSection:Divider()
-
-    collectSection:Button({
-        Title = "购买速度 x1",
-        Callback = function() 
-            Net.rev_SPEED_UPGRADE:FireServer(1) 
-        end,
-    })
-
-    collectSection:Button({
-        Title = "重生",
-        Callback = function() 
-            Net.rev_RebirthRequest:FireServer() 
-        end,
-    })
-
-    -- 升级标签
-    local upgradeSection = tabs.upgrade:Section({Title = "升级设置"})
-
-    upgradeSection:Dropdown({
-        Title = "选择升级等级",
-        Values = upList,
-        Default = "1",
-        Callback = function(val)
-            targetUpgrade = val
-        end,
-    })
-
-    upgradeSection:Toggle({
-        Title = "自动升级选定等级",
-        Value = false,
-        Callback = function(state)
-            autoUpSel = state
-            upSelTick = upSelTick + 1
-            local currentTick = upSelTick
-            
-            if autoUpSel then
-                task.spawn(function()
-                    while autoUpSel and currentTick == upSelTick do
-                        pcall(function() 
-                            Net.rev_B_Upgrade:FireServer(tonumber(targetUpgrade)) 
-                        end)
-                        task.wait(0.05)
-                    end
-                end)
-            end
-        end,
-    })
-
-    upgradeSection:Toggle({
-        Title = "自动升级全部",
-        Value = false,
-        Callback = function(state)
-            autoUpAll = state
-            upAllTick = upAllTick + 1
-            local currentTick = upAllTick
-            
-            if autoUpAll then
-                task.spawn(function()
-                    while autoUpAll and currentTick == upAllTick do
-                        for i = 1, 30 do 
-                            pcall(function() Net.rev_B_Upgrade:FireServer(i) end) 
-                        end
-                        task.wait(0.05)
-                    end
-                end)
-            end
-        end,
-    })
-
-    -- 购买标签
-    local buySection = tabs.buy:Section({Title = "重量商店"})
-
-    buySection:Dropdown({
-        Title = "选择重量道具",
-        Values = weightList,
-        Default = weightList[1],
-        Callback = function(val)
-            targetWeight = val
-        end,
-    })
-
-    buySection:Button({
-        Title = "购买重量道具",
-        Callback = function()
-            local cleanName = string.match(targetWeight, "^(.-)%s+%S+$") or targetWeight
-            Net.rev_Shop_Buy:FireServer("WeightShop", cleanName)
-        end,
-    })
-
-    buySection:Toggle({
-        Title = "自动购买选定道具",
-        Value = false,
-        Callback = function(state)
-            autoBuyWeight = state
-            buyTick = buyTick + 1
-            local currentTick = buyTick
-            
-            if autoBuyWeight then
-                task.spawn(function()
-                    while autoBuyWeight and currentTick == buyTick do
-                        pcall(function()
-                            local cleanName = string.match(targetWeight, "^(.-)%s+%S+$") or targetWeight
-                            Net.rev_Shop_Buy:FireServer("WeightShop", cleanName)
-                        end)
-                        task.wait(0.5)
-                    end
-                end)
-            end
-        end,
-    })
-
-    -- 出售标签
-    local sellSection = tabs.sell:Section({Title = "出售物品"})
-
-    sellSection:Button({
-        Title = "出售全部（危险操作！）",
-        Callback = function()
-            Net.ref_B_SellAll:InvokeServer()
-        end,
-    })
-
-    -- 设置标签
-    local settingsSection = tabs.settings:Section({Title = "通用设置"})
-
-    local antiAFKActive = false
-    settingsSection:Toggle({
-        Title = "防挂机",
-        Value = false,
-        Callback = function(state)
-            antiAFKActive = state
-            if state then
-                task.spawn(function()
-                    while antiAFKActive do
-                        task.wait(60)
-                        pcall(function()
-                            VirtualUser:CaptureController()
-                            VirtualUser:ClickButton2(Vector2.new())
-                        end)
-                    end
-                end)
-            end
-        end,
-    })
-
-    settingsSection:Divider()
-
-    settingsSection:Button({
-        Title = "跳转服务器",
-        Callback = function()
-            local req = syn and syn.request or http_request or request or httprequest
-            local servers = {}
-            local placeId = game.PlaceId
-            
-            if req then
-                local cursor = ""
-                for _ = 1, 3 do
-                    local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"
-                    if cursor ~= "" then url = url .. "&cursor=" .. cursor end
-                    local ok, response = pcall(req, { Url = url, Method = "GET" })
-                    if not ok or not response or not response.Body then break end
-                    local ok2, data = pcall(function() return HttpService:JSONDecode(response.Body) end)
-                    if not ok2 or not data or not data.data then break end
-                    for _, server in ipairs(data.data) do
-                        if server.id ~= game.JobId and server.playing < server.maxPlayers then
-                            table.insert(servers, server.id)
-                        end
-                    end
-                    local nextCursor = data.nextPageCursor
-                    if not nextCursor or nextCursor == "" or nextCursor == "null" then break end
-                    cursor = tostring(nextCursor)
+            if method == "FireServer" or method == "InvokeServer" then
+                local name = string.lower(self.Name)
+                if string.find(name, "throw") or string.find(name, "toss") or string.find(name, "coin") then
+                    _G.ThrowRemote = self
+                    _G.ThrowArgs = args
+                elseif string.find(name, "sell") then
+                    _G.SellRemote = self
+                    _G.SellArgs = args
+                elseif string.find(name, "upgrade") or string.find(name, "buy") then
+                    _G.UpgradeRemote = self
+                    _G.UpgradeArgs = args
                 end
             end
-            
-            if #servers > 0 then
-                TeleportService:TeleportToPlaceInstance(placeId, servers[math.random(1, #servers)], player)
-            else
-                TeleportService:Teleport(placeId, player)
-            end
-            WindUI:Notify({Title = "跳转服务器", Content = "正在加入新服务器...", Duration = 2})
-        end,
-    })
-
-    settingsSection:Divider()
-
-    -- 角色设置
-    local charSection = tabs.settings:Section({Title = "角色设置"})
-
-    local walkSpeedValue = 16
-    charSection:Slider({
-        Title = "移动速度 (16-250)",
-        Value = {Min = 16, Max = 250, Default = 16, Decimals = 0},
-        Callback = function(value)
-            walkSpeedValue = value
-            local char = player.Character
-            if char then
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum then hum.WalkSpeed = value end
-            end
-        end,
-    })
-
-    local jumpPowerValue = 50
-    charSection:Slider({
-        Title = "跳跃力度 (0-500)",
-        Value = {Min = 0, Max = 500, Default = 50, Decimals = 0},
-        Callback = function(value)
-            jumpPowerValue = value
-            local char = player.Character
-            if char then
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum then
-                    hum.JumpPower = value
-                    hum.UseJumpPower = true
-                end
-            end
-        end,
-    })
-
-    local infiniteJumpEnabled = false
-    charSection:Toggle({
-        Title = "无限跳跃",
-        Value = false,
-        Callback = function(value)
-            infiniteJumpEnabled = value
-        end,
-    })
-
-    UIS.JumpRequest:Connect(function()
-        if infiniteJumpEnabled then
-            local char = player.Character
-            if char then
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum then hum:ChangeState("Jumping") end
-            end
-        end
-    end)
-
-    player.CharacterAdded:Connect(function(char)
-        char:WaitForChild("HumanoidRootPart", 10)
-        task.wait(0.5)
-        pcall(function()
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum.WalkSpeed = walkSpeedValue
-                hum.JumpPower = jumpPowerValue
-                hum.UseJumpPower = true
-            end
+            return oldNamecall(self, ...)
         end)
+        print("[自动挂机] 方法拦截钩子注入成功!")
     end)
 
-    task.wait(1)
-    WindUI:Notify({Title = "PinatHub", Content = "加载成功！", Duration = 3})
-    Window:Open()
-    
-    return tabs
+    if not hookSuccess then
+        warn("[自动挂机] 方法拦截钩子注入失败 (在Roblox Studio中为正常现象):", hookError)
+    end
+
+    -- 自动投币循环
+    task.spawn(function()
+        while true do
+            task.wait(0.1)
+            if _G.AutoThrowActive and _G.ThrowRemote then
+                local args = _G.ThrowArgs or {}
+                pcall(function()
+                    if _G.ThrowRemote:IsA("RemoteEvent") then
+                        _G.ThrowRemote:FireServer(unpack(args))
+                    elseif _G.ThrowRemote:IsA("RemoteFunction") then
+                        _G.ThrowRemote:InvokeServer(unpack(args))
+                    end
+                end)
+            end
+        end
+    end)
+
+    -- 自动出售循环
+    task.spawn(function()
+        while true do
+            task.wait(1.0)
+            if _G.AutoSellActive and _G.SellRemote then
+                local args = _G.SellArgs or {}
+                pcall(function()
+                    if _G.SellRemote:IsA("RemoteEvent") then
+                        _G.SellRemote:FireServer(unpack(args))
+                    elseif _G.SellRemote:IsA("RemoteFunction") then
+                        _G.SellRemote:InvokeServer(unpack(args))
+                    end
+                end)
+            end
+        end
+    end)
+
+    -- 自动升级循环
+    task.spawn(function()
+        while true do
+            task.wait(1.5)
+            if _G.AutoUpgradeActive and _G.UpgradeRemote then
+                local args = _G.UpgradeArgs or {}
+                pcall(function()
+                    if _G.UpgradeRemote:IsA("RemoteEvent") then
+                        _G.UpgradeRemote:FireServer(unpack(args))
+                    elseif _G.UpgradeRemote:IsA("RemoteFunction") then
+                        _G.UpgradeRemote:InvokeServer(unpack(args))
+                    end
+                end)
+            end
+        end
+    end)
+
+    -- ========== UI控件 ==========
+
+    -- 自动投币
+    tab:Toggle({
+        Title = "自动投币",
+        Value = false,
+        Callback = function(state)
+            _G.AutoThrowActive = state
+            print("[扔出一枚硬币] 自动投币设置为:", state)
+        end
+    })
+
+    tab:Keybind({
+        Title = "自动投币快捷键",
+        Value = "T",
+        Callback = function()
+            _G.AutoThrowActive = not _G.AutoThrowActive
+            print("[扔出一枚硬币] 自动投币切换为:", _G.AutoThrowActive)
+        end
+    })
+
+    tab:Divider()
+
+    -- 自动出售
+    tab:Toggle({
+        Title = "自动出售",
+        Value = false,
+        Callback = function(state)
+            _G.AutoSellActive = state
+            print("[扔出一枚硬币] 自动出售设置为:", state)
+        end
+    })
+
+    tab:Keybind({
+        Title = "自动出售快捷键",
+        Value = "Y",
+        Callback = function()
+            _G.AutoSellActive = not _G.AutoSellActive
+            print("[扔出一枚硬币] 自动出售切换为:", _G.AutoSellActive)
+        end
+    })
+
+    tab:Divider()
+
+    -- 自动升级
+    tab:Toggle({
+        Title = "自动升级",
+        Value = false,
+        Callback = function(state)
+            _G.AutoUpgradeActive = state
+            print("[扔出一枚硬币] 自动升级设置为:", state)
+        end
+    })
+
+    tab:Keybind({
+        Title = "自动升级快捷键",
+        Value = "U",
+        Callback = function()
+            _G.AutoUpgradeActive = not _G.AutoUpgradeActive
+            print("[扔出一枚硬币] 自动升级切换为:", _G.AutoUpgradeActive)
+        end
+    })
+
+    tab:Divider()
+
+    -- 状态显示
+    local statusPara = tab:Paragraph({
+        Title = "状态",
+        Desc = "自动投币: 关闭 | 自动出售: 关闭 | 自动升级: 关闭"
+    })
+
+    -- 更新状态
+    task.spawn(function()
+        while true do
+            task.wait(0.5)
+            local status = string.format(
+                "自动投币: %s | 自动出售: %s | 自动升级: %s\n快捷键: [%s] 投币 [%s] 出售 [%s] 升级",
+                _G.AutoThrowActive and "开启" or "关闭",
+                _G.AutoSellActive and "开启" or "关闭",
+                _G.AutoUpgradeActive and "开启" or "关闭",
+                autoThrowKey, autoSellKey, autoUpgradeKey
+            )
+            pcall(function() statusPara:setDesc(status) end)
+        end
+    end)
+
+    -- 底部信息
+    tab:Paragraph({
+        Title = "作者",
+        Desc = CreatorName
+    })
+
+    return tab
 end
