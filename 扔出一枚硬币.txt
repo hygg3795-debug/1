@@ -8,42 +8,17 @@ return function(Window, WindUI)
 
     local tab = Window:Tab({Title = GameName, Icon = "coins"})
 
-    local Features = {
-        {
-            Type = "Toggle",
-            Name = "自动投币",
-            Default = false,
-            Callback = function(state)
-                _G.AutoThrowActive = state
-                print("[扔出一枚硬币] 自动投币设置为:", state)
-            end
-        },
-        {
-            Type = "Toggle",
-            Name = "自动出售",
-            Default = false,
-            Callback = function(state)
-                _G.AutoSellActive = state
-                print("[扔出一枚硬币] 自动出售设置为:", state)
-            end
-        },
-        {
-            Type = "Toggle",
-            Name = "自动升级",
-            Default = false,
-            Callback = function(state)
-                _G.AutoUpgradeActive = state
-                print("[扔出一枚硬币] 自动升级设置为:", state)
-            end
-        }
-    }
+    _G.AutoThrowActive = false
+    _G.AutoSellActive = false
+
+    _G.UpgradeCoinActive = false
+    _G.UpgradeValueActive = false
+    _G.UpgradeLuckActive = false
 
     _G.ThrowRemote = nil
     _G.ThrowArgs = {}
-
     _G.SellRemote = nil
     _G.SellArgs = {}
-
     _G.UpgradeRemote = nil
     _G.UpgradeArgs = {}
 
@@ -54,19 +29,16 @@ return function(Window, WindUI)
                 if string.find(name, "throw") or string.find(name, "toss") or string.find(name, "coin") then
                     if not _G.ThrowRemote then
                         _G.ThrowRemote = item
-                        print("[自动挂机] 找到投币远程事件:", item:GetFullName())
                         _G.ThrowArgs = {}
                     end
                 elseif string.find(name, "sell") then
                     if not _G.SellRemote then
                         _G.SellRemote = item
-                        print("[自动挂机] 找到出售远程事件:", item:GetFullName())
                         _G.SellArgs = {}
                     end
                 elseif string.find(name, "upgrade") or string.find(name, "buy") then
                     if not _G.UpgradeRemote then
                         _G.UpgradeRemote = item
-                        print("[自动挂机] 找到升级远程事件:", item:GetFullName())
                         _G.UpgradeArgs = {}
                     end
                 end
@@ -96,12 +68,7 @@ return function(Window, WindUI)
             end
             return oldNamecall(self, ...)
         end)
-        print("[自动挂机] 方法拦截钩子注入成功!")
     end)
-
-    if not hookSuccess then
-        warn("[自动挂机] 方法拦截钩子注入失败 (在Roblox Studio中为正常现象):", hookError)
-    end
 
     task.spawn(function()
         while true do
@@ -138,49 +105,109 @@ return function(Window, WindUI)
     task.spawn(function()
         while true do
             task.wait(1.5)
-            if _G.AutoUpgradeActive and _G.UpgradeRemote then
-                local args = _G.UpgradeArgs or {}
-                pcall(function()
-                    if _G.UpgradeRemote:IsA("RemoteEvent") then
-                        _G.UpgradeRemote:FireServer(unpack(args))
-                    elseif _G.UpgradeRemote:IsA("RemoteFunction") then
-                        _G.UpgradeRemote:InvokeServer(unpack(args))
-                    end
-                end)
+            if _G.UpgradeRemote then
+                if _G.UpgradeCoinActive then
+                    local args = _G.UpgradeArgs or {}
+                    pcall(function()
+                        if _G.UpgradeRemote:IsA("RemoteEvent") then
+                            _G.UpgradeRemote:FireServer(unpack(args))
+                        elseif _G.UpgradeRemote:IsA("RemoteFunction") then
+                            _G.UpgradeRemote:InvokeServer(unpack(args))
+                        end
+                    end)
+                end
+                if _G.UpgradeValueActive then
+                    local args = _G.UpgradeArgs or {}
+                    pcall(function()
+                        if _G.UpgradeRemote:IsA("RemoteEvent") then
+                            _G.UpgradeRemote:FireServer(unpack(args))
+                        elseif _G.UpgradeRemote:IsA("RemoteFunction") then
+                            _G.UpgradeRemote:InvokeServer(unpack(args))
+                        end
+                    end)
+                end
+                if _G.UpgradeLuckActive then
+                    local args = _G.UpgradeArgs or {}
+                    pcall(function()
+                        if _G.UpgradeRemote:IsA("RemoteEvent") then
+                            _G.UpgradeRemote:FireServer(unpack(args))
+                        elseif _G.UpgradeRemote:IsA("RemoteFunction") then
+                            _G.UpgradeRemote:InvokeServer(unpack(args))
+                        end
+                    end)
+                end
             end
+            task.wait(0.5)
         end
     end)
 
-    -- 创建WindUI风格的开关
-    for _, feature in ipairs(Features) do
-        if feature.Type == "Toggle" then
-            tab:Toggle({
-                Title = feature.Name,
-                Value = feature.Default or false,
-                Callback = function(state)
-                    pcall(feature.Callback, state)
-                end
-            })
-        end
-    end
-
-    -- 显示状态信息
-    tab:Paragraph({
-        Title = "状态",
-        Desc = "自动投币: 关闭 | 自动出售: 关闭 | 自动升级: 关闭"
+    local throwSection = tab:Section({
+        Title = "投币设置",
+        Icon = "coins",
+        Collapsible = true,
+        DefaultCollapsed = false
     })
 
-    -- 更新状态显示
+    throwSection:Toggle({
+        Title = "自动投币",
+        Value = false,
+        Callback = function(state)
+            _G.AutoThrowActive = state
+        end
+    })
+
+    throwSection:Toggle({
+        Title = "自动出售",
+        Value = false,
+        Callback = function(state)
+            _G.AutoSellActive = state
+        end
+    })
+
+    local upgradeSection = tab:Section({
+        Title = "升级",
+        Icon = "arrow-up",
+        Collapsible = true,
+        DefaultCollapsed = true
+    })
+
+    upgradeSection:Toggle({
+        Title = "升级硬币",
+        Value = false,
+        Callback = function(state)
+            _G.UpgradeCoinActive = state
+        end
+    })
+
+    upgradeSection:Toggle({
+        Title = "升级价值倍率",
+        Value = false,
+        Callback = function(state)
+            _G.UpgradeValueActive = state
+        end
+    })
+
+    upgradeSection:Toggle({
+        Title = "升级运气倍率",
+        Value = false,
+        Callback = function(state)
+            _G.UpgradeLuckActive = state
+        end
+    })
+
+    tab:Paragraph({
+        Title = "状态",
+        Desc = "自动投币: 关闭 | 自动出售: 关闭"
+    })
+
     task.spawn(function()
         while true do
             task.wait(1)
             local status = string.format(
-                "自动投币: %s | 自动出售: %s | 自动升级: %s",
+                "自动投币: %s | 自动出售: %s",
                 _G.AutoThrowActive and "开启" or "关闭",
-                _G.AutoSellActive and "开启" or "关闭",
-                _G.AutoUpgradeActive and "开启" or "关闭"
+                _G.AutoSellActive and "开启" or "关闭"
             )
-            -- 更新段落描述
             for _, child in pairs(tab:GetChildren()) do
                 if child:IsA("Paragraph") or (child.setDesc and child.Title == "状态") then
                     pcall(function() child:setDesc(status) end)
