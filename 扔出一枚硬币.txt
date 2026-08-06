@@ -1,16 +1,11 @@
 return function(Window, WindUI)
     local GameName = "扔出一枚硬币"
-    local CreatorName = "Badshah"
-
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local Players = game:GetService("Players")
-    local LocalPlayer = Players.LocalPlayer
-
     local tab = Window:Tab({Title = GameName, Icon = "coins"})
 
     _G.AutoThrowActive = false
     _G.AutoSellActive = false
-
+    _G.ThrowMultiplier = 1.0
     _G.UpgradeCoinActive = false
     _G.UpgradeValueActive = false
     _G.UpgradeLuckActive = false
@@ -47,7 +42,7 @@ return function(Window, WindUI)
     end
     pcall(scanRemotes)
 
-    local hookSuccess, hookError = pcall(function()
+    pcall(function()
         local oldNamecall
         oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
             local method = getnamecallmethod()
@@ -75,6 +70,9 @@ return function(Window, WindUI)
             task.wait(0.1)
             if _G.AutoThrowActive and _G.ThrowRemote then
                 local args = _G.ThrowArgs or {}
+                if #args >= 1 and type(args[1]) == "number" then
+                    args[1] = _G.ThrowMultiplier
+                end
                 pcall(function()
                     if _G.ThrowRemote:IsA("RemoteEvent") then
                         _G.ThrowRemote:FireServer(unpack(args))
@@ -156,6 +154,17 @@ return function(Window, WindUI)
         end
     })
 
+    throwSection:Slider({
+        Title = "投币倍率",
+        Value = {Min = 1, Max = 3, Default = 1},
+        Step = 0.1,
+        Width = 200,
+        IsTextbox = true,
+        Callback = function(value)
+            _G.ThrowMultiplier = value
+        end
+    })
+
     throwSection:Toggle({
         Title = "自动出售",
         Value = false,
@@ -197,16 +206,17 @@ return function(Window, WindUI)
 
     tab:Paragraph({
         Title = "状态",
-        Desc = "自动投币: 关闭 | 自动出售: 关闭"
+        Desc = "自动投币: 关闭 | 自动出售: 关闭 | 倍率: 1.0x"
     })
 
     task.spawn(function()
         while true do
             task.wait(1)
             local status = string.format(
-                "自动投币: %s | 自动出售: %s",
+                "自动投币: %s | 自动出售: %s | 倍率: %.1fx",
                 _G.AutoThrowActive and "开启" or "关闭",
-                _G.AutoSellActive and "开启" or "关闭"
+                _G.AutoSellActive and "开启" or "关闭",
+                _G.ThrowMultiplier
             )
             for _, child in pairs(tab:GetChildren()) do
                 if child:IsA("Paragraph") or (child.setDesc and child.Title == "状态") then
