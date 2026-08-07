@@ -23,7 +23,19 @@ return function(Window, WindUI)
     local enabledH25 = false
     local h25Connection = nil
     local h25DescendantConn = nil
-    local h25Parts = {}
+
+    local enabledH275 = false
+    local h275Connection = nil
+    local h275DescendantConn = nil
+    local h275Parts = {}
+    local h275Folder = nil
+    local h275Part = nil
+    local h275Attachment = nil
+    local h275HrPart = nil
+    local h275Players = {}
+    local h275CurrentIndex = 1
+    local h275SwitchTimer = 0
+    local h275CurrentTarget = nil
 
     local function getPlayerNames()
         local names = {}
@@ -293,7 +305,6 @@ return function(Window, WindUI)
                 if h25Connection then h25Connection:Disconnect() h25Connection = nil end
             end
         end)
-        WindUI:Notify({Title = "h2.5", Content = "已开启，目标: " .. targetPlayer.DisplayName, Duration = 2, Icon = "check"})
     end
 
     local function stopH25()
@@ -304,17 +315,175 @@ return function(Window, WindUI)
         hrPart = nil
         attachment1 = nil
         part = nil
-        WindUI:Notify({Title = "h2.5", Content = "已关闭", Duration = 2, Icon = "x"})
+    end
+
+    local function setupH275()
+        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        h275HrPart = character:WaitForChild("HumanoidRootPart")
+        h275Folder = Instance.new("Folder", Workspace)
+        h275Part = Instance.new("Part", h275Folder)
+        h275Attachment = Instance.new("Attachment", h275Part)
+        h275Part.Anchored = true
+        h275Part.CanCollide = false
+        h275Part.Transparency = 1
+        if not getgenv().Network then
+            getgenv().Network = {BaseParts = {}, Velocity = Vector3.new(14.46262424, 14.46262424, 14.46262424)}
+            Network.RetainPart = function(p)
+                if typeof(p) == "Instance" and p:IsA("BasePart") and p:IsDescendantOf(Workspace) then
+                    table.insert(Network.BaseParts, p)
+                    p.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+                    p.CanCollide = false
+                end
+            end
+            local function EnablePartControl()
+                LocalPlayer.ReplicationFocus = Workspace
+                RunService.Heartbeat:Connect(function()
+                    sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
+                    for _, p in pairs(Network.BaseParts) do
+                        if p:IsDescendantOf(Workspace) then
+                            p.Velocity = Network.Velocity
+                        end
+                    end
+                end)
+            end
+            EnablePartControl()
+        end
+    end
+
+    local function ForcePartH275(v, targetPos)
+        if v:IsA("BasePart") and not v.Anchored and not v.Parent:FindFirstChild("Humanoid") and not v.Parent:FindFirstChild("Head") and v.Name ~= "Handle" then
+            local distance = (v.Position - targetPos).Magnitude
+            if distance > 2000 then return end
+            for _, x in next, v:GetChildren() do
+                if x:IsA("BodyAngularVelocity") or x:IsA("BodyForce") or x:IsA("BodyGyro") or x:IsA("BodyPosition") or x:IsA("BodyThrust") or x:IsA("BodyVelocity") or x:IsA("RocketPropulsion") then
+                    x:Destroy()
+                end
+            end
+            if v:FindFirstChild("Attachment") then v:FindFirstChild("Attachment"):Destroy() end
+            if v:FindFirstChild("AlignPosition") then v:FindFirstChild("AlignPosition"):Destroy() end
+            if v:FindFirstChild("Torque") then v:FindFirstChild("Torque"):Destroy() end
+            v.CanCollide = false
+            local Torque = Instance.new("Torque", v)
+            Torque.Torque = Vector3.new(100000, 100000, 100000)
+            local AlignPosition = Instance.new("AlignPosition", v)
+            local Attachment2 = Instance.new("Attachment", v)
+            Torque.Attachment0 = Attachment2
+            AlignPosition.MaxForce = 9999999999999999
+            AlignPosition.MaxVelocity = math.huge
+            AlignPosition.Responsiveness = 200
+            AlignPosition.Attachment0 = Attachment2
+            AlignPosition.Attachment1 = h275Attachment
+        end
+    end
+
+    local function getAlivePlayers()
+        local alive = {}
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer then
+                local char = p.Character
+                if char then
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.Health > 0 then
+                        table.insert(alive, p)
+                    end
+                end
+            end
+        end
+        return alive
+    end
+
+    local function startH275()
+        if enabledH275 then return end
+        enabledH275 = true
+        setupH275()
+        h275Players = getAlivePlayers()
+        h275CurrentIndex = 1
+        h275SwitchTimer = 0
+        if #h275Players > 0 then
+            h275CurrentTarget = h275Players[h275CurrentIndex]
+            local targetRoot = h275CurrentTarget.Character and h275CurrentTarget.Character:FindFirstChild("HumanoidRootPart")
+            if targetRoot then
+                for _, v in next, Workspace:GetDescendants() do
+                    if v:IsA("BasePart") then
+                        local distance = (v.Position - targetRoot.Position).Magnitude
+                        if distance <= 2000 then
+                            ForcePartH275(v, targetRoot.Position)
+                        end
+                    end
+                end
+            end
+        else
+            enabledH275 = false
+            return
+        end
+
+        h275DescendantConn = Workspace.DescendantAdded:Connect(function(v)
+            if enabledH275 and v:IsA("BasePart") and h275CurrentTarget and h275CurrentTarget.Character then
+                local targetRoot = h275CurrentTarget.Character:FindFirstChild("HumanoidRootPart")
+                if targetRoot then
+                    local distance = (v.Position - targetRoot.Position).Magnitude
+                    if distance <= 2000 then
+                        ForcePartH275(v, targetRoot.Position)
+                    end
+                end
+            end
+        end)
+
+        h275Connection = RunService.Heartbeat:Connect(function()
+            if not enabledH275 then
+                if h275Connection then h275Connection:Disconnect() h275Connection = nil end
+                return
+            end
+
+            h275Players = getAlivePlayers()
+            if #h275Players == 0 then
+                stopH275()
+                return
+            end
+
+            if h275CurrentIndex > #h275Players then
+                h275CurrentIndex = 1
+            end
+
+            h275CurrentTarget = h275Players[h275CurrentIndex]
+
+            if h275CurrentTarget and h275CurrentTarget.Character then
+                local targetRoot = h275CurrentTarget.Character:FindFirstChild("HumanoidRootPart")
+                if targetRoot and h275Attachment then
+                    h275Attachment.WorldCFrame = targetRoot.CFrame
+                end
+            end
+
+            h275SwitchTimer = h275SwitchTimer + 1
+            if h275SwitchTimer >= 15 then
+                h275SwitchTimer = 0
+                h275CurrentIndex = h275CurrentIndex + 1
+                if h275CurrentIndex > #h275Players then
+                    h275CurrentIndex = 1
+                end
+                h275CurrentTarget = h275Players[h275CurrentIndex]
+            end
+        end)
+    end
+
+    local function stopH275()
+        enabledH275 = false
+        if h275Connection then h275Connection:Disconnect() h275Connection = nil end
+        if h275DescendantConn then h275DescendantConn:Disconnect() h275DescendantConn = nil end
+        if h275Folder then h275Folder:Destroy() h275Folder = nil end
+        h275HrPart = nil
+        h275Attachment = nil
+        h275Part = nil
+        h275CurrentTarget = nil
+        h275Players = {}
     end
 
     local sectionH1 = tab:Section({Title = "h1", Box = true})
     sectionH1:Toggle({Title = "开启h1", Value = false, Callback = function(val)
         if val then
             startH1()
-            WindUI:Notify({Title = "h1", Content = "已开启", Duration = 2, Icon = "check"})
         else
             stopH1()
-            WindUI:Notify({Title = "h1", Content = "已关闭", Duration = 2, Icon = "x"})
         end
     end})
 
@@ -322,10 +491,8 @@ return function(Window, WindUI)
     sectionH2:Toggle({Title = "开启h2", Value = false, Callback = function(val)
         if val then
             startH2()
-            WindUI:Notify({Title = "h2", Content = "已开启", Duration = 2, Icon = "check"})
         else
             stopH2()
-            WindUI:Notify({Title = "h2", Content = "已关闭", Duration = 2, Icon = "x"})
         end
     end})
 
@@ -368,7 +535,6 @@ return function(Window, WindUI)
                 })
             end
         end
-        WindUI:Notify({Title = "刷新成功", Content = "玩家列表已更新", Duration = 2, Icon = "check"})
     end})
     Players.PlayerAdded:Connect(function()
         local newNames = getPlayerNames()
@@ -387,6 +553,15 @@ return function(Window, WindUI)
             startH25()
         else
             stopH25()
+        end
+    end})
+
+    local sectionH275 = tab:Section({Title = "h2.75", Box = true})
+    sectionH275:Toggle({Title = "开启h2.75", Value = false, Callback = function(val)
+        if val then
+            startH275()
+        else
+            stopH275()
         end
     end})
 
