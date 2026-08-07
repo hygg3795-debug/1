@@ -18,6 +18,25 @@ return function(Window, WindUI)
     local attachment1 = nil
     local enabled2 = false
     local heartbeatCon2 = nil
+    local targetPlayer = nil
+    local playerMap = {}
+    local enabledH25 = false
+    local h25Connection = nil
+    local h25DescendantConn = nil
+    local h25Parts = {}
+
+    local function getPlayerNames()
+        local names = {}
+        playerMap = {}
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer then
+                local label = p.DisplayName .. " (@" .. p.Name .. ")"
+                table.insert(names, label)
+                playerMap[label] = p
+            end
+        end
+        return names
+    end
 
     local function retainPart1(p)
         if p:IsA("BasePart") and not p.Anchored and p:IsDescendantOf(Workspace) then
@@ -30,6 +49,7 @@ return function(Window, WindUI)
         end
         return false
     end
+
     local function addPart1(p)
         if retainPart1(p) then
             local found = false
@@ -39,6 +59,7 @@ return function(Window, WindUI)
             if not found then table.insert(parts, p) end
         end
     end
+
     local function removePart1(p)
         for i, v in pairs(parts) do
             if v == p then
@@ -47,10 +68,12 @@ return function(Window, WindUI)
             end
         end
     end
+
     local function refreshParts1()
         parts = {}
         for _, p in pairs(Workspace:GetDescendants()) do addPart1(p) end
     end
+
     local function startH1()
         if con1 then return end
         enabled1 = true
@@ -81,6 +104,7 @@ return function(Window, WindUI)
             end
         end)
     end
+
     local function stopH1()
         enabled1 = false
         if con1 then con1:Disconnect() con1 = nil end
@@ -170,6 +194,119 @@ return function(Window, WindUI)
         part = nil
     end
 
+    local function setupH25()
+        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        hrPart = character:WaitForChild("HumanoidRootPart")
+        folder = Instance.new("Folder", Workspace)
+        part = Instance.new("Part", folder)
+        attachment1 = Instance.new("Attachment", part)
+        part.Anchored = true
+        part.CanCollide = false
+        part.Transparency = 1
+        if not getgenv().Network then
+            getgenv().Network = {BaseParts = {}, Velocity = Vector3.new(14.46262424, 14.46262424, 14.46262424)}
+            Network.RetainPart = function(p)
+                if typeof(p) == "Instance" and p:IsA("BasePart") and p:IsDescendantOf(Workspace) then
+                    table.insert(Network.BaseParts, p)
+                    p.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+                    p.CanCollide = false
+                end
+            end
+            local function EnablePartControl()
+                LocalPlayer.ReplicationFocus = Workspace
+                RunService.Heartbeat:Connect(function()
+                    sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
+                    for _, p in pairs(Network.BaseParts) do
+                        if p:IsDescendantOf(Workspace) then
+                            p.Velocity = Network.Velocity
+                        end
+                    end
+                end)
+            end
+            EnablePartControl()
+        end
+    end
+
+    local function ForcePartH25(v, targetPos)
+        if v:IsA("BasePart") and not v.Anchored and not v.Parent:FindFirstChild("Humanoid") and not v.Parent:FindFirstChild("Head") and v.Name ~= "Handle" then
+            local distance = (v.Position - targetPos).Magnitude
+            if distance > 2000 then return end
+            for _, x in next, v:GetChildren() do
+                if x:IsA("BodyAngularVelocity") or x:IsA("BodyForce") or x:IsA("BodyGyro") or x:IsA("BodyPosition") or x:IsA("BodyThrust") or x:IsA("BodyVelocity") or x:IsA("RocketPropulsion") then
+                    x:Destroy()
+                end
+            end
+            if v:FindFirstChild("Attachment") then v:FindFirstChild("Attachment"):Destroy() end
+            if v:FindFirstChild("AlignPosition") then v:FindFirstChild("AlignPosition"):Destroy() end
+            if v:FindFirstChild("Torque") then v:FindFirstChild("Torque"):Destroy() end
+            v.CanCollide = false
+            local Torque = Instance.new("Torque", v)
+            Torque.Torque = Vector3.new(100000, 100000, 100000)
+            local AlignPosition = Instance.new("AlignPosition", v)
+            local Attachment2 = Instance.new("Attachment", v)
+            Torque.Attachment0 = Attachment2
+            AlignPosition.MaxForce = 9999999999999999
+            AlignPosition.MaxVelocity = math.huge
+            AlignPosition.Responsiveness = 200
+            AlignPosition.Attachment0 = Attachment2
+            AlignPosition.Attachment1 = attachment1
+        end
+    end
+
+    local function startH25()
+        if enabledH25 then return end
+        if not targetPlayer then
+            WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+            return
+        end
+        enabledH25 = true
+        setupH25()
+        local targetPos = targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if targetPos then
+            for _, v in next, Workspace:GetDescendants() do
+                if v:IsA("BasePart") then
+                    local distance = (v.Position - targetPos.Position).Magnitude
+                    if distance <= 2000 then
+                        ForcePartH25(v, targetPos.Position)
+                    end
+                end
+            end
+        end
+        h25DescendantConn = Workspace.DescendantAdded:Connect(function(v)
+            if enabledH25 and v:IsA("BasePart") and targetPlayer and targetPlayer.Character then
+                local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if targetRoot then
+                    local distance = (v.Position - targetRoot.Position).Magnitude
+                    if distance <= 2000 then
+                        ForcePartH25(v, targetRoot.Position)
+                    end
+                end
+            end
+        end)
+        h25Connection = RunService.Heartbeat:Connect(function()
+            if enabledH25 and attachment1 and targetPlayer and targetPlayer.Character then
+                local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if targetRoot then
+                    attachment1.WorldCFrame = targetRoot.CFrame
+                end
+            elseif not enabledH25 then
+                if h25Connection then h25Connection:Disconnect() h25Connection = nil end
+            end
+        end)
+        WindUI:Notify({Title = "h2.5", Content = "已开启，目标: " .. targetPlayer.DisplayName, Duration = 2, Icon = "check"})
+    end
+
+    local function stopH25()
+        enabledH25 = false
+        if h25Connection then h25Connection:Disconnect() h25Connection = nil end
+        if h25DescendantConn then h25DescendantConn:Disconnect() h25DescendantConn = nil end
+        if folder then folder:Destroy() folder = nil end
+        hrPart = nil
+        attachment1 = nil
+        part = nil
+        WindUI:Notify({Title = "h2.5", Content = "已关闭", Duration = 2, Icon = "x"})
+    end
+
     local sectionH1 = tab:Section({Title = "h1", Box = true})
     sectionH1:Toggle({Title = "开启h1", Value = false, Callback = function(val)
         if val then
@@ -189,6 +326,67 @@ return function(Window, WindUI)
         else
             stopH2()
             WindUI:Notify({Title = "h2", Content = "已关闭", Duration = 2, Icon = "x"})
+        end
+    end})
+
+    local sectionH25 = tab:Section({Title = "h2.5", Box = true})
+    local playerDropdown = sectionH25:Dropdown({
+        Title = "选择目标玩家",
+        Values = getPlayerNames(),
+        Callback = function(selected)
+            if selected then
+                targetPlayer = playerMap[selected]
+            end
+        end
+    })
+    sectionH25:Button({Title = "刷新玩家列表", Callback = function()
+        local newNames = getPlayerNames()
+        if playerDropdown then
+            if playerDropdown.SetValues then
+                playerDropdown:SetValues(newNames)
+            elseif playerDropdown.Update then
+                playerDropdown:Update(newNames)
+            elseif playerDropdown.UpdateValues then
+                playerDropdown:UpdateValues(newNames)
+            elseif playerDropdown.Refresh then
+                playerDropdown:Refresh(newNames)
+            else
+                local oldCallback = playerDropdown.Callback
+                if playerDropdown.Remove then
+                    playerDropdown:Remove()
+                elseif playerDropdown.Destroy then
+                    playerDropdown:Destroy()
+                end
+                playerDropdown = sectionH25:Dropdown({
+                    Title = "选择目标玩家",
+                    Values = newNames,
+                    Callback = oldCallback or function(selected)
+                        if selected then
+                            targetPlayer = playerMap[selected]
+                        end
+                    end
+                })
+            end
+        end
+        WindUI:Notify({Title = "刷新成功", Content = "玩家列表已更新", Duration = 2, Icon = "check"})
+    end})
+    Players.PlayerAdded:Connect(function()
+        local newNames = getPlayerNames()
+        if playerDropdown and playerDropdown.SetValues then
+            playerDropdown:SetValues(newNames)
+        end
+    end)
+    Players.PlayerRemoving:Connect(function()
+        local newNames = getPlayerNames()
+        if playerDropdown and playerDropdown.SetValues then
+            playerDropdown:SetValues(newNames)
+        end
+    end)
+    sectionH25:Toggle({Title = "开启h2.5", Value = false, Callback = function(val)
+        if val then
+            startH25()
+        else
+            stopH25()
         end
     end})
 
