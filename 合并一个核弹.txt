@@ -1,0 +1,1680 @@
+return function(Window, WindUI)
+    local cloneref = (cloneref or clonereference or function(i) return i end)
+
+    local Players = cloneref(game:GetService("Players"))
+    local TeleportService = cloneref(game:GetService("TeleportService"))
+    local RunService = cloneref(game:GetService("RunService"))
+    local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+    local Workspace = cloneref(game:GetService("Workspace"))
+
+    local LocalPlayer = Players.LocalPlayer
+
+    local NukeRemotes = ReplicatedStorage:WaitForChild("NukeRemotes", 10)
+    local R_PickUp = NukeRemotes and NukeRemotes:WaitForChild("拾取", 5)
+    local R_Drop = NukeRemotes and NukeRemotes:WaitForChild("丢出", 5)
+    local R_MergeRequest = NukeRemotes and NukeRemotes:WaitForChild("合并请求", 5)
+    local R_HoldStarted = NukeRemotes and NukeRemotes:WaitForChild("持有开始", 5)
+    local R_HoldEnded = NukeRemotes and NukeRemotes:WaitForChild("持有结束", 5)
+    local R_RequestLock = NukeRemotes and NukeRemotes:WaitForChild("请求锁定基地", 5)
+    local R_LockStateUpdate = NukeRemotes and NukeRemotes:WaitForChild("锁定状态更新", 5)
+    local R_PurchaseUpgrade = NukeRemotes and NukeRemotes:WaitForChild("购买升级", 5)
+    local R_RequestRebirth = NukeRemotes and NukeRemotes:WaitForChild("请求重生", 5)
+    local R_RedeemCode = NukeRemotes and NukeRemotes:WaitForChild("兑换码", 5)
+
+    local DROP_DEBOUNCE = 0.75
+    local DROP_ESCAPE_DIST = 15
+    local DROP_ZONE_RADIUS = 10
+    local DROP_ZONE_EXPIRE = 4
+    local CLOSE_NUKE_THRESHOLD = 4
+    local SEPARATE_DIST = 18
+
+    local serverHeldTier = nil
+    local holdStartedConn, holdEndedConn
+    local recentDrops = {}
+
+    holdStartedConn = R_HoldStarted and R_HoldStarted.OnClientEvent:Connect(function(等级)
+        serverHeldTier = 等级
+    end)
+
+    holdEndedConn = R_HoldEnded and R_HoldEnded.OnClientEvent:Connect(function()
+        serverHeldTier = nil
+    end)
+
+    local lockPhase = "free"
+    local lockSecondsLeft = 0
+
+    if R_LockStateUpdate then
+        R_LockStateUpdate.OnClientEvent:Connect(function(状态, 秒数)
+            lockPhase = 状态 or "free"
+            lockSecondsLeft = 秒数 or 0
+        end)
+    end
+
+    local State = {
+        自动合并启用 = false,
+        自动合并线程 = nil,
+        合并延迟 = 0.2,
+        统计 = { 合并次数 = 0, 丢出次数 = 0, 错误次数 = 0 },
+        最高等级 = 0,
+        自动锁定启用 = false,
+        自动锁定线程 = nil,
+        自动离开启用 = false,
+        自动离开线程 = nil,
+        重连延迟 = 0,
+        检测半径 = 50,
+        智能锁定启用 = false,
+        智能锁定线程 = nil,
+        智能锁定半径 = 90,
+        自动重生启用 = false,
+        自动重生线程 = nil,
+        自动重连启用 = false,
+        自动重连线程 = nil,
+        自动重连分钟 = 20,
+        防挂机启用 = false,
+        防挂机线程 = nil,
+        自动升级 = {
+            等级 = false,
+            最大 = false,
+            锁定基地 = false,
+        },
+        自动升级线程 = {},
+    }
+
+    local function 获取角色()
+        return LocalPlayer.Character
+    end
+
+    local function 获取人体根部()
+        local c = 获取角色()
+        return c and c:FindFirstChild("HumanoidRootPart")
+    end
+
+    local function 获取人性()
+        local c = 获取角色()
+        return c and c:FindFirstChildWhichIsA("Humanoid")
+    end
+
+    local cachedNukesFolder = nil
+
+    local function 获取我的核弹文件夹()
+        if cachedNukesFolder and cachedNukesFolder.Parent then
+            return cachedNukesFolder
+        end
+        cachedNukesFolder = nil
+        local bases = Workspace:FindFirstChild("Bases")
+        if not bases then
+            return nil
+        end
+        for _, base in ipairs(bases:GetChildren()) do
+            local nukes = base:FindFirstChild("Nukes")
+            if nukes then
+                for _, nuke in ipairs(nukes:GetChildren()) do
+                    if nuke:IsA("BasePart") and nuke:GetAttribute("OwnerUserId") == LocalPlayer.UserId then
+                        cachedNukesFolder = nukes
+                        return nukes
+                    end
+                end
+            end
+        end
+        return nil
+    end
+
+    local function XZ距离(a, b)
+        local dx = a.X - b.X
+        local dz = a.Z - b.Z
+        return math.sqrt(dx * dx + dz * dz)
+    end
+
+    local function 传送至(位置)
+        local hrp = 获取人体根部()
+        if not hrp then
+            return
+        end
+        hrp.CFrame = CFrame.new(位置 + Vector3.new(0, 4, 2))
+    end
+
+    local function 获取岛屿中心()
+        local folder = 获取我的核弹文件夹()
+        if not folder then
+            return Vector3.new(0, 0, 0)
+        end
+        local sum, count = Vector3.new(0, 0, 0), 0
+        for _, part in ipairs(folder:GetChildren()) do
+            if part:IsA("BasePart") and part:GetAttribute("OwnerUserId") == LocalPlayer.UserId then
+                sum = sum + part.Position
+                count = count + 1
+            end
+        end
+        return count > 0 and (sum / count) or Vector3.new(0, 0, 0)
+    end
+
+    local function 清除过期丢出记录()
+        local now = tick()
+        for i = #recentDrops, 1, -1 do
+            if now - recentDrops[i].time > DROP_ZONE_EXPIRE then
+                table.remove(recentDrops, i)
+            end
+        end
+    end
+
+    local function 记录丢出(等级)
+        local hrp = 获取人体根部()
+        if not hrp then
+            return
+        end
+        清除过期丢出记录()
+        table.insert(recentDrops, { pos = hrp.Position, tier = 等级, time = tick() })
+    end
+
+    local function 是否靠近最近丢出位置(世界位置, 忽略等级)
+        清除过期丢出记录()
+        for _, e in ipairs(recentDrops) do
+            if e.tier ~= 忽略等级 then
+                if XZ距离(世界位置, e.pos) < DROP_ZONE_RADIUS then
+                    return true
+                end
+            end
+        end
+        return false
+    end
+
+    local function 逃离丢出区域(丢出位置, 目标位置)
+        local hrp = 获取人体根部()
+        if not hrp then
+            return
+        end
+        if 目标位置 and XZ距离(目标位置, 丢出位置) >= DROP_ZONE_RADIUS then
+            return
+        end
+        local myPos = hrp.Position
+        local dx = myPos.X - 丢出位置.X
+        local dz = myPos.Z - 丢出位置.Z
+        local len = math.sqrt(dx * dx + dz * dz)
+        if len < 0.1 then
+            dx, dz, len = 1, 0, 1
+        end
+        dx, dz = dx / len, dz / len
+        传送至(Vector3.new(
+            丢出位置.X + dx * DROP_ESCAPE_DIST,
+            丢出位置.Y,
+            丢出位置.Z + dz * DROP_ESCAPE_DIST
+        ))
+        task.wait(DROP_DEBOUNCE + 0.15)
+    end
+
+    local function 按等级获取我的核弹()
+        local folder = 获取我的核弹文件夹()
+        if not folder then
+            return {}
+        end
+        清除过期丢出记录()
+        local byTier = {}
+        for _, part in ipairs(folder:GetChildren()) do
+            if part:IsA("BasePart") and part:GetAttribute("OwnerUserId") == LocalPlayer.UserId then
+                local 等级 = part:GetAttribute("Tier")
+                local 状态 = part:GetAttribute("State")
+                if 等级 and (状态 == "floor" or 状态 == "based" or 状态 == nil) then
+                    if not byTier[等级] then
+                        byTier[等级] = {}
+                    end
+                    if 是否靠近最近丢出位置(part.Position, 等级) then
+                        table.insert(byTier[等级], part)
+                    else
+                        table.insert(byTier[等级], 1, part)
+                    end
+                end
+            end
+        end
+        return byTier
+    end
+
+    local function 分离核弹(要移动的核弹, 参考位置)
+        if serverHeldTier ~= nil then
+            return
+        end
+        if not 要移动的核弹 or not 要移动的核弹.Parent then
+            return
+        end
+        传送至(要移动的核弹.Position)
+        task.wait(0.15)
+        pcall(function()
+            R_PickUp:FireServer(要移动的核弹)
+        end)
+        local t = tick()
+        repeat
+            task.wait(0.05)
+        until serverHeldTier ~= nil or (tick() - t) > 1.5
+        if serverHeldTier == nil then
+            return
+        end
+        local hrp = 获取人体根部()
+        if not hrp then
+            pcall(function()
+                R_Drop:FireServer()
+            end)
+            serverHeldTier = nil
+            return
+        end
+        local awayX = hrp.Position.X - 参考位置.X
+        local awayZ = hrp.Position.Z - 参考位置.Z
+        local awayLen = math.sqrt(awayX * awayX + awayZ * awayZ)
+        if awayLen < 0.1 then
+            awayX, awayZ, awayLen = 1, 0, 1
+        end
+        awayX, awayZ = awayX / awayLen, awayZ / awayLen
+        local dropPos = Vector3.new(
+            参考位置.X + awayX * SEPARATE_DIST,
+            参考位置.Y,
+            参考位置.Z + awayZ * SEPARATE_DIST
+        )
+        传送至(dropPos)
+        task.wait(0.1)
+        local droppedTier = serverHeldTier
+        local hrp2 = 获取人体根部()
+        local actualDrop = hrp2 and hrp2.Position or dropPos
+        pcall(function()
+            R_Drop:FireServer()
+        end)
+        local t2 = tick()
+        repeat
+            task.wait(0.05)
+        until serverHeldTier == nil or (tick() - t2) > (DROP_DEBOUNCE + 0.5)
+        serverHeldTier = nil
+        State.统计.丢出次数 = State.统计.丢出次数 + 1
+        if droppedTier then
+            table.insert(recentDrops, { pos = actualDrop, tier = droppedTier, time = tick() })
+        end
+        task.wait(DROP_DEBOUNCE + 0.2)
+    end
+
+    local function 丢出核弹(目标位置)
+        local droppedTier = serverHeldTier
+        local hrp = 获取人体根部()
+        local droppedPos = hrp and hrp.Position or Vector3.new(0, 0, 0)
+        pcall(function()
+            R_Drop:FireServer()
+        end)
+        State.统计.丢出次数 = State.统计.丢出次数 + 1
+        local t = tick()
+        repeat
+            task.wait(0.05)
+        until serverHeldTier == nil or (tick() - t) > (DROP_DEBOUNCE + 0.5)
+        serverHeldTier = nil
+        if droppedTier then
+            记录丢出(droppedTier)
+        end
+        逃离丢出区域(droppedPos, 目标位置)
+    end
+
+    local function 拾取核弹(nuke)
+        if not nuke or not nuke.Parent then
+            return nil
+        end
+        local expectedTier = nuke:GetAttribute("Tier")
+        if not expectedTier then
+            return nil
+        end
+        if serverHeldTier ~= nil then
+            return nil
+        end
+        local folder = 获取我的核弹文件夹()
+        if folder then
+            for _, other in ipairs(folder:GetChildren()) do
+                if other ~= nuke and other:IsA("BasePart") and other:GetAttribute("OwnerUserId") == LocalPlayer.UserId then
+                    local otherTier = other:GetAttribute("Tier")
+                    local otherState = other:GetAttribute("State")
+                    if otherTier and otherTier ~= expectedTier and (otherState == "floor" or otherState == "based" or otherState == nil) and XZ距离(nuke.Position, other.Position) <= CLOSE_NUKE_THRESHOLD then
+                        分离核弹(other, nuke.Position)
+                        task.wait(0.1)
+                        break
+                    end
+                end
+            end
+        end
+        if serverHeldTier ~= nil then
+            丢出核弹(nuke.Position)
+        end
+        传送至(nuke.Position)
+        task.wait(0.15)
+        if not nuke.Parent then
+            return nil
+        end
+        pcall(function()
+            R_PickUp:FireServer(nuke)
+        end)
+        local t = tick()
+        repeat
+            task.wait(0.05)
+        until serverHeldTier ~= nil or (tick() - t) > 1.5
+        if serverHeldTier == nil then
+            State.统计.错误次数 = State.统计.错误次数 + 1
+            return nil
+        end
+        return serverHeldTier
+    end
+
+    local function 合并到目标(目标, 持有等级)
+        if not 目标 or not 目标.Parent then
+            return false
+        end
+        local targetTier = 目标:GetAttribute("Tier")
+        if targetTier ~= 持有等级 then
+            return false
+        end
+        传送至(目标.Position)
+        task.wait(0.1)
+        if not 目标.Parent then
+            return false
+        end
+        local preMergeTier = serverHeldTier
+        local ok = pcall(function()
+            R_MergeRequest:FireServer(目标)
+        end)
+        if not ok then
+            State.统计.错误次数 = State.统计.错误次数 + 1
+            return false
+        end
+        local t = tick()
+        repeat
+            task.wait(0.05)
+        until serverHeldTier ~= preMergeTier or (tick() - t) > 1.2
+        if serverHeldTier == preMergeTier then
+            State.统计.错误次数 = State.统计.错误次数 + 1
+            return false
+        end
+        State.统计.合并次数 = State.统计.合并次数 + 1
+        if serverHeldTier and serverHeldTier > State.最高等级 then
+            State.最高等级 = serverHeldTier
+        end
+        return true, serverHeldTier
+    end
+
+    local function 执行合并循环()
+        if serverHeldTier ~= nil then
+            local heldTier = serverHeldTier
+            local byTier = 按等级获取我的核弹()
+            local targets = byTier[heldTier]
+            if targets and #targets >= 1 then
+                local merged = 合并到目标(targets[1], heldTier)
+                if merged then
+                    task.wait(0.3)
+                else
+                    丢出核弹(获取岛屿中心())
+                    task.wait(0.3)
+                    return
+                end
+            else
+                丢出核弹(获取岛屿中心())
+                task.wait(0.3)
+                return
+            end
+        end
+        if serverHeldTier ~= nil then
+            local heldTier = serverHeldTier
+            local byTier = 按等级获取我的核弹()
+            local targets = byTier[heldTier]
+            if targets and #targets >= 1 then
+                local merged = 合并到目标(targets[1], heldTier)
+                if merged then
+                    task.wait(0.3)
+                    return
+                else
+                    丢出核弹(获取岛屿中心())
+                    task.wait(0.3)
+                    return
+                end
+            else
+                丢出核弹(获取岛屿中心())
+                task.wait(DROP_DEBOUNCE)
+                return
+            end
+        end
+        local byTier = 按等级获取我的核弹()
+        local mergeableTiers = {}
+        for 等级, nukes in pairs(byTier) do
+            if #nukes >= 2 then
+                table.insert(mergeableTiers, 等级)
+            end
+        end
+        table.sort(mergeableTiers)
+        if #mergeableTiers == 0 then
+            task.wait(1.5)
+            return
+        end
+        local targetTier = mergeableTiers[1]
+        local nukes = byTier[targetTier]
+        local nukeA = nukes[1]
+        local nukeB = nukes[2]
+        if not nukeA or not nukeA.Parent or not nukeB or not nukeB.Parent then
+            return
+        end
+        if nukeA:GetAttribute("Tier") ~= targetTier then
+            return
+        end
+        if nukeB:GetAttribute("Tier") ~= targetTier then
+            return
+        end
+        if serverHeldTier ~= nil then
+            local heldNow = serverHeldTier
+            local heldValue = 2 ^ (heldNow - 1)
+            local pairValue = 2 ^ (targetTier - 1)
+            if heldNow == targetTier then
+                local merged = 合并到目标(nukeA, heldNow)
+                if merged then
+                    task.wait(0.3)
+                else
+                    丢出核弹(获取岛屿中心())
+                    task.wait(0.3)
+                end
+                return
+            end
+            if heldValue > pairValue then
+                丢出核弹(获取岛屿中心())
+            else
+                丢出核弹(获取岛屿中心())
+            end
+            task.wait(DROP_DEBOUNCE + 0.1)
+            return
+        end
+        local heldTier = 拾取核弹(nukeA)
+        if not heldTier then
+            task.wait(0.5)
+            return
+        end
+        if heldTier ~= targetTier then
+            task.wait(0.2)
+            return
+        end
+        task.wait(0.1)
+        if not nukeB or not nukeB.Parent or nukeB:GetAttribute("Tier") ~= targetTier then
+            丢出核弹(获取岛屿中心())
+            task.wait(0.3)
+            return
+        end
+        local merged = 合并到目标(nukeB, heldTier)
+        if not merged then
+            丢出核弹(获取岛屿中心())
+            task.wait(0.3)
+        else
+            task.wait(0.2)
+        end
+    end
+
+    local function 自动合并循环()
+        while State.自动合并启用 do
+            local ok, err = pcall(执行合并循环)
+            if not ok then
+                State.统计.错误次数 = State.统计.错误次数 + 1
+                local hrp2 = 获取人体根部()
+                local crashPos = hrp2 and hrp2.Position or Vector3.new(0, 0, 0)
+                if serverHeldTier then
+                    记录丢出(serverHeldTier)
+                end
+                pcall(function()
+                    R_Drop:FireServer()
+                end)
+                serverHeldTier = nil
+                pcall(function()
+                    逃离丢出区域(crashPos, 获取岛屿中心())
+                end)
+            end
+            task.wait(State.合并延迟)
+        end
+        pcall(function()
+            R_Drop:FireServer()
+        end)
+        serverHeldTier = nil
+        table.clear(recentDrops)
+    end
+
+    local function 启动自动合并()
+        if State.自动合并线程 then
+            task.cancel(State.自动合并线程)
+        end
+        pcall(function()
+            R_Drop:FireServer()
+        end)
+        task.wait(DROP_DEBOUNCE + 0.2)
+        serverHeldTier = nil
+        table.clear(recentDrops)
+        State.自动合并启用 = true
+        State.自动合并线程 = task.spawn(自动合并循环)
+    end
+
+    local function 停止自动合并()
+        State.自动合并启用 = false
+        if State.自动合并线程 then
+            task.cancel(State.自动合并线程)
+            State.自动合并线程 = nil
+        end
+        pcall(function()
+            R_Drop:FireServer()
+        end)
+        serverHeldTier = nil
+    end
+
+    local function 自动锁定循环()
+        local phaseEnteredAt = tick()
+        local trackedPhase = lockPhase
+        while State.自动锁定启用 do
+            if lockPhase ~= trackedPhase then
+                trackedPhase = lockPhase
+                phaseEnteredAt = tick()
+            end
+            if lockPhase == "free" then
+                pcall(function()
+                    R_RequestLock:FireServer()
+                end)
+                local t = tick()
+                repeat
+                    task.wait(0.2)
+                until lockPhase ~= "free" or (tick() - t) > 3
+            elseif lockPhase == "locked" then
+                task.wait(1)
+                local elapsed = tick() - phaseEnteredAt
+                if elapsed >= math.max(lockSecondsLeft, 1) + 1 then
+                    pcall(function()
+                        R_RequestLock:FireServer()
+                    end)
+                    task.wait(0.5)
+                end
+            elseif lockPhase == "cooldown" then
+                task.wait(1)
+                local elapsed = tick() - phaseEnteredAt
+                if elapsed >= math.max(lockSecondsLeft, 1) + 0.5 then
+                    pcall(function()
+                        R_RequestLock:FireServer()
+                    end)
+                    local t = tick()
+                    repeat
+                        task.wait(0.2)
+                    until lockPhase ~= "cooldown" or (tick() - t) > 3
+                end
+            else
+                task.wait(2)
+            end
+        end
+    end
+
+    local function 启动自动锁定()
+        if State.自动锁定线程 then
+            task.cancel(State.自动锁定线程)
+        end
+        State.自动锁定启用 = true
+        State.自动锁定线程 = task.spawn(自动锁定循环)
+    end
+
+    local function 停止自动锁定()
+        State.自动锁定启用 = false
+        if State.自动锁定线程 then
+            task.cancel(State.自动锁定线程)
+            State.自动锁定线程 = nil
+        end
+    end
+
+    local UPGRADE_INTERVAL = 0.5
+
+    local function 启动自动升级(key)
+        if State.自动升级线程[key] then
+            task.cancel(State.自动升级线程[key])
+        end
+        State.自动升级[key] = true
+        State.自动升级线程[key] = task.spawn(function()
+            while State.自动升级[key] do
+                pcall(function()
+                    R_PurchaseUpgrade:FireServer(key)
+                end)
+                task.wait(UPGRADE_INTERVAL)
+            end
+        end)
+    end
+
+    local function 停止自动升级(key)
+        State.自动升级[key] = false
+        if State.自动升级线程[key] then
+            task.cancel(State.自动升级线程[key])
+            State.自动升级线程[key] = nil
+        end
+    end
+
+    local function 停止所有自动升级()
+        for _, key in ipairs({"等级", "最大", "锁定基地"}) do
+            停止自动升级(key)
+        end
+    end
+
+    local LEAVE_SCAN_INTERVAL = 0.5
+    local SCRIPT_URL = "https://raw.githubusercontent.com/Raynisis1612/Merge-a-Nuke-Utilities/refs/heads/main/manu.lua"
+
+    local function 获取我的岛屿地板()
+        local bases = Workspace:FindFirstChild("Bases")
+        if not bases then
+            return nil
+        end
+        for _, base in ipairs(bases:GetChildren()) do
+            local nukes = base:FindFirstChild("Nukes")
+            if nukes then
+                for _, nuke in ipairs(nukes:GetChildren()) do
+                    if nuke:IsA("BasePart") and nuke:GetAttribute("OwnerUserId") == LocalPlayer.UserId then
+                        return base:FindFirstChild("Floor")
+                    end
+                end
+            end
+        end
+        return nil
+    end
+
+    local queueteleport = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
+
+    local function 执行重连()
+        local rejoinDelay = State.重连延迟
+        for i = math.ceil(rejoinDelay), 1, -1 do
+            pcall(function()
+                WindUI:Notify({
+                    Title = "自动重连",
+                    Content = i .. "秒后重连...",
+                    Icon = "clock",
+                    Duration = 1.1,
+                })
+            end)
+            task.wait(1)
+        end
+        if SCRIPT_URL and SCRIPT_URL ~= "" then
+            if queueteleport then
+                local reexecCode = string.format('loadstring(game:HttpGet(%q))()', SCRIPT_URL)
+                local ok, err = pcall(queueteleport, reexecCode)
+                if ok then
+                    print("[自动离开] 已排队重新执行脚本: " .. SCRIPT_URL)
+                else
+                    warn("[自动离开] queueteleport 调用失败: " .. err)
+                end
+            else
+                warn("[自动离开] 未找到 queue_on_teleport — 重连后脚本不会自动重新执行")
+            end
+        end
+        pcall(function()
+            TeleportService:Teleport(game.PlaceId, LocalPlayer)
+        end)
+    end
+
+    local function 自动离开循环()
+        while State.自动离开启用 do
+            task.wait(LEAVE_SCAN_INTERVAL)
+            pcall(function()
+                if lockPhase == "locked" then
+                    return
+                end
+                local floor = 获取我的岛屿地板()
+                if not floor then
+                    return
+                end
+                local islandPos = floor.Position
+                for _, obj in ipairs(Workspace:GetChildren()) do
+                    if obj:IsA("BasePart") or obj:IsA("Model") then
+                        local 状态 = obj:GetAttribute("State")
+                        local 发射者 = obj:GetAttribute("LauncherUserId")
+                        if 状态 == "flying" and 发射者 and 发射者 ~= LocalPlayer.UserId then
+                            local pos = obj:IsA("BasePart") and obj.Position or (obj:FindFirstChildWhichIsA("BasePart") and obj:FindFirstChildWhichIsA("BasePart").Position)
+                            if pos then
+                                local dx = pos.X - islandPos.X
+                                local dz = pos.Z - islandPos.Z
+                                if math.sqrt(dx * dx + dz * dz) <= State.检测半径 then
+                                    State.自动离开启用 = false
+                                    local rd = State.重连延迟
+                                    WindUI:Notify({ Title = "自动重连", Content = "检测到敌方核弹! " .. rd .. "秒后重连...", Duration = rd + 1 })
+                                    执行重连()
+                                    return
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+
+    local function 启动自动离开()
+        if State.自动离开线程 then
+            task.cancel(State.自动离开线程)
+        end
+        State.自动离开启用 = true
+        State.自动离开线程 = task.spawn(自动离开循环)
+    end
+
+    local function 停止自动离开()
+        State.自动离开启用 = false
+        if State.自动离开线程 then
+            task.cancel(State.自动离开线程)
+            State.自动离开线程 = nil
+        end
+    end
+
+    local function 自动重连循环()
+        while State.自动重连启用 do
+            local waitSeconds = State.自动重连分钟 * 60
+            local elapsed = 0
+            while State.自动重连启用 and elapsed < waitSeconds do
+                task.wait(1)
+                elapsed = elapsed + 1
+            end
+            if not State.自动重连启用 then
+                break
+            end
+            State.自动重连启用 = false
+            WindUI:Notify({
+                Title = "自动重连",
+                Content = "已运行 " .. State.自动重连分钟 .. " 分钟, 刷新性能中...",
+                Icon = "refresh-cw",
+                Duration = 4,
+            })
+            task.wait(2)
+            执行重连()
+        end
+    end
+
+    local function 启动自动重连()
+        if State.自动重连线程 then
+            task.cancel(State.自动重连线程)
+        end
+        State.自动重连启用 = true
+        State.自动重连线程 = task.spawn(自动重连循环)
+    end
+
+    local function 停止自动重连()
+        State.自动重连启用 = false
+        if State.自动重连线程 then
+            task.cancel(State.自动重连线程)
+            State.自动重连线程 = nil
+        end
+    end
+
+    local VirtualUser = game:GetService("VirtualUser")
+    local antiAfkConn = nil
+
+    local function 防挂机输入()
+        pcall(function()
+            local cam = workspace.CurrentCamera
+            local cf = cam and cam.CFrame or CFrame.new()
+            VirtualUser:Button2Down(Vector2.zero, cf)
+            task.wait(0.1)
+            VirtualUser:Button2Up(Vector2.zero, cf)
+        end)
+    end
+
+    local function 启动防挂机()
+        if State.防挂机线程 then
+            task.cancel(State.防挂机线程)
+        end
+        if antiAfkConn then
+            antiAfkConn:Disconnect()
+            antiAfkConn = nil
+        end
+        State.防挂机启用 = true
+        antiAfkConn = LocalPlayer.Idled:Connect(function()
+            if State.防挂机启用 then
+                防挂机输入()
+            end
+        end)
+        State.防挂机线程 = task.spawn(function()
+            while State.防挂机启用 do
+                task.wait(15 * 60)
+                if State.防挂机启用 then
+                    防挂机输入()
+                end
+            end
+        end)
+    end
+
+    local function 停止防挂机()
+        State.防挂机启用 = false
+        if State.防挂机线程 then
+            task.cancel(State.防挂机线程)
+            State.防挂机线程 = nil
+        end
+        if antiAfkConn then
+            antiAfkConn:Disconnect()
+            antiAfkConn = nil
+        end
+    end
+
+    local function 格式化核弹价值(v)
+        if v >= 1e15 then
+            return string.format("%.2fQd", v / 1e15)
+        elseif v >= 1e12 then
+            return string.format("%.2fT", v / 1e12)
+        elseif v >= 1e9 then
+            return string.format("%.2fB", v / 1e9)
+        elseif v >= 1e6 then
+            return string.format("%.2fM", v / 1e6)
+        elseif v >= 1e3 then
+            return string.format("%.2fK", v / 1e3)
+        else
+            return tostring(math.floor(v))
+        end
+    end
+
+    local function 扫描所有岛屿价值()
+        local results = {}
+        local bases = Workspace:FindFirstChild("Bases")
+        if not bases then
+            return results
+        end
+        local playerMap = {}
+        for _, p in ipairs(Players:GetPlayers()) do
+            playerMap[tostring(p.UserId)] = p.Name
+        end
+        for _, base in ipairs(bases:GetChildren()) do
+            local nukesFolder = base:FindFirstChild("Nukes")
+            if not nukesFolder then
+                goto continue
+            end
+            local ownerMap = {}
+            for _, nuke in ipairs(nukesFolder:GetChildren()) do
+                if nuke:IsA("BasePart") then
+                    local rawUid = nuke:GetAttribute("OwnerUserId")
+                    local rawTier = nuke:GetAttribute("Tier")
+                    if rawUid ~= nil and rawTier ~= nil then
+                        local uidStr = tostring(rawUid)
+                        local tierNum = tonumber(rawTier)
+                        if tierNum and playerMap[uidStr] then
+                            local val = 2 ^ (tierNum - 1)
+                            if not ownerMap[uidStr] then
+                                ownerMap[uidStr] = {
+                                    userId = rawUid,
+                                    name = playerMap[uidStr],
+                                    totalValue = 0,
+                                    floor = base:FindFirstChild("Floor"),
+                                }
+                            end
+                            ownerMap[uidStr].totalValue = ownerMap[uidStr].totalValue + val
+                        end
+                    end
+                end
+            end
+            for _, entry in pairs(ownerMap) do
+                local found = false
+                for _, r in ipairs(results) do
+                    if r.userId == entry.userId then
+                        r.totalValue = r.totalValue + entry.totalValue
+                        found = true
+                        break
+                    end
+                end
+                if not found then
+                    table.insert(results, entry)
+                end
+            end
+            ::continue::
+        end
+        table.sort(results, function(a, b)
+            return a.totalValue > b.totalValue
+        end)
+        return results
+    end
+
+    local valueBillboards = {}
+
+    local function 更新价值追踪器显示(扫描结果, 显示覆盖层)
+        local activeFloors = {}
+        if 显示覆盖层 then
+            for _, entry in ipairs(扫描结果) do
+                if entry.floor and entry.floor.Parent then
+                    activeFloors[entry.floor] = true
+                    local bg = valueBillboards[entry.floor]
+                    if bg and not bg.Parent then
+                        valueBillboards[entry.floor] = nil
+                        bg = nil
+                    end
+                    if not bg then
+                        bg = Instance.new("BillboardGui")
+                        bg.Name = "价值追踪标签"
+                        bg.Size = UDim2.new(0, 160, 0, 40)
+                        bg.StudsOffset = Vector3.new(0, 18, 0)
+                        bg.AlwaysOnTop = true
+                        bg.MaxDistance = 2000
+                        bg.Parent = entry.floor
+                        local lbl = Instance.new("TextLabel")
+                        lbl.Name = "标签"
+                        lbl.Size = UDim2.new(1, 0, 1, 0)
+                        lbl.BackgroundColor3 = Color3.fromHex("#111111")
+                        lbl.BackgroundTransparency = 0.35
+                        lbl.Font = Enum.Font.GothamBold
+                        lbl.TextScaled = true
+                        lbl.Parent = bg
+                        local corner = Instance.new("UICorner")
+                        corner.CornerRadius = UDim.new(0, 6)
+                        corner.Parent = lbl
+                        valueBillboards[entry.floor] = bg
+                    end
+                    local lbl = bg:FindFirstChild("标签")
+                    if lbl then
+                        lbl.TextColor3 = tostring(entry.userId) == tostring(LocalPlayer.UserId) and Color3.fromHex("#34D399") or Color3.fromHex("#FFFFFF")
+                        lbl.Text = entry.name .. "\n💰 " .. 格式化核弹价值(entry.totalValue)
+                    end
+                end
+            end
+        end
+        for floor, bg in pairs(valueBillboards) do
+            if not activeFloors[floor] or not floor.Parent then
+                pcall(function()
+                    bg:Destroy()
+                end)
+                valueBillboards[floor] = nil
+            end
+        end
+    end
+
+    local function 清除价值追踪器显示()
+        更新价值追踪器显示({}, false)
+    end
+
+    local HOME_DIST = 100
+    local homeGui = nil
+    local homeConn = nil
+
+    local function 创建回家按钮()
+        if homeGui then
+            homeGui:Destroy()
+            homeGui = nil
+        end
+        local pg = LocalPlayer:WaitForChild("PlayerGui", 10)
+        if not pg then
+            return
+        end
+        local sg = Instance.new("ScreenGui")
+        sg.Name = "核弹中心回家按钮"
+        sg.ResetOnSpawn = false
+        sg.DisplayOrder = 50
+        sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        sg.Parent = pg
+        homeGui = sg
+        local container = Instance.new("Frame")
+        container.Name = "回家按钮容器"
+        container.Size = UDim2.new(0, 220, 0, 60)
+        container.AnchorPoint = Vector2.new(0.5, 1)
+        container.Position = UDim2.new(0.5, 0, 1, -24)
+        container.BackgroundColor3 = Color3.fromRGB(157, 49, 0)
+        container.BorderSizePixel = 0
+        container.Visible = false
+        container.Parent = sg
+        local corner1 = Instance.new("UICorner")
+        corner1.Parent = container
+        local stroke1 = Instance.new("UIStroke")
+        stroke1.Thickness = 3.5
+        stroke1.Color = Color3.fromRGB(0, 0, 0)
+        stroke1.Parent = container
+        local inner = Instance.new("Frame")
+        inner.Name = "内部框架"
+        inner.Size = UDim2.new(1, 0, 0.9132, 0)
+        inner.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        inner.BorderSizePixel = 0
+        inner.Parent = container
+        local corner2 = Instance.new("UICorner")
+        corner2.Parent = inner
+        local grad = Instance.new("UIGradient")
+        grad.Rotation = -90
+        grad.Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0.000, Color3.fromRGB(255, 120, 0)),
+            ColorSequenceKeypoint.new(1.000, Color3.fromRGB(255, 60, 0))
+        }
+        grad.Parent = inner
+        local lbl = Instance.new("TextLabel")
+        lbl.Name = "文本"
+        lbl.Size = UDim2.new(0.9, 0, 0.82424, 0)
+        lbl.Position = UDim2.new(0.5, 0, 0.45542, 0)
+        lbl.AnchorPoint = Vector2.new(0.5, 0.5)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = "回家"
+        lbl.FontFace = Font.new("rbxassetid://16658221428", Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal)
+        lbl.TextScaled = true
+        lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+        lbl.ZIndex = 4
+        lbl.Parent = container
+        local stroke2 = Instance.new("UIStroke")
+        stroke2.Thickness = 2
+        stroke2.Color = Color3.fromRGB(33, 33, 33)
+        stroke2.Parent = lbl
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 1, 0)
+        btn.BackgroundTransparency = 1
+        btn.Text = ""
+        btn.ZIndex = 9
+        btn.Parent = container
+        btn.MouseEnter:Connect(function()
+            grad.Color = ColorSequence.new{
+                ColorSequenceKeypoint.new(0.000, Color3.fromRGB(255, 140, 20)),
+                ColorSequenceKeypoint.new(1.000, Color3.fromRGB(255, 80, 0))
+            }
+        end)
+        btn.MouseLeave:Connect(function()
+            grad.Color = ColorSequence.new{
+                ColorSequenceKeypoint.new(0.000, Color3.fromRGB(255, 120, 0)),
+                ColorSequenceKeypoint.new(1.000, Color3.fromRGB(255, 60, 0))
+            }
+        end)
+        btn.MouseButton1Click:Connect(function()
+            local center = 获取岛屿中心()
+            if center ~= Vector3.new(0, 0, 0) then
+                传送至(center)
+            end
+        end)
+        if homeConn then
+            homeConn:Disconnect()
+        end
+        homeConn = RunService.Heartbeat:Connect(function()
+            local hrp = 获取人体根部()
+            if not hrp then
+                container.Visible = false
+                return
+            end
+            local center = 获取岛屿中心()
+            if center == Vector3.new(0, 0, 0) then
+                container.Visible = false
+                return
+            end
+            local dx = hrp.Position.X - center.X
+            local dz = hrp.Position.Z - center.Z
+            container.Visible = math.sqrt(dx * dx + dz * dz) > HOME_DIST
+        end)
+        return sg
+    end
+
+    task.defer(创建回家按钮)
+
+    local SMART_LOCK_SCAN_INTERVAL = 0.3
+
+    local function 智能锁定循环()
+        while State.智能锁定启用 do
+            task.wait(SMART_LOCK_SCAN_INTERVAL)
+            pcall(function()
+                if lockPhase == "locked" then
+                    return
+                end
+                local floor = 获取我的岛屿地板()
+                if not floor then
+                    return
+                end
+                local islandPos = floor.Position
+                for _, obj in ipairs(Workspace:GetChildren()) do
+                    local 状态 = obj:GetAttribute("State")
+                    local 发射者 = obj:GetAttribute("LauncherUserId")
+                    if 状态 == "flying" and 发射者 and 发射者 ~= LocalPlayer.UserId then
+                        local pos
+                        if obj:IsA("BasePart") then
+                            pos = obj.Position
+                        else
+                            local bp = obj:FindFirstChildWhichIsA("BasePart")
+                            pos = bp and bp.Position
+                        end
+                        if pos then
+                            local dx = pos.X - islandPos.X
+                            local dz = pos.Z - islandPos.Z
+                            if math.sqrt(dx * dx + dz * dz) <= State.智能锁定半径 then
+                                pcall(function()
+                                    R_RequestLock:FireServer()
+                                end)
+                                task.wait(0.5)
+                                break
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+
+    local function 启动智能锁定()
+        if State.智能锁定线程 then
+            task.cancel(State.智能锁定线程)
+        end
+        State.智能锁定启用 = true
+        State.智能锁定线程 = task.spawn(智能锁定循环)
+    end
+
+    local function 停止智能锁定()
+        State.智能锁定启用 = false
+        if State.智能锁定线程 then
+            task.cancel(State.智能锁定线程)
+            State.智能锁定线程 = nil
+        end
+    end
+
+    local REBIRTH_INTERVAL = 0.5
+
+    local function 启动自动重生()
+        if State.自动重生线程 then
+            task.cancel(State.自动重生线程)
+        end
+        State.自动重生启用 = true
+        State.自动重生线程 = task.spawn(function()
+            while State.自动重生启用 do
+                pcall(function()
+                    R_RequestRebirth:FireServer()
+                end)
+                task.wait(REBIRTH_INTERVAL)
+            end
+        end)
+    end
+
+    local function 停止自动重生()
+        State.自动重生启用 = false
+        if State.自动重生线程 then
+            task.cancel(State.自动重生线程)
+            State.自动重生线程 = nil
+        end
+    end
+
+    local function 等级转数值(等级)
+        if 等级 <= 52 then
+            return tostring(math.floor(2 ^ (等级 - 1)))
+        else
+            local exp = math.floor((等级 - 1) * math.log10(2))
+            local m = math.floor((10 ^ ((等级 - 1) * math.log10(2) - exp)) * 10) / 10
+            return m .. "e+" .. exp
+        end
+    end
+
+    local MainSection = Window:Section({ Title = "主要" })
+
+    local MergeTab = MainSection:Tab({
+        Title = "自动合并",
+        Icon = "git-merge",
+        IconColor = Color3.fromHex("#FF4500"),
+        Border = true,
+    })
+
+    do
+        local autoSec = MergeTab:Section({ Title = "自动合并器", Box = true, BoxBorder = true, Opened = true })
+        autoSec:Toggle({
+            Title = "启用自动合并",
+            Icon = "git-merge",
+            Desc = "自动合并核弹对。",
+            Value = false,
+            Flag = "autoMerge",
+            Callback = function(state)
+                if state then
+                    if not R_PickUp or not R_MergeRequest or not R_HoldStarted then
+                        WindUI:Notify({ Title = "错误", Content = "未找到远程事件。请确保你在游戏中。", Icon = "alert-circle", Duration = 4 })
+                        return
+                    end
+                    启动自动合并()
+                    WindUI:Notify({ Title = "自动合并", Content = "已启动!", Icon = "git-merge", Duration = 3 })
+                else
+                    停止自动合并()
+                    WindUI:Notify({ Title = "自动合并", Content = "已停止。", Duration = 2 })
+                end
+            end,
+        })
+        autoSec:Space()
+        autoSec:Slider({
+            Title = "循环延迟 (秒)",
+            Desc = "合并循环之间的延迟。",
+            Value = { Min = 0.2, Max = 3.0, Default = 0.2 },
+            Step = 0.1,
+            IsTooltip = true,
+            Flag = "mergeDelay",
+            Callback = function(v)
+                State.合并延迟 = v
+            end,
+        })
+        MergeTab:Space()
+        local manualSec = MergeTab:Section({ Title = "手动控制", Box = true, BoxBorder = true, Opened = true })
+        manualSec:Button({
+            Title = "强制丢出",
+            Desc = "丢出持有的核弹并逃离。",
+            Icon = "arrow-down",
+            Justify = "Center",
+            Color = Color3.fromHex("#EF4444"),
+            Callback = function()
+                task.spawn(function()
+                    丢出核弹(获取岛屿中心())
+                    WindUI:Notify({ Title = "丢出", Content = "已丢出并逃离丢出区域。", Duration = 2 })
+                end)
+            end,
+        })
+        manualSec:Space()
+        manualSec:Button({
+            Title = "合并一次",
+            Desc = "执行一次合并循环。",
+            Icon = "zap",
+            Justify = "Center",
+            Color = Color3.fromHex("#FF4500"),
+            Callback = function()
+                task.spawn(function()
+                    local ok, err = pcall(执行合并循环)
+                    if not ok then
+                        WindUI:Notify({ Title = "合并一次", Content = "错误: " .. tostring(err), Icon = "alert-circle", Duration = 3 })
+                    else
+                        WindUI:Notify({ Title = "合并一次", Content = "循环完成。", Icon = "check", Duration = 2 })
+                    end
+                end)
+            end,
+        })
+    end
+
+    local LockTab = MainSection:Tab({
+        Title = "自动锁定",
+        Icon = "shield",
+        IconColor = Color3.fromHex("#34D399"),
+        Border = true,
+    })
+
+    do
+        local lockSec = LockTab:Section({ Title = "自动锁定基地", Box = true, BoxBorder = true, Opened = true })
+        local lockStatusPara = lockSec:Paragraph({
+            Title = "状态",
+            Desc = "状态: 空闲",
+        })
+        lockSec:Space()
+        lockSec:Toggle({
+            Title = "启用自动锁定",
+            Icon = "shield",
+            Desc = "始终保持你的岛屿锁定。",
+            Value = false,
+            Flag = "autoLock",
+            Callback = function(state)
+                if state then
+                    if not R_RequestLock then
+                        WindUI:Notify({ Title = "错误", Content = "未找到请求锁定基地远程事件。", Icon = "alert-circle", Duration = 4 })
+                        return
+                    end
+                    启动自动锁定()
+                    WindUI:Notify({ Title = "自动锁定", Content = "已启动!", Icon = "shield", Duration = 3 })
+                else
+                    停止自动锁定()
+                    WindUI:Notify({ Title = "自动锁定", Content = "已停止。", Duration = 2 })
+                end
+            end,
+        })
+        lockSec:Space()
+        lockSec:Toggle({
+            Title = "智能锁定",
+            Icon = "shield-off",
+            Desc = "仅当敌方核弹进入检测半径时锁定。",
+            Value = false,
+            Flag = "smartLock",
+            Callback = function(state)
+                if state then
+                    if not R_RequestLock then
+                        WindUI:Notify({ Title = "错误", Content = "未找到请求锁定基地远程事件。", Icon = "alert-circle", Duration = 4 })
+                        return
+                    end
+                    启动智能锁定()
+                    WindUI:Notify({ Title = "智能锁定", Content = "已激活。", Icon = "shield-off", Duration = 3 })
+                else
+                    停止智能锁定()
+                    WindUI:Notify({ Title = "智能锁定", Content = "已停止。", Duration = 2 })
+                end
+            end,
+        })
+        lockSec:Space()
+        lockSec:Slider({
+            Title = "智能锁定半径",
+            Desc = "从岛屿出发触发锁定的距离(格)。",
+            Value = { Min = 10, Max = 200, Default = 90 },
+            Step = 1,
+            IsTooltip = true,
+            IsTextbox = true,
+            Flag = "smartLockRadius",
+            Callback = function(v)
+                State.智能锁定半径 = v
+            end,
+        })
+        lockSec:Space()
+        lockSec:Button({
+            Title = "立即锁定",
+            Icon = "shield",
+            Justify = "Center",
+            Color = Color3.fromHex("#34D399"),
+            Desc = "立即发送锁定请求。",
+            Callback = function()
+                pcall(function()
+                    R_RequestLock:FireServer()
+                end)
+                WindUI:Notify({ Title = "锁定", Content = "锁定请求已发送。", Duration = 2 })
+            end,
+        })
+        task.spawn(function()
+            while true do
+                task.wait(1)
+                pcall(function()
+                    local phaseStr = lockPhase
+                    local detail = ""
+                    if lockPhase == "locked" then
+                        detail = ("  (%02d:%02d 剩余)"):format(math.floor(lockSecondsLeft / 60), lockSecondsLeft % 60)
+                    elseif lockPhase == "cooldown" then
+                        detail = ("  (%d秒 冷却)"):format(lockSecondsLeft)
+                    end
+                    local autoStr = State.自动锁定启用 and "  [自动: 开]" or (State.智能锁定启用 and "  [智能: 开]" or "  [自动: 关]")
+                    lockStatusPara:setTitle("状态")
+                    lockStatusPara:setDesc("状态: " .. phaseStr .. detail .. autoStr)
+                end)
+            end
+        end)
+    end
+
+    local UpgradeTab = MainSection:Tab({
+        Title = "自动升级",
+        Icon = "trending-up",
+        IconColor = Color3.fromHex("#FBBF24"),
+        Border = true,
+    })
+
+    do
+        local upgSec = UpgradeTab:Section({ Title = "升级", Box = true, BoxBorder = true, Opened = true })
+        upgSec:Toggle({
+            Title = "生成等级",
+            Desc = "自动购买生成等级升级。",
+            Value = false,
+            Flag = "autoUpg_TIER",
+            Callback = function(state)
+                if state then
+                    启动自动升级("等级")
+                else
+                    停止自动升级("等级")
+                end
+            end,
+        })
+        upgSec:Space()
+        upgSec:Toggle({
+            Title = "最大生成数",
+            Desc = "自动购买最大生成数升级。",
+            Value = false,
+            Flag = "autoUpg_MAX",
+            Callback = function(state)
+                if state then
+                    启动自动升级("最大")
+                else
+                    停止自动升级("最大")
+                end
+            end,
+        })
+        upgSec:Space()
+        upgSec:Toggle({
+            Title = "锁定冷却",
+            Desc = "自动购买锁定冷却升级。",
+            Value = false,
+            Flag = "autoUpg_LOCKBASE",
+            Callback = function(state)
+                if state then
+                    启动自动升级("锁定基地")
+                else
+                    停止自动升级("锁定基地")
+                end
+            end,
+        })
+    end
+
+    local RebirthTab = MainSection:Tab({
+        Title = "自动重生",
+        Icon = "rotate-ccw",
+        IconColor = Color3.fromHex("#FB923C"),
+        Border = true,
+    })
+
+    do
+        local rebirthSec = RebirthTab:Section({ Title = "自动重生", Box = true, BoxBorder = true, Opened = true })
+        rebirthSec:Toggle({
+            Title = "启用自动重生",
+            Icon = "rotate-ccw",
+            Desc = "自动为你重生。",
+            Value = false,
+            Flag = "autoRebirth",
+            Callback = function(state)
+                if state then
+                    启动自动重生()
+                    WindUI:Notify({ Title = "自动重生", Content = "已激活。", Icon = "rotate-ccw", Duration = 3 })
+                else
+                    停止自动重生()
+                    WindUI:Notify({ Title = "自动重生", Content = "已停止。", Duration = 2 })
+                end
+            end,
+        })
+    end
+
+    local LeaveTab = MainSection:Tab({
+        Title = "反核弹",
+        Icon = "shield-x",
+        IconColor = Color3.fromHex("#F87171"),
+        Border = true,
+    })
+
+    do
+        local leaveSec = LeaveTab:Section({ Title = "反核弹", Box = true, BoxBorder = true, Opened = true })
+        leaveSec:Toggle({
+            Title = "启用反核弹",
+            Icon = "shield-x",
+            Desc = "当敌方核弹进入检测半径且未锁定时离开并重连。",
+            Value = false,
+            Flag = "autoLeave",
+            Callback = function(state)
+                if state then
+                    启动自动离开()
+                    WindUI:Notify({ Title = "反核弹", Content = "已激活。正在监视 incoming 核弹。", Duration = 3 })
+                else
+                    停止自动离开()
+                    WindUI:Notify({ Title = "反核弹", Content = "已停止。", Duration = 2 })
+                end
+            end,
+        })
+        leaveSec:Space()
+        leaveSec:Slider({
+            Title = "重连延迟",
+            Desc = "检测到核弹后等待秒数再重连。0 = 立即。",
+            Value = { Min = 0, Max = 5, Default = 0 },
+            Step = 0.1,
+            IsTooltip = true,
+            IsTextbox = true,
+            Flag = "rejoinDelay",
+            Callback = function(v)
+                State.重连延迟 = v
+            end,
+        })
+        leaveSec:Space()
+        leaveSec:Slider({
+            Title = "检测半径",
+            Desc = "从岛屿中心监视敌方核弹的距离(格)。",
+            Value = { Min = 10, Max = 200, Default = 50 },
+            Step = 1,
+            IsTooltip = true,
+            IsTextbox = true,
+            Flag = "detectionRadius",
+            Callback = function(v)
+                State.检测半径 = v
+            end,
+        })
+    end
+
+    local RejoinTab = MainSection:Tab({
+        Title = "自动重连",
+        Icon = "refresh-cw",
+        IconColor = Color3.fromHex("#A78BFA"),
+        Border = true,
+    })
+
+    do
+        local rejoinSec = RejoinTab:Section({ Title = "自动重连", Box = true, BoxBorder = true, Opened = true })
+        rejoinSec:Toggle({
+            Title = "自动重连 (性能优化)",
+            Icon = "refresh-cw",
+            Desc = "定时重连并重新执行脚本以防止卡顿。",
+            Value = false,
+            Flag = "autoRejoin",
+            Callback = function(state)
+                if state then
+                    启动自动重连()
+                    WindUI:Notify({ Title = "自动重连", Content = "定期重连已激活 (" .. State.自动重连分钟 .. " 分钟)。", Duration = 3 })
+                else
+                    停止自动重连()
+                    WindUI:Notify({ Title = "自动重连", Content = "定期重连已停止。", Duration = 2 })
+                end
+            end,
+        })
+        rejoinSec:Space()
+        rejoinSec:Slider({
+            Title = "重连间隔 (分钟)",
+            Desc = "定期重连的间隔分钟数。",
+            Value = { Min = 5, Max = 60, Default = 20 },
+            Step = 1,
+            IsTooltip = true,
+            IsTextbox = true,
+            Flag = "rejoinInterval",
+            Callback = function(v)
+                State.自动重连分钟 = v
+            end,
+        })
+    end
+
+    local AntiAfkTab = MainSection:Tab({
+        Title = "防挂机",
+        Icon = "activity",
+        IconColor = Color3.fromHex("#60A5FA"),
+        Border = true,
+    })
+
+    do
+        local afkSec = AntiAfkTab:Section({ Title = "防挂机", Box = true, BoxBorder = true, Opened = true })
+        afkSec:Toggle({
+            Title = "启用防挂机",
+            Icon = "activity",
+            Desc = "通过模拟输入防止被踢出。",
+            Value = false,
+            Flag = "antiAfk",
+            Callback = function(state)
+                if state then
+                    启动防挂机()
+                    WindUI:Notify({ Title = "防挂机", Content = "已激活。防踢出已启用。", Duration = 3 })
+                else
+                    停止防挂机()
+                    WindUI:Notify({ Title = "防挂机", Content = "已停止。", Duration = 2 })
+                end
+            end,
+        })
+    end
+
+    local ValueTrackerTab = MainSection:Tab({
+        Title = "价值追踪",
+        Icon = "chart-column",
+        IconColor = Color3.fromHex("#F59E0B"),
+        Border = true,
+    })
+
+    do
+        local vtSec = ValueTrackerTab:Section({ Title = "岛屿价值追踪", Box = true, BoxBorder = true, Opened = true })
+        local vtPara = vtSec:Paragraph({ Title = "岛屿价值", Desc = "自动更新..." })
+        local function 设置段落描述(para, text)
+            if not para then
+                return
+            end
+            if para.setDesc then
+                pcall(function()
+                    para:setDesc(text)
+                end)
+            elseif para.SetDesc then
+                pcall(function()
+                    para:SetDesc(text)
+                end)
+            elseif para.Set then
+                pcall(function()
+                    para:Set({ Desc = text })
+                end)
+            end
+        end
+        local isOverlayEnabled = false
+        task.spawn(function()
+            while true do
+                local ok, err = pcall(function()
+                    local scan = 扫描所有岛屿价值()
+                    local text
+                    if #scan == 0 then
+                        text = "未找到活跃岛屿。"
+                    else
+                        local lines = {}
+                        for i, entry in ipairs(scan) do
+                            local tag = tostring(entry.userId) == tostring(LocalPlayer.UserId) and " ◀ 你" or ""
+                            table.insert(lines, string.format("%d. %s — %s%s", i, entry.name, 格式化核弹价值(entry.totalValue), tag))
+                        end
+                        text = table.concat(lines, "\n")
+                    end
+                    设置段落描述(vtPara, text)
+                    更新价值追踪器显示(scan, isOverlayEnabled)
+                end)
+                if not ok then
+                    设置段落描述(vtPara, "错误: " .. tostring(err))
+                end
+                task.wait(1.5)
+            end
+        end)
+        vtSec:Space()
+        vtSec:Toggle({
+            Title = "在岛屿上显示价值",
+            Icon = "eye",
+            Desc = "在每个玩家岛屿上方显示总核弹价值。",
+            Value = false,
+            Flag = "valueTrackerOverlay",
+            Callback = function(state)
+                isOverlayEnabled = state
+                if not state then
+                    更新价值追踪器显示({}, false)
+                else
+                    task.spawn(function()
+                        pcall(function()
+                            更新价值追踪器显示(扫描所有岛屿价值(), true)
+                        end)
+                    end)
+                end
+            end,
+        })
+    end
+
+    local CodeTab = MainSection:Tab({
+        Title = "兑换码",
+        Icon = "gift",
+        IconColor = Color3.fromHex("#EC4899"),
+        Border = true,
+    })
+
+    do
+        local CODES = {
+            { code = "BOOM", label = "+$5K 现金", desc = "获得 5,000 游戏币。" },
+            { code = "UPDATE", label = "+5 核弹", desc = "获得 5 个免费核弹。" },
+            { code = "UPDATE2", label = "+$10K & +10 核弹", desc = "获得 10,000 游戏币和 10 个核弹。" },
+            { code = "ATOMIC", label = "+$10K & +20 核弹", desc = "获得 10,000 游戏币和 20 个核弹。最佳核弹奖励。" },
+            { code = "ADMIN", label = "+50% 现金 & +10 核弹", desc = "当前现金增加 50% 并获得 10 个核弹。钱多时使用。" },
+        }
+        local codeSec = CodeTab:Section({ Title = "兑换码", Box = true, BoxBorder = true, Opened = true })
+        local codeResultPara = codeSec:Paragraph({ Title = "结果", Desc = "选择要兑换的码。" })
+        codeSec:Space()
+        for _, entry in ipairs(CODES) do
+            local e = entry
+            codeSec:Button({
+                Title = e.code .. "  —  " .. e.label,
+                Desc = e.desc,
+                Icon = "gift",
+                Justify = "Center",
+                Color = Color3.fromHex("#EC4899"),
+                Callback = function()
+                    task.spawn(function()
+                        if not R_RedeemCode then
+                            codeResultPara:setDesc("未找到兑换码远程事件。")
+                            return
+                        end
+                        local ok, result = pcall(function()
+                            return R_RedeemCode:InvokeServer(e.code)
+                        end)
+                        if ok then
+                            local msg = tostring(result)
+                            codeResultPara:setDesc(e.code .. ": " .. msg)
+                            WindUI:Notify({ Title = "兑换码", Content = e.code .. " → " .. msg, Icon = "gift", Duration = 4 })
+                        else
+                            codeResultPara:setDesc("错误: " .. tostring(result))
+                        end
+                    end)
+                end,
+            })
+            codeSec:Space()
+        end
+    end
+
+    return MainSection
+end
