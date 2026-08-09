@@ -1,0 +1,226 @@
+return function(Window, WindUI)
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local RunService = game:GetService("RunService")
+    local Workspace = game:GetService("Workspace")
+
+    local disasterTab = Window:Tab({Title = "自然灾害", Icon = "cloud"})
+
+    local disasterSection = disasterTab:Section({Title = "自然灾害"})
+
+    local disasterFeatures = {
+        waterWalk = false,
+        rocksSolid = false,
+        removeDisasterUI = false,
+        removeFlood = false,
+        mapVote = false,
+        autoSurvive = false
+    }
+
+    local disasterConnections = {
+        waterFollow = nil,
+        floodFollow = nil,
+        disasterUI = nil,
+        autoTp = nil
+    }
+
+    local floodPlatform = nil
+    local floodPart = nil
+    local floodEnabled = false
+
+    local function toggleWaterWalk(val)
+        disasterFeatures.waterWalk = val
+        local water = game.Workspace:FindFirstChild("WaterLevel")
+        if not water then return end
+        
+        if val then
+            water.CanCollide = true
+            water.Size = Vector3.new(1000, 1, 1000)
+            if disasterConnections.waterFollow then 
+                disasterConnections.waterFollow:Disconnect() 
+            end
+            disasterConnections.waterFollow = RunService.Heartbeat:Connect(function()
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if root and water then
+                    water.Position = Vector3.new(root.Position.X, water.Position.Y, root.Position.Z)
+                end
+            end)
+        else
+            water.Size = Vector3.new(10, 1, 10)
+            water.CanCollide = false
+            if disasterConnections.waterFollow then
+                disasterConnections.waterFollow:Disconnect()
+                disasterConnections.waterFollow = nil
+            end
+        end
+    end
+
+    disasterSection:Toggle({
+        Title = "水上行走",
+        Value = false,
+        Callback = toggleWaterWalk
+    })
+
+    local function toggleRocksSolid(val)
+        disasterFeatures.rocksSolid = val
+        for _, v in pairs(game.Workspace:GetDescendants()) do
+            if v.Name == "LowerRocks" and v:IsA("BasePart") then
+                v.CanCollide = val
+            end
+        end
+    end
+
+    disasterSection:Toggle({
+        Title = "岩石实体化",
+        Value = false,
+        Callback = toggleRocksSolid
+    })
+
+    local function toggleRemoveDisasterUI(val)
+        disasterFeatures.removeDisasterUI = val
+        
+        local function removeDisasterGuis()
+            local pgui = LocalPlayer:FindFirstChild("PlayerGui")
+            if not pgui then return end
+            local sand = pgui:FindFirstChild("SandStormGui")
+            if sand then sand:Destroy() end
+            local blizzard = pgui:FindFirstChild("BlizzardGui")
+            if blizzard then blizzard:Destroy() end
+        end
+        
+        if val then
+            removeDisasterGuis()
+            local pgui = LocalPlayer:WaitForChild("PlayerGui")
+            disasterConnections.disasterUI = pgui.ChildAdded:Connect(function(child)
+                if child.Name == "SandStormGui" or child.Name == "BlizzardGui" then
+                    task.wait()
+                    child:Destroy()
+                end
+            end)
+        else
+            if disasterConnections.disasterUI then
+                disasterConnections.disasterUI:Disconnect()
+                disasterConnections.disasterUI = nil
+            end
+        end
+    end
+
+    disasterSection:Toggle({
+        Title = "移除灾害视角",
+        Value = false,
+        Callback = toggleRemoveDisasterUI
+    })
+
+    local function createFloodPlatform()
+        if floodPlatform then return end
+        floodPlatform = Instance.new("Part")
+        floodPlatform.Name = "FloodPlatform"
+        floodPlatform.Size = Vector3.new(10000, 0.5, 10000)
+        floodPlatform.CanCollide = true
+        floodPlatform.Anchored = true
+        floodPlatform.Transparency = 0.2
+        floodPlatform.BrickColor = BrickColor.new("Bright blue")
+        floodPlatform.Material = Enum.Material.SmoothPlastic
+        floodPlatform.Parent = Workspace
+    end
+
+    local function findFlood()
+        local structure = Workspace:FindFirstChild("Structure")
+        if structure then
+            floodPart = structure:FindFirstChild("FloodLevel")
+        end
+        if not floodPart then
+            floodPart = Workspace:FindFirstChild("FloodLevel")
+        end
+        return floodPart
+    end
+
+    local function updateFloodPlatform()
+        if not floodPlatform or not floodPart then return end
+        local char = LocalPlayer.Character
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        floodPlatform.Position = Vector3.new(root.Position.X, floodPart.Position.Y + 0.5, root.Position.Z)
+    end
+
+    local function startFlood()
+        if floodEnabled then return end
+        createFloodPlatform()
+        findFlood()
+        if disasterConnections.floodFollow then 
+            disasterConnections.floodFollow:Disconnect() 
+        end
+        disasterConnections.floodFollow = RunService.Heartbeat:Connect(updateFloodPlatform)
+        floodEnabled = true
+    end
+
+    local function stopFlood()
+        floodEnabled = false
+        if disasterConnections.floodFollow then
+            disasterConnections.floodFollow:Disconnect()
+            disasterConnections.floodFollow = nil
+        end
+        if floodPlatform then
+            floodPlatform:Destroy()
+            floodPlatform = nil
+        end
+        floodPart = nil
+    end
+
+    local function toggleRemoveFlood(val)
+        disasterFeatures.removeFlood = val
+        if val then
+            startFlood()
+        else
+            stopFlood()
+        end
+    end
+
+    disasterSection:Toggle({
+        Title = "去除洪水",
+        Value = false,
+        Callback = toggleRemoveFlood
+    })
+
+    local function toggleMapVote(val)
+        disasterFeatures.mapVote = val
+        local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+        local mainGui = playerGui and playerGui:FindFirstChild("MainGui")
+        local mapPage = mainGui and mainGui:FindFirstChild("MapVotePage")
+        if mapPage then 
+            mapPage.Visible = val 
+        end
+    end
+
+    disasterSection:Toggle({
+        Title = "地图投票",
+        Value = false,
+        Callback = toggleMapVote
+    })
+
+    local function toggleAutoSurvive(val)
+        disasterFeatures.autoSurvive = val
+        if val then
+            disasterConnections.autoTp = RunService.Stepped:Connect(function()
+                if LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-273, 179.5, 394)
+                end
+            end)
+        else
+            if disasterConnections.autoTp then
+                disasterConnections.autoTp:Disconnect()
+                disasterConnections.autoTp = nil
+            end
+        end
+    end
+
+    disasterSection:Toggle({
+        Title = "自动存活",
+        Value = false,
+        Callback = toggleAutoSurvive
+    })
+
+    return disasterTab
+end

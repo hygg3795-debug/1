@@ -1,0 +1,160 @@
+return function(Window, WindUI)
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Workspace = game:GetService("Workspace")
+    local LP = Players.LocalPlayer
+
+    local tab = Window:Tab({Title = "+1魔法进化", Icon = "wand"})
+
+    local autoWinActive = false
+    local autoWinConnection = nil
+    local autoWinCoords = { x = 3568.0078125, y = 1.9449999332427979, z = 8.189765930175781 }
+
+    local autoRebirthActive = false
+    local autoRebirthConnection = nil
+
+    local autoClickerActive = false
+    local autoClickerConnection = nil
+
+    local godModeActive = false
+    local godModeConnection = nil
+    local godModeCharAddedConn = nil
+
+    local RebirthRemote = nil
+    local GainMagicPower = nil
+
+    task.spawn(function()
+        local remotesFolder = ReplicatedStorage:FindFirstChild("Remotes")
+        if remotesFolder then
+            RebirthRemote = remotesFolder:FindFirstChild("Rebirth")
+            GainMagicPower = remotesFolder:FindFirstChild("GainMagicPower")
+        end
+        if not RebirthRemote then RebirthRemote = ReplicatedStorage:FindFirstChild("Rebirth", true) end
+        if not GainMagicPower then GainMagicPower = ReplicatedStorage:FindFirstChild("GainMagicPower", true) end
+    end)
+
+    local function ApplyGodmode(char)
+        if not char or not godModeActive then return end
+        local humanoid = char:FindFirstChild("Humanoid")
+        if not humanoid then return end
+        pcall(function()
+            humanoid.MaxHealth = 1e8
+            humanoid.Health = humanoid.MaxHealth
+        end)
+    end
+
+    tab:Toggle({
+        Title = "自动点击",
+        Value = false,
+        Callback = function(val)
+            autoClickerActive = val
+            if autoClickerConnection then
+                autoClickerConnection:Disconnect()
+                autoClickerConnection = nil
+            end
+            if val then
+                autoClickerConnection = RunService.Heartbeat:Connect(function()
+                    if GainMagicPower then
+                        GainMagicPower:FireServer()
+                    end
+                end)
+            end
+        end
+    })
+
+    tab:Toggle({
+        Title = "无限胜利",
+        Value = false,
+        Callback = function(val)
+            autoWinActive = val
+            if autoWinConnection then
+                autoWinConnection:Disconnect()
+                autoWinConnection = nil
+            end
+            if val then
+                autoWinConnection = RunService.Heartbeat:Connect(function()
+                    local character = LP.Character
+                    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        hrp.CFrame = CFrame.new(autoWinCoords.x, autoWinCoords.y, autoWinCoords.z)
+                    end
+                end)
+            end
+        end
+    })
+
+    tab:Toggle({
+        Title = "自动重生",
+        Value = false,
+        Callback = function(val)
+            autoRebirthActive = val
+            if autoRebirthConnection then
+                autoRebirthConnection:Disconnect()
+                autoRebirthConnection = nil
+            end
+            if val then
+                autoRebirthConnection = task.spawn(function()
+                    while autoRebirthActive do
+                        if RebirthRemote then
+                            RebirthRemote:FireServer()
+                        end
+                        task.wait(1)
+                    end
+                end)
+            end
+        end
+    })
+
+    tab:Divider()
+
+    tab:Toggle({
+        Title = "无敌模式",
+        Value = false,
+        Callback = function(val)
+            godModeActive = val
+            if godModeConnection then
+                godModeConnection:Disconnect()
+                godModeConnection = nil
+            end
+            if godModeCharAddedConn then
+                godModeCharAddedConn:Disconnect()
+                godModeCharAddedConn = nil
+            end
+
+            if val then
+                godModeConnection = RunService.Stepped:Connect(function()
+                    pcall(function()
+                        local character = LP.Character
+                        if not character then return end
+                        local humanoid = character:FindFirstChildOfClass("Humanoid")
+                        if humanoid then
+                            if humanoid.MaxHealth < 1e8 then
+                                humanoid.MaxHealth = 1e8
+                            end
+                            if humanoid.Health < humanoid.MaxHealth then
+                                humanoid.Health = humanoid.MaxHealth
+                            end
+                        end
+                    end)
+                end)
+
+                godModeCharAddedConn = LP.CharacterAdded:Connect(function(newChar)
+                    task.wait(1.2)
+                    ApplyGodmode(newChar)
+                end)
+
+                ApplyGodmode(LP.Character)
+            else
+                local character = LP.Character
+                local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.MaxHealth = 100
+                    humanoid.Health = 100
+                end
+            end
+        end
+    })
+
+    return tab
+end

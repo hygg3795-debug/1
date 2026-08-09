@@ -1,0 +1,199 @@
+return function(Window, WindUI)
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Workspace = game:GetService("Workspace")
+    local RunService = game:GetService("RunService")
+    local LP = Players.LocalPlayer
+
+    local tab = Window:Tab({Title = "+1斧头挥动逃脱", Icon = "axe"})
+
+    local winFarmEnabled = false
+    local winFarmConnection = nil
+
+    tab:Toggle({
+        Title = "刷胜利",
+        Value = false,
+        Callback = function(val)
+            winFarmEnabled = val
+            if winFarmConnection then
+                winFarmConnection:Disconnect()
+                winFarmConnection = nil
+            end
+            if val then
+                winFarmConnection = task.spawn(function()
+                    while winFarmEnabled do
+                        pcall(function()
+                            local remote = ReplicatedStorage:FindFirstChild("Remotes")
+                            if remote then
+                                local winRemote = remote:FindFirstChild("WinTouched")
+                                local worlds = Workspace:FindFirstChild("Worlds")
+                                if worlds then
+                                    local world3 = worlds:FindFirstChild("World3")
+                                    if world3 then
+                                        local pads = world3:FindFirstChild("DefaultWinPads")
+                                        if pads then
+                                            local children = pads:GetChildren()
+                                            if children and #children >= 2 then
+                                                local hitbox = children[2]:FindFirstChild("HitBox")
+                                                local char = LP.Character
+                                                if hitbox and char then
+                                                    local hrp = char:FindFirstChild("HumanoidRootPart")
+                                                    if hrp then
+                                                        hrp.CFrame = hitbox.CFrame + Vector3.new(0, 3, 0)
+                                                        if winRemote then
+                                                            winRemote:InvokeServer(hitbox)
+                                                        end
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(0.5)
+                    end
+                end)
+            end
+        end
+    })
+
+    local pickaxeFarmEnabled = false
+    local pickaxeFarmConnection = nil
+
+    tab:Toggle({
+        Title = "自动买镐子",
+        Value = false,
+        Callback = function(val)
+            pickaxeFarmEnabled = val
+            if pickaxeFarmConnection then
+                pickaxeFarmConnection:Disconnect()
+                pickaxeFarmConnection = nil
+            end
+            if val then
+                pickaxeFarmConnection = task.spawn(function()
+                    while pickaxeFarmEnabled do
+                        pcall(function()
+                            local remote = ReplicatedStorage:FindFirstChild("Remotes")
+                            if remote then
+                                local shop = remote:FindFirstChild("PickaxeShop")
+                                if shop then
+                                    shop:FireServer(true)
+                                end
+                            end
+                        end)
+                        task.wait(1)
+                    end
+                end)
+            else
+                pcall(function()
+                    local remote = ReplicatedStorage:FindFirstChild("Remotes")
+                    if remote then
+                        local shop = remote:FindFirstChild("PickaxeShop")
+                        if shop then
+                            shop:FireServer(false)
+                        end
+                    end
+                end)
+            end
+        end
+    })
+
+    local spinFarmEnabled = false
+    local spinFarmConnection = nil
+
+    tab:Toggle({
+        Title = "自动抽奖",
+        Value = false,
+        Callback = function(val)
+            spinFarmEnabled = val
+            if spinFarmConnection then
+                spinFarmConnection:Disconnect()
+                spinFarmConnection = nil
+            end
+            if val then
+                spinFarmConnection = task.spawn(function()
+                    while spinFarmEnabled do
+                        pcall(function()
+                            local events = ReplicatedStorage:FindFirstChild("Events") or ReplicatedStorage
+                            for _, child in ipairs(events:GetDescendants()) do
+                                if child:IsA("RemoteEvent") then
+                                    local name = string.lower(child.Name)
+                                    if name:find("spin") or name:find("roll") or name:find("aura") or name:find("summon") then
+                                        child:FireServer()
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(0.5)
+                    end
+                end)
+            end
+        end
+    })
+
+    tab:Divider()
+
+    local tpWalkSpeed = 1
+    local tpWalkConn = nil
+    local noclipConn = nil
+    local superNoclipState = false
+
+    tab:Toggle({
+        Title = "超级穿墙",
+        Value = false,
+        Callback = function(val)
+            superNoclipState = val
+            if val then
+                if not tpWalkConn then
+                    tpWalkConn = RunService.RenderStepped:Connect(function(delta)
+                        local char = LP.Character
+                        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
+                            local hum = char.Humanoid
+                            if hum.MoveDirection.Magnitude > 0 then
+                                char.HumanoidRootPart.CFrame += hum.MoveDirection * (tpWalkSpeed * delta * 35)
+                            end
+                        end
+                    end)
+                end
+                if not noclipConn then
+                    noclipConn = RunService.Stepped:Connect(function()
+                        if LP.Character then
+                            for _, part in ipairs(LP.Character:GetDescendants()) do
+                                if part:IsA("BasePart") then
+                                    part.CanCollide = false
+                                end
+                            end
+                        end
+                    end)
+                end
+            else
+                if tpWalkConn then
+                    tpWalkConn:Disconnect()
+                    tpWalkConn = nil
+                end
+                if noclipConn then
+                    noclipConn:Disconnect()
+                    noclipConn = nil
+                end
+                if LP.Character then
+                    for _, part in ipairs(LP.Character:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = true
+                        end
+                    end
+                end
+            end
+        end
+    })
+
+    tab:Slider({
+        Title = "穿墙行走速度",
+        Value = {Min = 1, Max = 50, Default = 1},
+        Callback = function(val)
+            tpWalkSpeed = val
+        end
+    })
+
+    return tab
+end
