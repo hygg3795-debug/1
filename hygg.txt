@@ -1,8 +1,37 @@
 local WindUI = loadstring(game:HttpGet("https://hygg3795-debug.github.io/1/main.txt"))()
 local BRAND = {name = "hygg脚本", version = "v1.0", author = "hygg", folder = "hyggHub", icon = "zap", theme = "Dark", accent = "#FF6B35"}
 
+local serverData = {
+    ["80898524797320"] = { name = "画我", fileName = "画我.txt" },
+    ["137233438285284"] = { name = "鸡场", fileName = "鸡场.txt" },
+    ["3101667897"] = { name = "极速传奇", fileName = "极速传奇.txt" },
+    ["189707"] = { name = "自然灾害", fileName = "自然灾害.txt" },
+    ["120922552721050"] = { name = "潜水传奇", fileName = "潜水传奇.txt" },
+    ["6403373529"] = { name = "巴掌模拟器", fileName = "巴掌模拟器.txt" },
+    ["88933961678687"] = { name = "超高速跑者", fileName = "超高速跑者.txt" },
+    ["115681808123944"] = { name = "扔出一枚硬币", fileName = "扔出一枚硬币.txt" },
+    ["128784467030899"] = { name = "合并一个核弹", fileName = "合并一个核弹.txt" },
+    ["132785630254139"] = { name = "每步+1速度", fileName = "每步+1速度.txt" },
+    ["116223724643557"] = { name = "+1魔法进化", fileName = "+1魔法进化.txt" },
+    ["130526979296684"] = { name = "每点击+1年龄", fileName = "每点击+1年龄.txt" },
+    ["82554996468034"] = { name = "+1斧头挥动逃脱", fileName = "+1斧头挥动逃脱.txt" },
+    ["95082159892680"] = { name = "+1键盘速度逃脱", fileName = "+1键盘速度逃脱.txt" },
+    ["134660056748270"] = { name = "每次点击速度+1", fileName = "每次点击速度+1.txt" },
+    ["114697347887839"] = { name = "+1速度猴子逃脱", fileName = "+1速度猴子逃脱.txt" },
+    ["107001478941913"] = { name = "每一次背翻+1高度", fileName = "每一次背翻+1高度.txt" },
+    ["96947338677734"] = { name = "+1速度史莱姆键盘逃脱", fileName = "+1速度史莱姆键盘逃脱.txt" }
+}
+
+local placeId = tostring(game.PlaceId)
+local currentServerInfo = serverData[placeId]
+
+local windowTitle = BRAND.name
+if currentServerInfo then
+    windowTitle = windowTitle .. " - " .. currentServerInfo.name
+end
+
 local Window = WindUI:CreateWindow({
-    Title = BRAND.name,
+    Title = windowTitle,
     Icon = BRAND.icon,
     IconThemed = true,
     Author = BRAND.version,
@@ -19,7 +48,7 @@ local Window = WindUI:CreateWindow({
 })
 
 Window:EditOpenButton({
-    Title = BRAND.name,
+    Title = windowTitle,
     Icon = BRAND.icon,
     CornerRadius = UDim.new(0, 26),
     StrokeThickness = 4,
@@ -45,7 +74,6 @@ task.spawn(function()
             Stroke.LineJoinMode = Enum.LineJoinMode.Round
             Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
             Stroke.Parent = mainFrame
-            
             local Gradient = Instance.new("UIGradient")
             Gradient.Name = "RainbowGradient"
             Gradient.Color = ColorSequence.new({
@@ -58,14 +86,12 @@ task.spawn(function()
                 ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
             })
             Gradient.Parent = Stroke
-            
             local Corner = mainFrame:FindFirstChildOfClass("UICorner")
             if not Corner then
                 Corner = Instance.new("UICorner")
                 Corner.CornerRadius = UDim.new(0, 12)
                 Corner.Parent = mainFrame
             end
-            
             local currentAngle = 0
             game:GetService("RunService").RenderStepped:Connect(function(dt)
                 if Stroke and Stroke.Parent then
@@ -73,7 +99,6 @@ task.spawn(function()
                     Gradient.Rotation = currentAngle
                 end
             end)
-
             local topbar = mainFrame:FindFirstChild("Topbar") or mainFrame:FindFirstChild("Header") or mainFrame
             local titleObj = nil
             for _, child in ipairs(topbar:GetDescendants()) do
@@ -82,7 +107,6 @@ task.spawn(function()
                     break
                 end
             end
-
             local timeLabel = Instance.new("TextLabel")
             timeLabel.Name = "CustomTimeLabel"
             timeLabel.Parent = topbar
@@ -98,7 +122,6 @@ task.spawn(function()
             timeLabel.TextSize = 14
             timeLabel.TextXAlignment = Enum.TextXAlignment.Left
             timeLabel.ZIndex = 100
-            
             task.spawn(function()
                 while timeLabel and timeLabel.Parent do
                     timeLabel.Text = os.date("%H:%M:%S")
@@ -121,7 +144,6 @@ local function safeLoadModule(url, moduleName)
         end
         return fn()
     end)
-    
     if success and result then
         local execSuccess, execErr = pcall(result, Window, WindUI)
         if not execSuccess then
@@ -146,6 +168,15 @@ safeLoadModule("https://hygg3795-debug.github.io/1/超人.txt", "超人")
 safeLoadModule("https://hygg3795-debug.github.io/1/动作.txt", "动作")
 safeLoadModule("https://hygg3795-debug.github.io/1/光影.txt", "光影")
 
+if currentServerInfo then
+    local serverModuleUrl = "https://hygg3795-debug.github.io/1/" .. currentServerInfo.fileName
+    safeLoadModule(serverModuleUrl, currentServerInfo.name)
+end
+
 _G._LCF_WindUI = WindUI
 _G._LCF_TmplWin = Window
 print("[" .. BRAND.name .. "] 全新 UI 加载完成 ✅")
+if currentServerInfo then
+    print("检测到服务器: " .. currentServerInfo.name .. " (" .. placeId .. ")")
+    print("已尝试加载专属模块: " .. currentServerInfo.fileName)
+end
