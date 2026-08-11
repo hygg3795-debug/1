@@ -148,13 +148,11 @@ local function safeLoadModule(url, moduleName)
         local execSuccess, execErr = pcall(result, Window, WindUI)
         if not execSuccess then
             WindUI:Notify({Title = moduleName .. "模块执行失败", Content = tostring(execErr), Duration = 3, Icon = "alert"})
-            print(moduleName .. "模块执行错误:", execErr)
             return false
         end
         return true
     else
         WindUI:Notify({Title = moduleName .. "模块加载失败", Content = "请检查网络或仓库地址", Duration = 3, Icon = "alert"})
-        print(moduleName .. "模块加载错误:", not success and "网络请求失败" or "result为nil")
         return false
     end
 end
@@ -175,8 +173,3 @@ end
 
 _G._LCF_WindUI = WindUI
 _G._LCF_TmplWin = Window
-print("[" .. BRAND.name .. "] 全新 UI 加载完成 ✅")
-if currentServerInfo then
-    print("检测到服务器: " .. currentServerInfo.name .. " (" .. placeId .. ")")
-    print("已尝试加载专属模块: " .. currentServerInfo.fileName)
-end
