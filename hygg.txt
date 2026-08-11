@@ -26,9 +26,6 @@ local placeId = tostring(game.PlaceId)
 local currentServerInfo = serverData[placeId]
 
 local windowTitle = BRAND.name
-if currentServerInfo then
-    windowTitle = windowTitle .. " - " .. currentServerInfo.name
-end
 
 local Window = WindUI:CreateWindow({
     Title = windowTitle,
