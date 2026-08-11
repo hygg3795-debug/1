@@ -48,7 +48,7 @@ local Window = WindUI:CreateWindow({
 })
 
 Window:EditOpenButton({
-    Title = windowTitle,
+    Title = "hygg脚本",
     Icon = BRAND.icon,
     CornerRadius = UDim.new(0, 26),
     StrokeThickness = 4,
