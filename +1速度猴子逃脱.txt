@@ -1,0 +1,66 @@
+return function(Window, WindUI)
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local LocalPlayer = Players.LocalPlayer
+
+    local tab = Window:Tab({Title = "+1速度猴子逃脱", Icon = ""})
+
+    local floatSpeed = 10
+    local floatAmplitude = 2
+
+    local pos1 = Vector3.new(-9460.94, 389.29, -256.31)
+    local active1 = false
+    local conn1 = nil
+    local t1 = 0
+
+    local pos2 = Vector3.new(-3604.62, 154.21, -9378.90)
+    local active2 = false
+    local conn2 = nil
+    local t2 = 0
+
+    tab:Toggle({
+        Title = "自动胜利1",
+        Value = false,
+        Callback = function(val)
+            active1 = val
+            if conn1 then
+                conn1:Disconnect()
+                conn1 = nil
+                t1 = 0
+            end
+            if val then
+                conn1 = RunService.Heartbeat:Connect(function(dt)
+                    local char = LocalPlayer.Character
+                    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+                    t1 = t1 + dt * floatSpeed
+                    local yOffset = math.sin(t1) * floatAmplitude
+                    char.HumanoidRootPart.CFrame = CFrame.new(pos1.X, pos1.Y + yOffset, pos1.Z)
+                end)
+            end
+        end
+    })
+
+    tab:Toggle({
+        Title = "自动胜利2",
+        Value = false,
+        Callback = function(val)
+            active2 = val
+            if conn2 then
+                conn2:Disconnect()
+                conn2 = nil
+                t2 = 0
+            end
+            if val then
+                conn2 = RunService.Heartbeat:Connect(function(dt)
+                    local char = LocalPlayer.Character
+                    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+                    t2 = t2 + dt * floatSpeed
+                    local yOffset = math.sin(t2) * floatAmplitude
+                    char.HumanoidRootPart.CFrame = CFrame.new(pos2.X, pos2.Y + yOffset, pos2.Z)
+                end)
+            end
+        end
+    })
+
+    return tab
+end
