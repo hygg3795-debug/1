@@ -69,8 +69,6 @@ return function(Window, WindUI)
             end
         end})
     end
-    createTeleportToggle("传送出生岛", Vector3.new(-247.14, 180.45, 309.40))
-    createTeleportToggle("传送岛屿", Vector3.new(-104.44, 48.65, 13.03))
     createTeleportToggle("传送虚空", Vector3.new(0, 100000000, 0))
 
     return tab
