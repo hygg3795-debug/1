@@ -1,0 +1,106 @@
+return function(Window, WindUI)
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local MarketplaceService = game:GetService("MarketplaceService")
+    local LocalPlayer = Players.LocalPlayer
+
+    local tab = Window:Tab({Title = "+1速度史莱姆键盘逃脱", Icon = "gamepad-2"})
+    local mainSection = tab:Section({Title = "自动胜利"})
+
+    local targetPosition1 = Vector3.new(-1340.25, 249.68, 6438.55)
+    local targetPosition2 = Vector3.new(1322, 199, -4761)
+    local delayBetweenTeleports = 0.1
+
+    local autoFarmActive1 = false
+    local autoFarmActive2 = false
+    local teleportLoopConnection = nil
+
+    local function startTeleportLoop()
+        if teleportLoopConnection then return end
+        teleportLoopConnection = RunService.Heartbeat:Connect(function()
+            local player = LocalPlayer
+            if not player then return end
+            local char = player.Character
+            if not char then return end
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+
+            if autoFarmActive1 then
+                root.CFrame = CFrame.new(targetPosition1)
+            elseif autoFarmActive2 then
+                root.CFrame = CFrame.new(targetPosition2)
+            end
+            task.wait(delayBetweenTeleports)
+        end)
+    end
+
+    local function stopTeleportLoop()
+        if teleportLoopConnection then
+            teleportLoopConnection:Disconnect()
+            teleportLoopConnection = nil
+        end
+    end
+
+    local toggle1 = mainSection:Toggle({
+        Title = "自动胜利世界1",
+        Value = false,
+        Callback = function(val)
+            if val and autoFarmActive2 then
+                autoFarmActive2 = false
+                toggle2:SetValue(false)
+            end
+            autoFarmActive1 = val
+            if autoFarmActive1 or autoFarmActive2 then
+                startTeleportLoop()
+            else
+                stopTeleportLoop()
+            end
+        end
+    })
+
+    local toggle2 = mainSection:Toggle({
+        Title = "自动胜利世界2",
+        Value = false,
+        Callback = function(val)
+            if val and autoFarmActive1 then
+                autoFarmActive1 = false
+                toggle1:SetValue(false)
+            end
+            autoFarmActive2 = val
+            if autoFarmActive1 or autoFarmActive2 then
+                startTeleportLoop()
+            else
+                stopTeleportLoop()
+            end
+        end
+    })
+
+    mainSection:Button({
+        Title = "解锁音效",
+        Callback = function()
+            local ids = { 1836201958 }
+            for _, id in ids do
+                pcall(function()
+                    MarketplaceService:SignalPromptGamePassPurchaseFinished(LocalPlayer, id, true)
+                end)
+                pcall(function()
+                    MarketplaceService:SignalPromptPurchaseFinished(LocalPlayer, id, true)
+                end)
+                pcall(function()
+                    MarketplaceService:SignalPromptProductPurchaseFinished(LocalPlayer, id, true)
+                end)
+            end
+            if hookfunction then
+                local oldOwns
+                oldOwns = hookfunction(MarketplaceService.UserOwnsGamePassAsync, function(self, p, passId)
+                    if typeof(passId) == "number" and table.find(ids, passId) and p == LocalPlayer then
+                        return true
+                    end
+                    return oldOwns(self, p, passId)
+                end)
+            end
+        end
+    })
+
+    return tab
+end

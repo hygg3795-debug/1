@@ -1,0 +1,115 @@
+return function(Window, WindUI)
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Workspace = game:GetService("Workspace")
+    local player = Players.LocalPlayer
+
+    local tab = Window:Tab({Title = "每一次背翻+1高度", Icon = "arrow-up"})
+
+    local tpEnabled = false
+    local tpConnection = nil
+
+    local jumpEnabled = false
+    local jumpConnection = nil
+
+    local upgradeEnabled = false
+    local upgradeConnection = nil
+
+    local rebirthEnabled = false
+    local rebirthConnection = nil
+
+    tab:Toggle({
+        Title = "自动胜利",
+        Value = false,
+        Callback = function(val)
+            tpEnabled = val
+            if tpConnection then
+                tpConnection:Disconnect()
+                tpConnection = nil
+            end
+            if val then
+                tpConnection = RunService.Heartbeat:Connect(function()
+                    local char = player.Character
+                    if not char then return end
+                    local hrp = char:FindFirstChild("HumanoidRootPart")
+                    if not hrp then return end
+                    local pad = Workspace:FindFirstChild("WinPad_25000")
+                    if pad then
+                        hrp.CFrame = pad.CFrame
+                    end
+                end)
+            end
+        end
+    })
+
+    tab:Toggle({
+        Title = "自动跳跃",
+        Value = false,
+        Callback = function(val)
+            jumpEnabled = val
+            if jumpConnection then
+                jumpConnection:Disconnect()
+                jumpConnection = nil
+            end
+            if val then
+                jumpConnection = RunService.Heartbeat:Connect(function()
+                    local remote = ReplicatedStorage:FindFirstChild("Jump")
+                    if remote then
+                        for i = 1, 5 do
+                            remote:FireServer()
+                        end
+                    end
+                end)
+            end
+        end
+    })
+
+    tab:Toggle({
+        Title = "自动升级",
+        Value = false,
+        Callback = function(val)
+            upgradeEnabled = val
+            if upgradeConnection then
+                upgradeConnection:Disconnect()
+                upgradeConnection = nil
+            end
+            if val then
+                upgradeConnection = task.spawn(function()
+                    while upgradeEnabled do
+                        local remote = ReplicatedStorage:FindFirstChild("BuyJumpUpgrade")
+                        if remote then
+                            remote:InvokeServer()
+                        end
+                        task.wait(0.1)
+                    end
+                end)
+            end
+        end
+    })
+
+    tab:Toggle({
+        Title = "自动重生",
+        Value = false,
+        Callback = function(val)
+            rebirthEnabled = val
+            if rebirthConnection then
+                rebirthConnection:Disconnect()
+                rebirthConnection = nil
+            end
+            if val then
+                rebirthConnection = task.spawn(function()
+                    while rebirthEnabled do
+                        local remote = ReplicatedStorage:FindFirstChild("Rebirth")
+                        if remote then
+                            remote:InvokeServer()
+                        end
+                        task.wait(0.1)
+                    end
+                end)
+            end
+        end
+    })
+
+    return tab
+end

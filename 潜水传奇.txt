@@ -1,0 +1,68 @@
+return function(Window, WindUI)
+    local Players = game:GetService("Players")
+    local Workspace = game:GetService("Workspace")
+    local player = Players.LocalPlayer
+
+    local tab = Window:Tab({Title = "潜水传奇", Icon = "diving"})
+
+    local running = false
+    local collectThread = nil
+    local folder = Workspace:WaitForChild("_LocalCollectableObjects")
+
+    local function getRoot()
+        local char = player.Character or player.CharacterAdded:Wait()
+        return char:WaitForChild("HumanoidRootPart")
+    end
+
+    local function getSortedObjects()
+        local root = getRoot()
+        local objs = {}
+
+        for _, v in pairs(folder:GetChildren()) do
+            if v:IsA("BasePart") then
+                table.insert(objs, v)
+            elseif v:FindFirstChildWhichIsA("BasePart") then
+                table.insert(objs, v:FindFirstChildWhichIsA("BasePart"))
+            end
+        end
+
+        table.sort(objs, function(a, b)
+            return (a.Position - root.Position).Magnitude < (b.Position - root.Position).Magnitude
+        end)
+
+        return objs
+    end
+
+    local function collectLoop()
+        while running do
+            local root = getRoot()
+            local sorted = getSortedObjects()
+
+            for _, obj in ipairs(sorted) do
+                if not running then break end
+                if obj and obj.Parent then
+                    root.CFrame = obj.CFrame
+                    task.wait(0.02)
+                end
+            end
+            task.wait()
+        end
+    end
+
+    tab:Toggle({
+        Title = "自动收集",
+        Value = false,
+        Callback = function(val)
+            running = val
+            if collectThread then
+                task.cancel(collectThread)
+                collectThread = nil
+            end
+            if val then
+                collectThread = task.spawn(collectLoop)
+            end
+        end
+    })
+
+    return tab
+end

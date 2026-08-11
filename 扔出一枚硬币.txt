@@ -1,0 +1,149 @@
+return function(Window, WindUI)
+    local GameName = "扔出一枚硬币"
+
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local UserInputService = game:GetService("UserInputService")
+
+    local tab = Window:Tab({Title = GameName, Icon = "coins"})
+
+    _G.AutoThrowActive = false
+    _G.AutoSellActive = false
+    _G.AutoUpgradeActive = false
+
+    _G.ThrowRemote = nil
+    _G.ThrowArgs = {}
+
+    _G.SellRemote = nil
+    _G.SellArgs = {}
+
+    _G.UpgradeRemote = nil
+    _G.UpgradeArgs = {}
+
+    local function scanRemotes()
+        for _, item in ipairs(ReplicatedStorage:GetDescendants()) do
+            if item:IsA("RemoteEvent") or item:IsA("RemoteFunction") then
+                local name = string.lower(item.Name)
+                if string.find(name, "throw") or string.find(name, "toss") or string.find(name, "coin") then
+                    if not _G.ThrowRemote then
+                        _G.ThrowRemote = item
+                        _G.ThrowArgs = {}
+                    end
+                elseif string.find(name, "sell") then
+                    if not _G.SellRemote then
+                        _G.SellRemote = item
+                        _G.SellArgs = {}
+                    end
+                elseif string.find(name, "upgrade") or string.find(name, "buy") then
+                    if not _G.UpgradeRemote then
+                        _G.UpgradeRemote = item
+                        _G.UpgradeArgs = {}
+                    end
+                end
+            end
+        end
+    end
+    pcall(scanRemotes)
+
+    local hookSuccess, hookError = pcall(function()
+        local oldNamecall
+        oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+            local method = getnamecallmethod()
+            local args = {...}
+            
+            if method == "FireServer" or method == "InvokeServer" then
+                local name = string.lower(self.Name)
+                if string.find(name, "throw") or string.find(name, "toss") or string.find(name, "coin") then
+                    _G.ThrowRemote = self
+                    _G.ThrowArgs = args
+                elseif string.find(name, "sell") then
+                    _G.SellRemote = self
+                    _G.SellArgs = args
+                elseif string.find(name, "upgrade") or string.find(name, "buy") then
+                    _G.UpgradeRemote = self
+                    _G.UpgradeArgs = args
+                end
+            end
+            return oldNamecall(self, ...)
+        end)
+    end)
+
+    task.spawn(function()
+        while true do
+            task.wait(0.1)
+            if _G.AutoThrowActive and _G.ThrowRemote then
+                local args = _G.ThrowArgs or {}
+                pcall(function()
+                    if _G.ThrowRemote:IsA("RemoteEvent") then
+                        _G.ThrowRemote:FireServer(unpack(args))
+                    elseif _G.ThrowRemote:IsA("RemoteFunction") then
+                        _G.ThrowRemote:InvokeServer(unpack(args))
+                    end
+                end)
+            end
+        end
+    end)
+
+    task.spawn(function()
+        while true do
+            task.wait(1.0)
+            if _G.AutoSellActive and _G.SellRemote then
+                local args = _G.SellArgs or {}
+                pcall(function()
+                    if _G.SellRemote:IsA("RemoteEvent") then
+                        _G.SellRemote:FireServer(unpack(args))
+                    elseif _G.SellRemote:IsA("RemoteFunction") then
+                        _G.SellRemote:InvokeServer(unpack(args))
+                    end
+                end)
+            end
+        end
+    end)
+
+    task.spawn(function()
+        while true do
+            task.wait(1.5)
+            if _G.AutoUpgradeActive and _G.UpgradeRemote then
+                local args = _G.UpgradeArgs or {}
+                pcall(function()
+                    if _G.UpgradeRemote:IsA("RemoteEvent") then
+                        _G.UpgradeRemote:FireServer(unpack(args))
+                    elseif _G.UpgradeRemote:IsA("RemoteFunction") then
+                        _G.UpgradeRemote:InvokeServer(unpack(args))
+                    end
+                end)
+            end
+        end
+    end)
+
+    tab:Toggle({
+        Title = "自动投币",
+        Value = false,
+        Callback = function(state)
+            _G.AutoThrowActive = state
+        end
+    })
+
+    tab:Divider()
+
+    tab:Toggle({
+        Title = "自动出售",
+        Value = false,
+        Callback = function(state)
+            _G.AutoSellActive = state
+        end
+    })
+
+    tab:Divider()
+
+    tab:Toggle({
+        Title = "自动升级",
+        Value = false,
+        Callback = function(state)
+            _G.AutoUpgradeActive = state
+        end
+    })
+
+    return tab
+end
