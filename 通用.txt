@@ -67,31 +67,6 @@ return function(Window, WindUI)
         end
     end)
 
-    local waterFollowConnection = nil
-    createSuggestToggle("水上行走", function(val)
-        local water = game.Workspace:FindFirstChild("WaterLevel")
-        if not water then return end
-        if val then
-            water.CanCollide = true
-            water.Size = Vector3.new(1000, 1, 1000)
-            if waterFollowConnection then waterFollowConnection:Disconnect() end
-            waterFollowConnection = RunService.Heartbeat:Connect(function()
-                local char = LocalPlayer.Character
-                local root = char and char:FindFirstChild("HumanoidRootPart")
-                if root and water then
-                    water.Position = Vector3.new(root.Position.X, water.Position.Y, root.Position.Z)
-                end
-            end)
-        else
-            water.Size = Vector3.new(10, 1, 10)
-            water.CanCollide = false
-            if waterFollowConnection then
-                waterFollowConnection:Disconnect()
-                waterFollowConnection = nil
-            end
-        end
-    end)
-
     local antiPushConn = nil
     createSuggestToggle("防甩飞", function(val)
         if val then
@@ -218,7 +193,6 @@ return function(Window, WindUI)
         end
     end)
 
-    -- ===== 点击传送工具（防丢失版本） =====
     local teleportToolEnabled = false
     local teleportToolConnection = nil
     local teleportTool = nil
@@ -245,7 +219,6 @@ return function(Window, WindUI)
             HRP.CFrame = CFrame.new(hitPos)
         end)
         teleportTool = Tool
-        -- 将工具放入背包，并监听角色重生重新放入
         local function equipTool()
             if teleportToolEnabled and teleportTool then
                 local backpack = LocalPlayer:FindFirstChild("Backpack")
@@ -255,10 +228,9 @@ return function(Window, WindUI)
             end
         end
         equipTool()
-        -- 监听角色重生，重新把工具放入背包
         if teleportToolConnection then teleportToolConnection:Disconnect() end
         teleportToolConnection = LocalPlayer.CharacterAdded:Connect(function()
-            task.wait(0.5) -- 等待角色和背包初始化
+            task.wait(0.5)
             equipTool()
         end)
     end
@@ -354,14 +326,6 @@ return function(Window, WindUI)
         end
     end)
 
-    createSuggestToggle("岩石实体化", function(val)
-        for _, v in pairs(game.Workspace:GetDescendants()) do
-            if v.Name == "LowerRocks" and v:IsA("BasePart") then
-                v.CanCollide = val
-            end
-        end
-    end)
-
     local blockGui = nil
     local function placeOneBlock()
         local char = LocalPlayer.Character
@@ -452,100 +416,6 @@ return function(Window, WindUI)
         else
             if _G.BlockGui then _G.BlockGui:Destroy() _G.BlockGui = nil end
             _G.AutoPlace = false
-        end
-    end)
-
-    createSuggestToggle("移除灾害视角", function(val)
-        if val then
-            local function removeDisasterGuis()
-                local pgui = LocalPlayer:FindFirstChild("PlayerGui")
-                if not pgui then return end
-                local sand = pgui:FindFirstChild("SandStormGui")
-                if sand then sand:Destroy() end
-                local blizzard = pgui:FindFirstChild("BlizzardGui")
-                if blizzard then blizzard:Destroy() end
-            end
-            removeDisasterGuis()
-            local pgui = LocalPlayer:WaitForChild("PlayerGui")
-            _G.DisasterConn = pgui.ChildAdded:Connect(function(child)
-                if child.Name == "SandStormGui" or child.Name == "BlizzardGui" then
-                    task.wait()
-                    child:Destroy()
-                end
-            end)
-        else
-            if _G.DisasterConn then
-                _G.DisasterConn:Disconnect()
-                _G.DisasterConn = nil
-            end
-        end
-    end)
-
-    local floodPlatform = nil
-    local floodPart = nil
-    local floodFollowConnection = nil
-    local floodEnabled = false
-
-    local function createFloodPlatform()
-        if floodPlatform then return end
-        floodPlatform = Instance.new("Part")
-        floodPlatform.Name = "FloodPlatform"
-        floodPlatform.Size = Vector3.new(10000, 0.5, 10000)
-        floodPlatform.CanCollide = true
-        floodPlatform.Anchored = true
-        floodPlatform.Transparency = 0.2
-        floodPlatform.BrickColor = BrickColor.new("Bright blue")
-        floodPlatform.Material = Enum.Material.SmoothPlastic
-        floodPlatform.Parent = Workspace
-    end
-
-    local function findFlood()
-        local structure = Workspace:FindFirstChild("Structure")
-        if structure then
-            floodPart = structure:FindFirstChild("FloodLevel")
-        end
-        if not floodPart then
-            floodPart = Workspace:FindFirstChild("FloodLevel")
-        end
-        return floodPart
-    end
-
-    local function updateFloodPlatform()
-        if not floodPlatform or not floodPart then return end
-        local char = LocalPlayer.Character
-        if not char then return end
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        floodPlatform.Position = Vector3.new(root.Position.X, floodPart.Position.Y + 0.5, root.Position.Z)
-    end
-
-    local function startFlood()
-        if floodEnabled then return end
-        createFloodPlatform()
-        findFlood()
-        if floodFollowConnection then floodFollowConnection:Disconnect() end
-        floodFollowConnection = RunService.Heartbeat:Connect(updateFloodPlatform)
-        floodEnabled = true
-    end
-
-    local function stopFlood()
-        floodEnabled = false
-        if floodFollowConnection then
-            floodFollowConnection:Disconnect()
-            floodFollowConnection = nil
-        end
-        if floodPlatform then
-            floodPlatform:Destroy()
-            floodPlatform = nil
-        end
-        floodPart = nil
-    end
-
-    createSuggestToggle("去除洪水", function(val)
-        if val then
-            startFlood()
-        else
-            stopFlood()
         end
     end)
 
@@ -671,6 +541,64 @@ return function(Window, WindUI)
             end
         end
     end})
+
+    local superNoclipState = false
+    local tpWalkConn = nil
+    local noclipConn = nil
+    local tpWalkSpeed = 1
+
+    independentSection:Toggle({Title = "穿墙2.0", Value = false, Callback = function(val)
+        superNoclipState = val
+        if val then
+            if not tpWalkConn then
+                tpWalkConn = RunService.RenderStepped:Connect(function(delta)
+                    local char = LocalPlayer.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
+                        local hum = char.Humanoid
+                        if hum.MoveDirection.Magnitude > 0 then
+                            char.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame + hum.MoveDirection * (tpWalkSpeed * delta * 35)
+                        end
+                    end
+                end)
+            end
+            if not noclipConn then
+                noclipConn = RunService.Stepped:Connect(function()
+                    if LocalPlayer.Character then
+                        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.CanCollide = false
+                            end
+                        end
+                    end
+                end)
+            end
+        else
+            if tpWalkConn then
+                tpWalkConn:Disconnect()
+                tpWalkConn = nil
+            end
+            if noclipConn then
+                noclipConn:Disconnect()
+                noclipConn = nil
+            end
+            local char = LocalPlayer.Character
+            if char then
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end
+        end
+    end})
+
+    independentSection:Slider({
+        Title = "穿墙行走速度",
+        Value = {Min = 1, Max = 50, Default = 1},
+        Callback = function(value)
+            tpWalkSpeed = math.floor(value)
+        end
+    })
 
     independentSection:Toggle({Title = "锁定视角", Value = false, Callback = function(val)
         if val then
@@ -811,28 +739,6 @@ return function(Window, WindUI)
             if _G.FlyCon1 then _G.FlyCon1:Disconnect() _G.FlyCon1 = nil end
             if _G.FlyCon2 then _G.FlyCon2:Disconnect() _G.FlyCon2 = nil end
         end
-    end})
-
-    independentSection:Toggle({Title = "自动存活", Value = false, Callback = function(val)
-        if val then
-            _G.AutoTpCon = RunService.Stepped:Connect(function()
-                if LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-273, 179.5, 394)
-                end
-            end)
-        else
-            if _G.AutoTpCon then
-                _G.AutoTpCon:Disconnect()
-                _G.AutoTpCon = nil
-            end
-        end
-    end})
-
-    independentSection:Toggle({Title = "地图投票", Value = false, Callback = function(val)
-        local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-        local mainGui = playerGui and playerGui:FindFirstChild("MainGui")
-        local mapPage = mainGui and mainGui:FindFirstChild("MapVotePage")
-        if mapPage then mapPage.Visible = val end
     end})
 
     local function setTransparency(character, transparency)
@@ -1050,7 +956,109 @@ return function(Window, WindUI)
         end
     end})
 
-    -- ==================== 新增：隐身碰飞功能 ====================
+    local touchFlingActive = false
+    local touchFlingConnection = nil
+    local touchFlingNoclipConnection = nil
+    local touchFlingCharAddedConn = nil
+
+    local function setupTouchFling(char)
+        if touchFlingNoclipConnection then
+            touchFlingNoclipConnection:Disconnect()
+            touchFlingNoclipConnection = nil
+        end
+        touchFlingNoclipConnection = RunService.Stepped:Connect(function()
+            local c = LocalPlayer.Character
+            if c and c.Parent then
+                for _, child in pairs(c:GetDescendants()) do
+                    if child:IsA("BasePart") then
+                        child.CanCollide = false
+                    end
+                end
+            else
+                if touchFlingNoclipConnection then
+                    touchFlingNoclipConnection:Disconnect()
+                    touchFlingNoclipConnection = nil
+                end
+            end
+        end)
+
+        local function onTouched(hit)
+            if not touchFlingActive then return end
+            local targetChar = hit.Parent
+            local humanoid = targetChar and targetChar:FindFirstChildWhichIsA("Humanoid")
+            if humanoid and targetChar ~= char then
+                local root = targetChar:FindFirstChild("HumanoidRootPart") or hit
+                root.Velocity = Vector3.new(
+                    math.random(-500, 500),
+                    math.random(200, 800),
+                    math.random(-500, 500)
+                )
+            end
+        end
+
+        local function bindTouches(part)
+            if part:IsA("BasePart") then
+                part.Touched:Connect(onTouched)
+            end
+        end
+
+        for _, part in pairs(char:GetDescendants()) do
+            bindTouches(part)
+        end
+
+        if touchFlingConnection then
+            touchFlingConnection:Disconnect()
+        end
+        touchFlingConnection = char.DescendantAdded:Connect(bindTouches)
+    end
+
+    local function startTouchFling()
+        local char = LocalPlayer.Character
+        if not char then
+            if touchFlingCharAddedConn then touchFlingCharAddedConn:Disconnect() end
+            touchFlingCharAddedConn = LocalPlayer.CharacterAdded:Connect(function(newChar)
+                touchFlingCharAddedConn:Disconnect()
+                touchFlingCharAddedConn = nil
+                setupTouchFling(newChar)
+            end)
+            return
+        end
+        setupTouchFling(char)
+    end
+
+    local function stopTouchFling()
+        touchFlingActive = false
+        if touchFlingConnection then
+            touchFlingConnection:Disconnect()
+            touchFlingConnection = nil
+        end
+        if touchFlingNoclipConnection then
+            touchFlingNoclipConnection:Disconnect()
+            touchFlingNoclipConnection = nil
+        end
+        if touchFlingCharAddedConn then
+            touchFlingCharAddedConn:Disconnect()
+            touchFlingCharAddedConn = nil
+        end
+        local char = LocalPlayer.Character
+        if char then
+            for _, child in pairs(char:GetDescendants()) do
+                if child:IsA("BasePart") then
+                    child.CanCollide = true
+                end
+            end
+        end
+    end
+
+    independentSection:Toggle({Title = "碰飞", Value = false, Callback = function(val)
+        touchFlingActive = val
+        if val then
+            startTouchFling()
+        else
+            stopTouchFling()
+        end
+    end})
+
     local invisibleFlingActive = false
     local invisibleFlingConnections = {
         touch = nil,
@@ -1060,7 +1068,6 @@ return function(Window, WindUI)
     local invisibleFlingSeat = nil
     local invisibleFlingChar = nil
 
-    -- 设置角色透明度
     local function setInvisibleFlingTransparency(character, transparency)
         if not character then return end
         for _, part in pairs(character:GetDescendants()) do
@@ -1070,7 +1077,6 @@ return function(Window, WindUI)
         end
     end
 
-    -- 创建隐身椅子
     local function createInvisibleFlingSeat(char)
         if invisibleFlingSeat then
             invisibleFlingSeat:Destroy()
@@ -1098,17 +1104,14 @@ return function(Window, WindUI)
         return Seat
     end
 
-    -- 设置碰飞逻辑
     local function setupInvisibleFling(char)
         invisibleFlingChar = char
         
-        -- 隐身 + 椅子
         if char and char:FindFirstChild("HumanoidRootPart") then
             createInvisibleFlingSeat(char)
             setInvisibleFlingTransparency(char, 0.5)
         end
 
-        -- NoClip
         if invisibleFlingConnections.noclip then
             invisibleFlingConnections.noclip:Disconnect()
         end
@@ -1128,7 +1131,6 @@ return function(Window, WindUI)
             end
         end)
 
-        -- 碰飞逻辑
         local function onTouched(hit)
             if not invisibleFlingActive then return end
             local targetChar = hit.Parent
@@ -1149,12 +1151,10 @@ return function(Window, WindUI)
             end
         end
 
-        -- 为当前所有部件绑定
         for _, part in pairs(char:GetDescendants()) do
             bindTouches(part)
         end
 
-        -- 为新添加的部件绑定
         if invisibleFlingConnections.touch then
             invisibleFlingConnections.touch:Disconnect()
         end
@@ -1180,7 +1180,6 @@ return function(Window, WindUI)
     local function stopInvisibleFling()
         invisibleFlingActive = false
         
-        -- 断开所有连接
         if invisibleFlingConnections.touch then
             invisibleFlingConnections.touch:Disconnect()
             invisibleFlingConnections.touch = nil
@@ -1194,13 +1193,11 @@ return function(Window, WindUI)
             invisibleFlingConnections.charAdded = nil
         end
 
-        -- 删除隐身椅子
         if invisibleFlingSeat then
             invisibleFlingSeat:Destroy()
             invisibleFlingSeat = nil
         end
 
-        -- 恢复透明度和碰撞
         local char = LocalPlayer.Character
         if char then
             setInvisibleFlingTransparency(char, 0)
@@ -1217,13 +1214,10 @@ return function(Window, WindUI)
         invisibleFlingActive = val
         if val then
             startInvisibleFling()
-            print("隐身碰飞已开启")
         else
             stopInvisibleFling()
-            print("隐身碰飞已关闭")
         end
     end})
-    -- =====================================================
 
     independentSection:Button({Title = "自杀", Callback = function()
         local char = LocalPlayer.Character
