@@ -1,6 +1,6 @@
 return function(Window, WindUI)
-    local tab = Window:AddTab({Title = "信息", Icon = "info"})
-    local serverSection = tab:AddSection({Title = "支持的服务器列表", Collapsible = true, Box = true})
+    local tab = Window:Tab({Title = "信息", Icon = "info"})
+    local serverSection = tab:Section({Title = "支持的服务器列表", Collapsible = true, Box = true})
     local serverList = {
         "画我", "鸡场", "极速传奇", "自然灾害", "潜水传奇",
         "巴掌模拟器", "超高速跑者", "扔出一枚硬币", "合并一个核弹",
