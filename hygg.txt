@@ -147,7 +147,7 @@ local function safeLoadModule(url, moduleName)
     if success and result then
         local execSuccess, execErr = pcall(result, Window, WindUI)
         if not execSuccess then
-            WindUI:Notify({Title = moduleName .. "模块执行失败", Content = tostring(execErr), Duration = 3, Icon = "alert"})
+            WindUI:Notify({Title = moduleName .. "模块执行失败", Content = "模块执行出错", Duration = 3, Icon = "alert"})
             return false
         end
         return true
