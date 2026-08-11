@@ -112,7 +112,6 @@ task.spawn(function()
     end)
 end)
 
--- 安全加载模块的函数
 local function safeLoadModule(url, moduleName)
     local success, result = pcall(function()
         local code = game:HttpGet(url)
@@ -138,7 +137,7 @@ local function safeLoadModule(url, moduleName)
     end
 end
 
--- 加载所有模块
+safeLoadModule("https://hygg3795-debug.github.io/1/信息.txt", "信息")
 safeLoadModule("https://hygg3795-debug.github.io/1/通用.txt", "通用")
 safeLoadModule("https://hygg3795-debug.github.io/1/传送.txt", "传送")
 safeLoadModule("https://hygg3795-debug.github.io/1/玩家.txt", "玩家")
