@@ -2,16 +2,12 @@ return function(Window, WindUI)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
     local LocalPlayer = Players.LocalPlayer
-
-    local tab = Window:Tab({Title = "传送", Icon = "map-pin"})
-
-    local teleportSection = tab:Section({Title = "坐标传送", Box = true})
-    local coordLabel = teleportSection:Label({Title = "X: 0.00  Y: 0.00  Z: 0.00"})
+    local tab = Window:AddTab({Title = "传送", Icon = "map-pin"})
+    local teleportSection = tab:AddSection({Title = "坐标传送", Box = true})
+    local coordLabel = teleportSection:AddLabel({Title = "X: 0.00  Y: 0.00  Z: 0.00"})
     local inputValue = ""
-
-    teleportSection:Input({Title = "输入坐标", Placeholder = "例如: 100, 200, 300", Callback = function(text) inputValue = text end})
-
-    teleportSection:Button({Title = "复制坐标", Callback = function()
+    teleportSection:AddInput({Title = "输入坐标", Placeholder = "例如: 100, 200, 300", Callback = function(text) inputValue = text end})
+    teleportSection:AddButton({Title = "复制坐标", Callback = function()
         local char = LocalPlayer.Character
         if char and char:FindFirstChild("HumanoidRootPart") then
             local pos = char.HumanoidRootPart.Position
@@ -24,8 +20,7 @@ return function(Window, WindUI)
             end
         end
     end})
-
-    teleportSection:Button({Title = "传送", Callback = function()
+    teleportSection:AddButton({Title = "传送", Callback = function()
         if inputValue == "" then
             WindUI:Notify({Title = "提示", Content = "请先输入坐标", Duration = 2, Icon = "alert"})
             return
@@ -45,7 +40,6 @@ return function(Window, WindUI)
             WindUI:Notify({Title = "格式错误", Content = "请输入如: 100,200,300", Duration = 2, Icon = "alert"})
         end
     end})
-
     RunService.Heartbeat:Connect(function()
         if coordLabel then
             local char = LocalPlayer.Character
@@ -55,10 +49,9 @@ return function(Window, WindUI)
             end
         end
     end)
-
-    local quickTeleportSection = tab:Section({Title = "快速传送", Box = true})
+    local quickTeleportSection = tab:AddSection({Title = "快速传送", Box = true})
     local function createTeleportToggle(name, coords)
-        quickTeleportSection:Toggle({Title = name, Value = false, Callback = function(val)
+        quickTeleportSection:AddToggle({Title = name, Callback = function(val)
             if val then
                 local char = LocalPlayer.Character
                 if char and char:FindFirstChild("HumanoidRootPart") then
@@ -70,6 +63,5 @@ return function(Window, WindUI)
         end})
     end
     createTeleportToggle("传送虚空", Vector3.new(0, 100000000, 0))
-
     return tab
 end
