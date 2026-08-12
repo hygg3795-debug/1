@@ -4,7 +4,7 @@ return function(Window, WindUI)
     local TweenService = game:GetService("TweenService")
     local LocalPlayer = Players.LocalPlayer
 
-    local tab = Window:Tab({Title = "画我", Icon = "image"})
+    local tab = Window:Tab({Title = "画我", Icon = " "})
 
     tab:Button({
         Title = "加载图片",
