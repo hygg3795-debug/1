@@ -337,7 +337,7 @@ return function(Window, WindUI)
     end
 
     -- 创建单个 Tab
-    local tab = Window:Tab({Title = "巴掌模拟器", Icon = "hand"})
+    local tab = Window:Tab({Title = "巴掌模拟器", Icon = ""})
 
     -- 手套列表
     local listGloves = tab:List({
