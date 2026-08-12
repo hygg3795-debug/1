@@ -4,7 +4,7 @@ return function(Window, WindUI)
     local spinsLock = false
     local spinsLockConn = nil
 
-    local tab = Window:Tab({Title = "每点击+1年龄", Icon = "cake"})
+    local tab = Window:Tab({Title = "每点击+1年龄", Icon = " "})
     local mainSection = tab:Section({Title = "转盘"})
 
     mainSection:Toggle({
