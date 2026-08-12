@@ -6,7 +6,7 @@ return function(Window, WindUI)
     local MarketplaceService = game:GetService("MarketplaceService")
     local LocalPlayer = Players.LocalPlayer
 
-    local tab = Window:Tab({Title = "+1键盘速度逃脱", Icon = "keyboard"})
+    local tab = Window:Tab({Title = "+1键盘速度逃脱", Icon = " "})
 
     local WinPos = Vector3.new(-6809.3223, 531.2539, 1468.8073)
 
