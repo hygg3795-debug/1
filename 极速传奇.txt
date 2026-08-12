@@ -4,7 +4,7 @@ return function(Window, WindUI)
     local LocalPlayer = Players.LocalPlayer
 
     -- 创建"极速传奇"Tab
-    local tab = Window:Tab({Title = "极速传奇", Icon = "crown"})
+    local tab = Window:Tab({Title = "极速传奇", Icon = " "})
 
     -- ============================================================
     -- 列表1: 主要
