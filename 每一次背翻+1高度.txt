@@ -5,7 +5,7 @@ return function(Window, WindUI)
     local Workspace = game:GetService("Workspace")
     local player = Players.LocalPlayer
 
-    local tab = Window:Tab({Title = "每一次背翻+1高度", Icon = "arrow-up"})
+    local tab = Window:Tab({Title = "每一次背翻+1高度", Icon = " "})
 
     local tpEnabled = false
     local tpConnection = nil
