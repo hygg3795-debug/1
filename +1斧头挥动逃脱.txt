@@ -18,7 +18,6 @@ return function(Window, WindUI)
 
     tab:Toggle({
         Title = "自动胜利",
-        Desc = "持续传送到终点并上下浮动",
         Value = false,
         Callback = function(val)
             running = val
