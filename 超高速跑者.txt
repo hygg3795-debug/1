@@ -3,7 +3,7 @@ return function(Window, WindUI)
     local RunService = game:GetService("RunService")
     local player = Players.LocalPlayer
 
-    local tab = Window:Tab({Title = "超高速跑者", Icon = "running"})
+    local tab = Window:Tab({Title = "超高速跑者", Icon = " "})
 
     local TARGET_POSITION = CFrame.new(0, 6.5, -9076)
     local baseY = 1
