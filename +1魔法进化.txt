@@ -5,7 +5,7 @@ return function(Window, WindUI)
     local Workspace = game:GetService("Workspace")
     local LP = Players.LocalPlayer
 
-    local tab = Window:Tab({Title = "+1魔法进化", Icon = "wand"})
+    local tab = Window:Tab({Title = "+1魔法进化", Icon = " "})
 
     local autoWinActive = false
     local autoWinConnection = nil
