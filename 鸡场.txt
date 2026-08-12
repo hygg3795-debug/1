@@ -444,7 +444,7 @@ return function(Window, WindUI)
         depositEggs()
     end
 
-    local tab = Window:Tab({Title = "鸡场", Icon = "egg"})
+    local tab = Window:Tab({Title = "鸡场", Icon = " "})
 
     local eggSection = tab:Section({Title = "蛋"})
 
