@@ -4,7 +4,7 @@ return function(Window, WindUI)
     local Workspace = game:GetService("Workspace")
     local LP = Players.LocalPlayer
 
-    local tab = Window:Tab({Title = "每次点击速度+1", Icon = "zap"})
+    local tab = Window:Tab({Title = "每次点击速度+1", Icon = " "})
 
     local energyThread = nil
     local coinThread = nil
