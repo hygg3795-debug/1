@@ -4,7 +4,7 @@ return function(Window, WindUI)
     local MarketplaceService = game:GetService("MarketplaceService")
     local LocalPlayer = Players.LocalPlayer
 
-    local tab = Window:Tab({Title = "+1速度史莱姆键盘逃脱", Icon = "gamepad-2"})
+    local tab = Window:Tab({Title = "+1速度史莱姆键盘逃脱", Icon = " "})
     local mainSection = tab:Section({Title = "自动胜利"})
 
     local targetPosition1 = Vector3.new(-1340.25, 249.68, 6438.55)
