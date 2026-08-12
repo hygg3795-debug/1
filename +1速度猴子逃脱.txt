@@ -3,7 +3,7 @@ return function(Window, WindUI)
     local RunService = game:GetService("RunService")
     local LocalPlayer = Players.LocalPlayer
 
-    local tab = Window:Tab({Title = "+1速度猴子逃脱", Icon = ""})
+    local tab = Window:Tab({Title = "+1速度猴子逃脱", Icon = " "})
 
     local floatSpeed = 10
     local floatAmplitude = 2
