@@ -6,6 +6,7 @@ return function(Window, WindUI)
     local Lighting = game:GetService("Lighting")
     local Workspace = game:GetService("Workspace")
     local TweenService = game:GetService("TweenService")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local LocalPlayer = Players.LocalPlayer
 
     local function makeDraggable(guiObj, dragHandle)
@@ -956,268 +957,473 @@ return function(Window, WindUI)
         end
     end})
 
-    local touchFlingActive = false
-    local touchFlingConnection = nil
-    local touchFlingNoclipConnection = nil
-    local touchFlingCharAddedConn = nil
+    -- ===== 新增：伪VR =====
+    local pseudoVrGui = nil
+    local pseudoVrRenderConn = nil
+    local pseudoVrSteppedConn = nil
+    local pseudoVrEnabled = false
 
-    local function setupTouchFling(char)
-        if touchFlingNoclipConnection then
-            touchFlingNoclipConnection:Disconnect()
-            touchFlingNoclipConnection = nil
+    independentSection:Toggle({
+        Title = "伪vr",
+        Value = false,
+        Callback = function(val)
+            pseudoVrEnabled = val
+            if val then
+                if pseudoVrGui then return end
+                -- 创建GUI（参考伪vr.txt）
+                local ParentGui
+                local success, coreGui = pcall(function() return game:GetService("CoreGui") end)
+                if gethui then
+                    ParentGui = gethui()
+                elseif success and coreGui and coreGui:FindFirstChild("RobloxGui") then
+                    ParentGui = coreGui:FindFirstChild("RobloxGui")
+                else
+                    ParentGui = LocalPlayer:WaitForChild("PlayerGui")
+                end
+                if ParentGui:FindFirstChild("NexusVR_Mobile_Joysticks") then
+                    ParentGui["NexusVR_Mobile_Joysticks"]:Destroy()
+                end
+                local ScreenGui = Instance.new("ScreenGui")
+                ScreenGui.Name = "NexusVR_Mobile_Joysticks"
+                ScreenGui.ResetOnSpawn = false
+                ScreenGui.DisplayOrder = 99999
+                ScreenGui.IgnoreGuiInset = true
+                ScreenGui.Parent = ParentGui
+                pseudoVrGui = ScreenGui
+
+                -- 创建 Joystick 函数
+                local function crearJoystick(nombre, posicion, color)
+                    local TouchPad = Instance.new("Frame")
+                    local Thumb = Instance.new("ImageButton")
+                    TouchPad.Name = nombre.."_Pad"
+                    TouchPad.Size = UDim2.new(0, 125, 0, 125)
+                    TouchPad.Position = posicion
+                    TouchPad.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+                    TouchPad.BackgroundTransparency = 0.6
+                    TouchPad.BorderSizePixel = 0
+                    TouchPad.Active = true
+                    TouchPad.Visible = false
+                    TouchPad.Parent = ScreenGui
+                    local uiCorner = Instance.new("UICorner")
+                    uiCorner.CornerRadius = UDim.new(1, 0)
+                    uiCorner.Parent = TouchPad
+                    Thumb.Name = "Thumb"
+                    Thumb.Size = UDim2.new(0, 50, 0, 50)
+                    Thumb.Position = UDim2.new(0.5, -25, 0.5, -25)
+                    Thumb.BackgroundColor3 = color
+                    Thumb.BackgroundTransparency = 0.2
+                    Thumb.BorderSizePixel = 0
+                    Thumb.Parent = TouchPad
+                    local thumbCorner = Instance.new("UICorner")
+                    thumbCorner.CornerRadius = UDim.new(1, 0)
+                    thumbCorner.Parent = Thumb
+                    local dragging = false
+                    local startPos = Vector2.new()
+                    local currentInput = nil
+                    Thumb.InputBegan:Connect(function(input)
+                        if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1) and not dragging then
+                            dragging = true
+                            startPos = input.Position
+                            currentInput = input
+                            if nombre == "Derecho" then rightLargeDragging = true else leftLargeDragging = true end
+                        end
+                    end)
+                    UserInputService.InputChanged:Connect(function(input)
+                        if dragging and input == currentInput then
+                            local delta = input.Position - startPos
+                            local distance = math.clamp(delta.Magnitude, 0, 45)
+                            local direction = delta.Magnitude > 0 and delta.Unit or Vector2.new(0, 0)
+                            Thumb.Position = UDim2.new(0.5, -25 + (direction.X * distance), 0.5, -25 + (direction.Y * distance))
+                            local intensidad = distance / 45
+                            if nombre == "Derecho" then
+                                rightJoyMove = Vector2.new(direction.X * intensidad, -direction.Y * intensidad)
+                            else
+                                leftJoyMove = Vector2.new(direction.X * intensidad, -direction.Y * intensidad)
+                            end
+                        end
+                    end)
+                    local function endDrag(input)
+                        if dragging and input == currentInput then
+                            dragging = false
+                            currentInput = nil
+                            if nombre == "Derecho" then rightLargeDragging = false else leftLargeDragging = false end
+                        end
+                    end
+                    UserInputService.InputEnded:Connect(endDrag)
+                end
+
+                local function crearJoystickZ(nombre, posicion, color)
+                    local TouchPad = Instance.new("Frame")
+                    local Thumb = Instance.new("ImageButton")
+                    TouchPad.Name = nombre.."_Z_Pad"
+                    TouchPad.Size = UDim2.new(0, 75, 0, 75)
+                    TouchPad.Position = posicion
+                    TouchPad.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+                    TouchPad.BackgroundTransparency = 0.6
+                    TouchPad.BorderSizePixel = 0
+                    TouchPad.Active = true
+                    TouchPad.Visible = false
+                    TouchPad.Parent = ScreenGui
+                    local uiCorner = Instance.new("UICorner")
+                    uiCorner.CornerRadius = UDim.new(1, 0)
+                    uiCorner.Parent = TouchPad
+                    Thumb.Name = "Thumb"
+                    Thumb.Size = UDim2.new(0, 30, 0, 30)
+                    Thumb.Position = UDim2.new(0.5, -15, 0.5, -15)
+                    Thumb.BackgroundColor3 = color
+                    Thumb.BackgroundTransparency = 0.2
+                    Thumb.BorderSizePixel = 0
+                    Thumb.Parent = TouchPad
+                    local thumbCorner = Instance.new("UICorner")
+                    thumbCorner.CornerRadius = UDim.new(1, 0)
+                    thumbCorner.Parent = Thumb
+                    local dragging = false
+                    local currentInput = nil
+                    local maxDistance = 25
+                    local function actualizarExtensionZ(input)
+                        local padCenterY = TouchPad.AbsolutePosition.Y + (TouchPad.AbsoluteSize.Y / 2)
+                        local relativeY = input.Position.Y - padCenterY
+                        local clampedY = math.clamp(relativeY, -maxDistance, maxDistance)
+                        Thumb.Position = UDim2.new(0.5, -15, 0.5, -15 + clampedY)
+                        local intensidad = -clampedY / maxDistance
+                        if nombre == "Derecho" then rightZMove = intensidad else leftZMove = intensidad end
+                    end
+                    Thumb.InputBegan:Connect(function(input)
+                        if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1) and not dragging then
+                            dragging = true
+                            currentInput = input
+                            actualizarExtensionZ(input)
+                        end
+                    end)
+                    UserInputService.InputChanged:Connect(function(input)
+                        if dragging and input == currentInput then
+                            actualizarExtensionZ(input)
+                        end
+                    end)
+                    UserInputService.InputEnded:Connect(function(input)
+                        if dragging and input == currentInput then
+                            dragging = false
+                            currentInput = nil
+                        end
+                    end)
+                end
+
+                -- Variables locales para los joysticks
+                local leftJoyMove = Vector2.new(0,0)
+                local rightJoyMove = Vector2.new(0,0)
+                local leftZMove = 0
+                local rightZMove = 0
+                local leftLargeDragging = false
+                local rightLargeDragging = false
+                local remote = ReplicatedStorage:FindFirstChild("NexusVRCharacterModel") and ReplicatedStorage.NexusVRCharacterModel:FindFirstChild("UpdateInputs")
+                if not remote then
+                    warn("NexusVR Remote no encontrado, el VR no funcionará")
+                end
+                -- Notificar ready
+                local readyRemote = ReplicatedStorage:FindFirstChild("NexusVRCharacterModel") and ReplicatedStorage.NexusVRCharacterModel:FindFirstChild("ReplicationReady")
+                if readyRemote then pcall(function() readyRemote:FireServer() end) end
+
+                crearJoystick("Izquierdo", UDim2.new(0, 40, 1, -170), Color3.fromRGB(255, 60, 60))
+                crearJoystickZ("Izquierdo", UDim2.new(0, 180, 1, -145), Color3.fromRGB(255, 140, 140))
+                crearJoystick("Derecho", UDim2.new(1, -165, 1, -170), Color3.fromRGB(60, 130, 255))
+                crearJoystickZ("Derecho", UDim2.new(1, -255, 1, -145), Color3.fromRGB(140, 190, 255))
+
+                -- Botón mostrar/ocultar
+                local ToggleBtn = Instance.new("TextButton")
+                ToggleBtn.Name = "ToggleVR_UI"
+                ToggleBtn.Size = UDim2.new(0, 120, 0, 35)
+                ToggleBtn.Position = UDim2.new(0.5, -60, 0, 40)
+                ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                ToggleBtn.BackgroundTransparency = 0.4
+                ToggleBtn.Text = "Ocultar Controles"
+                ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                ToggleBtn.TextSize = 13
+                ToggleBtn.Font = Enum.Font.SourceSansBold
+                ToggleBtn.Visible = false
+                ToggleBtn.Parent = ScreenGui
+                local btnCorner = Instance.new("UICorner")
+                btnCorner.CornerRadius = UDim.new(0, 8)
+                btnCorner.Parent = ToggleBtn
+                local uiVisible = true
+                ToggleBtn.MouseButton1Click:Connect(function()
+                    uiVisible = not uiVisible
+                    ToggleBtn.Text = uiVisible and "Ocultar Controles" or "Mostrar Controles"
+                    local pads = {"Izquierdo_Pad", "Izquierdo_Z_Pad", "Derecho_Pad", "Derecho_Z_Pad"}
+                    for _, padName in ipairs(pads) do
+                        local pad = ScreenGui:FindFirstChild(padName)
+                        if pad then pad.Visible = uiVisible end
+                    end
+                end)
+
+                -- Intro
+                local IntroFrame = Instance.new("Frame")
+                IntroFrame.Name = "IntroFrame"
+                IntroFrame.Size = UDim2.new(1, 0, 1, 0)
+                IntroFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+                IntroFrame.BackgroundTransparency = 0
+                IntroFrame.BorderSizePixel = 0
+                IntroFrame.Parent = ScreenGui
+                local IntroText = Instance.new("TextLabel")
+                IntroText.Name = "IntroText"
+                IntroText.Size = UDim2.new(0, 400, 0, 100)
+                IntroText.Position = UDim2.new(0.5, -200, 0.5, -50)
+                IntroText.BackgroundTransparency = 1
+                IntroText.Text = "SCRIPT BY IKER"
+                IntroText.TextColor3 = Color3.fromRGB(255, 255, 255)
+                IntroText.TextSize = 34
+                IntroText.Font = Enum.Font.FredokaOne
+                IntroText.TextTransparency = 1
+                IntroText.Parent = IntroFrame
+                local UIStroke = Instance.new("UIStroke")
+                UIStroke.Color = Color3.fromRGB(0, 180, 255)
+                UIStroke.Thickness = 3
+                UIStroke.Transparency = 1
+                UIStroke.Parent = IntroText
+                task.spawn(function()
+                    task.wait(0.5)
+                    IntroText.Size = UDim2.new(0, 360, 0, 90)
+                    IntroText.Position = UDim2.new(0.5, -180, 0.5, -45)
+                    local fadeInInfo = TweenInfo.new(1.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+                    local textFadeIn = TweenService:Create(IntroText, fadeInInfo, {TextTransparency = 0, Size = UDim2.new(0, 420, 0, 110), Position = UDim2.new(0.5, -210, 0.5, -55)})
+                    local strokeFadeIn = TweenService:Create(UIStroke, fadeInInfo, {Transparency = 0.2})
+                    textFadeIn:Play()
+                    strokeFadeIn:Play()
+                    textFadeIn.Completed:Wait()
+                    task.wait(1.5)
+                    local fadeOutInfo = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+                    local textFadeOut = TweenService:Create(IntroText, fadeOutInfo, {TextTransparency = 1})
+                    local strokeFadeOut = TweenService:Create(UIStroke, fadeOutInfo, {Transparency = 1})
+                    local frameFadeOut = TweenService:Create(IntroFrame, fadeOutInfo, {BackgroundTransparency = 1})
+                    textFadeOut:Play()
+                    strokeFadeOut:Play()
+                    frameFadeOut:Play()
+                    frameFadeOut.Completed:Wait()
+                    IntroFrame:Destroy()
+                    ToggleBtn.Visible = true
+                    local pads = {"Izquierdo_Pad", "Izquierdo_Z_Pad", "Derecho_Pad", "Derecho_Z_Pad"}
+                    for _, padName in ipairs(pads) do
+                        local pad = ScreenGui:FindFirstChild(padName)
+                        if pad then pad.Visible = true end
+                    end
+                end)
+
+                -- Hilos de actualización
+                local headCF = CFrame.new()
+                local leftHandCF = CFrame.new()
+                local rightHandCF = CFrame.new()
+                local tAnterior = 0
+                local TASA_ENVIO = 1/25
+                local cam = workspace.CurrentCamera
+
+                pseudoVrRenderConn = RunService.RenderStepped:Connect(function()
+                    if not pseudoVrEnabled then return end
+                    if not leftLargeDragging then
+                        leftJoyMove = leftJoyMove:Lerp(Vector2.new(0,0), 0.07)
+                        local pad = ScreenGui:FindFirstChild("Izquierdo_Pad")
+                        local thumb = pad and pad:FindFirstChild("Thumb")
+                        if thumb then thumb.Position = thumb.Position:Lerp(UDim2.new(0.5,-25,0.5,-25), 0.07) end
+                    end
+                    if not rightLargeDragging then
+                        rightJoyMove = rightJoyMove:Lerp(Vector2.new(0,0), 0.07)
+                        local pad = ScreenGui:FindFirstChild("Derecho_Pad")
+                        local thumb = pad and pad:FindFirstChild("Thumb")
+                        if thumb then thumb.Position = thumb.Position:Lerp(UDim2.new(0.5,-25,0.5,-25), 0.07) end
+                    end
+                    local char = LocalPlayer.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        local rootCF = char.HumanoidRootPart.CFrame
+                        local lookX, lookY, lookZ = cam.CFrame:ToEulerAnglesXYZ()
+                        headCF = CFrame.new(rootCF.Position + Vector3.new(0,2,0)) * CFrame.Angles(lookX, lookY, lookZ)
+                        local currentZ_Left = math.clamp(-1.2 - (leftZMove * 1.2), -2.2, -0.5)
+                        local currentZ_Right = math.clamp(-1.2 - (rightZMove * 1.2), -2.2, -0.5)
+                        leftHandCF = rootCF * CFrame.new(-1.2 + math.clamp(leftJoyMove.X * 1.4, -1.4, 1.4), 0.5 + math.clamp(leftJoyMove.Y * 1.4, -1.4, 1.4), currentZ_Left) * CFrame.Angles(math.rad(leftJoyMove.Y * 45), math.rad(-leftJoyMove.X * 30), math.rad(-leftJoyMove.X * 20))
+                        rightHandCF = rootCF * CFrame.new(1.2 + math.clamp(rightJoyMove.X * 1.4, -1.4, 1.4), 0.5 + math.clamp(rightJoyMove.Y * 1.4, -1.4, 1.4), currentZ_Right) * CFrame.Angles(math.rad(rightJoyMove.Y * 45), math.rad(-rightJoyMove.X * 30), math.rad(rightJoyMove.X * 20))
+                        local tActual = os.clock()
+                        if tActual - tAnterior >= TASA_ENVIO and remote then
+                            pcall(function() remote:FireServer(headCF, leftHandCF, rightHandCF) end)
+                            tAnterior = tActual
+                        end
+                    end
+                end)
+
+                pseudoVrSteppedConn = RunService.Stepped:Connect(function()
+                    if not pseudoVrEnabled then return end
+                    for _, otroPlr in ipairs(Players:GetPlayers()) do
+                        if otroPlr ~= LocalPlayer and otroPlr.Character then
+                            for _, parte in ipairs(otroPlr.Character:GetChildren()) do
+                                if parte:IsA("BasePart") then
+                                    parte.CanCollide = false
+                                end
+                            end
+                        end
+                    end
+                    local char = LocalPlayer.Character
+                    if char then
+                        local neck = char:FindFirstChild("Neck", true)
+                        local leftShoulder = char:FindFirstChild("Left Shoulder", true) or char:FindFirstChild("LeftShoulder", true)
+                        local rightShoulder = char:FindFirstChild("Right Shoulder", true) or char:FindFirstChild("RightShoulder", true)
+                        if neck and neck.Part0 then
+                            neck.Transform = neck.C0:Inverse() * neck.Part0.CFrame:Inverse() * headCF * neck.C1
+                        end
+                        if leftShoulder and leftShoulder.Part0 then
+                            leftShoulder.Transform = leftShoulder.C0:Inverse() * leftShoulder.Part0.CFrame:Inverse() * leftHandCF * leftShoulder.C1
+                        end
+                        if rightShoulder and rightShoulder.Part0 then
+                            rightShoulder.Transform = rightShoulder.C0:Inverse() * rightShoulder.Part0.CFrame:Inverse() * rightHandCF * rightShoulder.C1
+                        end
+                    end
+                end)
+            else
+                -- 停止伪VR
+                if pseudoVrRenderConn then pseudoVrRenderConn:Disconnect() pseudoVrRenderConn = nil end
+                if pseudoVrSteppedConn then pseudoVrSteppedConn:Disconnect() pseudoVrSteppedConn = nil end
+                if pseudoVrGui then pseudoVrGui:Destroy() pseudoVrGui = nil end
+            end
         end
-        touchFlingNoclipConnection = RunService.Stepped:Connect(function()
-            local c = LocalPlayer.Character
-            if c and c.Parent then
-                for _, child in pairs(c:GetDescendants()) do
-                    if child:IsA("BasePart") then
-                        child.CanCollide = false
+    })
+
+    -- ===== 新增：无敌 =====
+    local unkillableConn = nil
+    local unkillableSweepTask = nil
+
+    local function unkillableSweep()
+        if not _G.Unkillable then return end
+        local queue = { Workspace }
+        local idx = 1
+        while idx <= #queue do
+            if not _G.Unkillable then break end
+            local node = queue[idx]
+            idx = idx + 1
+            if node and node.Parent then
+                local ok, children = pcall(function() return node:GetChildren() end)
+                if ok then
+                    for _, child in ipairs(children) do
+                        if LocalPlayer.Character and child:IsDescendantOf(LocalPlayer.Character) then
+                            -- skip
+                        else
+                            local function isKillish(inst)
+                                local name = string.lower(inst.Name)
+                                local KILL_KEYWORDS = {"kill","damage","hurt","lava","spike","poison","acid","death","saw","blade"}
+                                for _, kw in ipairs(KILL_KEYWORDS) do
+                                    if string.find(name, kw, 1, true) then return true end
+                                end
+                                for _, child2 in ipairs(inst:GetChildren()) do
+                                    if child2:IsA("LuaSourceContainer") then
+                                        local cname = string.lower(child2.Name)
+                                        if string.find(cname, "kill", 1, true) or string.find(cname, "damage", 1, true) or string.find(cname, "hurt", 1, true) or string.find(cname, "death", 1, true) then
+                                            return true
+                                        end
+                                    end
+                                end
+                                return false
+                            end
+                            local function isKillNPC(inst)
+                                if not inst:IsA("Model") then return false end
+                                if Players:GetPlayerFromCharacter(inst) then return false end
+                                if not inst:FindFirstChildOfClass("Humanoid") then return false end
+                                local name = string.lower(inst.Name)
+                                local NPC_KEYWORDS = {"killer","monster","zombie","npc","boss","guard","enemy","chase","horror","demon","evil"}
+                                for _, kw in ipairs(NPC_KEYWORDS) do
+                                    if string.find(name, kw, 1, true) then return true end
+                                end
+                                return false
+                            end
+                            if isKillish(child) or isKillNPC(child) then
+                                pcall(function() child:Destroy() end)
+                            elseif child:IsA("Model") or child:IsA("Folder") or not child:IsA("BasePart") then
+                                table.insert(queue, child)
+                            end
+                        end
                     end
                 end
-            else
-                if touchFlingNoclipConnection then
-                    touchFlingNoclipConnection:Disconnect()
-                    touchFlingNoclipConnection = nil
-                end
             end
-        end)
-
-        local function onTouched(hit)
-            if not touchFlingActive then return end
-            local targetChar = hit.Parent
-            local humanoid = targetChar and targetChar:FindFirstChildWhichIsA("Humanoid")
-            if humanoid and targetChar ~= char then
-                local root = targetChar:FindFirstChild("HumanoidRootPart") or hit
-                root.Velocity = Vector3.new(
-                    math.random(-500, 500),
-                    math.random(200, 800),
-                    math.random(-500, 500)
-                )
-            end
-        end
-
-        local function bindTouches(part)
-            if part:IsA("BasePart") then
-                part.Touched:Connect(onTouched)
-            end
-        end
-
-        for _, part in pairs(char:GetDescendants()) do
-            bindTouches(part)
-        end
-
-        if touchFlingConnection then
-            touchFlingConnection:Disconnect()
-        end
-        touchFlingConnection = char.DescendantAdded:Connect(bindTouches)
-    end
-
-    local function startTouchFling()
-        local char = LocalPlayer.Character
-        if not char then
-            if touchFlingCharAddedConn then touchFlingCharAddedConn:Disconnect() end
-            touchFlingCharAddedConn = LocalPlayer.CharacterAdded:Connect(function(newChar)
-                touchFlingCharAddedConn:Disconnect()
-                touchFlingCharAddedConn = nil
-                setupTouchFling(newChar)
-            end)
-            return
-        end
-        setupTouchFling(char)
-    end
-
-    local function stopTouchFling()
-        touchFlingActive = false
-        if touchFlingConnection then
-            touchFlingConnection:Disconnect()
-            touchFlingConnection = nil
-        end
-        if touchFlingNoclipConnection then
-            touchFlingNoclipConnection:Disconnect()
-            touchFlingNoclipConnection = nil
-        end
-        if touchFlingCharAddedConn then
-            touchFlingCharAddedConn:Disconnect()
-            touchFlingCharAddedConn = nil
-        end
-        local char = LocalPlayer.Character
-        if char then
-            for _, child in pairs(char:GetDescendants()) do
-                if child:IsA("BasePart") then
-                    child.CanCollide = true
-                end
-            end
+            if idx % 200 == 0 then RunService.Heartbeat:Wait() end
         end
     end
 
-    independentSection:Toggle({Title = "碰飞", Value = false, Callback = function(val)
-        touchFlingActive = val
-        if val then
-            startTouchFling()
-        else
-            stopTouchFling()
-        end
-    end})
-
-    local invisibleFlingActive = false
-    local invisibleFlingConnections = {
-        touch = nil,
-        noclip = nil,
-        charAdded = nil
-    }
-    local invisibleFlingSeat = nil
-    local invisibleFlingChar = nil
-
-    local function setInvisibleFlingTransparency(character, transparency)
-        if not character then return end
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") or part:IsA("Decal") then
-                part.Transparency = transparency
-            end
-        end
-    end
-
-    local function createInvisibleFlingSeat(char)
-        if invisibleFlingSeat then
-            invisibleFlingSeat:Destroy()
-            invisibleFlingSeat = nil
-        end
-        if not char then return end
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        local savedpos = root.CFrame
-        task.wait()
-        char:MoveTo(Vector3.new(-25.95, 84, 3537.55))
-        task.wait(0.15)
-        local Seat = Instance.new('Seat', workspace)
-        Seat.Anchored = false
-        Seat.CanCollide = false
-        Seat.Name = 'invisflingseat'
-        Seat.Transparency = 1
-        Seat.Position = Vector3.new(-25.95, 84, 3537.55)
-        local Weld = Instance.new("Weld", Seat)
-        Weld.Part0 = Seat
-        Weld.Part1 = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-        task.wait()
-        Seat.CFrame = savedpos
-        invisibleFlingSeat = Seat
-        return Seat
-    end
-
-    local function setupInvisibleFling(char)
-        invisibleFlingChar = char
-        
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            createInvisibleFlingSeat(char)
-            setInvisibleFlingTransparency(char, 0.5)
-        end
-
-        if invisibleFlingConnections.noclip then
-            invisibleFlingConnections.noclip:Disconnect()
-        end
-        invisibleFlingConnections.noclip = RunService.Stepped:Connect(function()
-            local c = LocalPlayer.Character
-            if c and c.Parent then
-                for _, child in pairs(c:GetDescendants()) do
-                    if child:IsA("BasePart") then
-                        child.CanCollide = false
+    independentSection:Toggle({
+        Title = "无敌",
+        Value = false,
+        Description = "免疫大部分死亡部件",
+        Callback = function(val)
+            _G.Unkillable = val
+            if val then
+                if unkillableConn then unkillableConn:Disconnect() end
+                unkillableConn = Workspace.DescendantAdded:Connect(function(inst)
+                    if not _G.Unkillable then return end
+                    if LocalPlayer.Character and inst:IsDescendantOf(LocalPlayer.Character) then return end
+                    local function isKillish(inst)
+                        local name = string.lower(inst.Name)
+                        local KILL_KEYWORDS = {"kill","damage","hurt","lava","spike","poison","acid","death","saw","blade"}
+                        for _, kw in ipairs(KILL_KEYWORDS) do
+                            if string.find(name, kw, 1, true) then return true end
+                        end
+                        for _, child in ipairs(inst:GetChildren()) do
+                            if child:IsA("LuaSourceContainer") then
+                                local cname = string.lower(child.Name)
+                                if string.find(cname, "kill", 1, true) or string.find(cname, "damage", 1, true) or string.find(cname, "hurt", 1, true) or string.find(cname, "death", 1, true) then
+                                    return true
+                                end
+                            end
+                        end
+                        return false
                     end
-                end
+                    local function isKillNPC(inst)
+                        if not inst:IsA("Model") then return false end
+                        if Players:GetPlayerFromCharacter(inst) then return false end
+                        if not inst:FindFirstChildOfClass("Humanoid") then return false end
+                        local name = string.lower(inst.Name)
+                        local NPC_KEYWORDS = {"killer","monster","zombie","npc","boss","guard","enemy","chase","horror","demon","evil"}
+                        for _, kw in ipairs(NPC_KEYWORDS) do
+                            if string.find(name, kw, 1, true) then return true end
+                        end
+                        return false
+                    end
+                    if isKillish(inst) or isKillNPC(inst) then
+                        pcall(function() inst:Destroy() end)
+                    end
+                end)
+                if unkillableSweepTask then task.cancel(unkillableSweepTask) end
+                unkillableSweepTask = task.spawn(function()
+                    while _G.Unkillable do
+                        unkillableSweep()
+                        task.wait(1)
+                    end
+                end)
             else
-                if invisibleFlingConnections.noclip then
-                    invisibleFlingConnections.noclip:Disconnect()
-                    invisibleFlingConnections.noclip = nil
-                end
-            end
-        end)
-
-        local function onTouched(hit)
-            if not invisibleFlingActive then return end
-            local targetChar = hit.Parent
-            local humanoid = targetChar and targetChar:FindFirstChildWhichIsA("Humanoid")
-            if humanoid and targetChar ~= char then
-                local root = targetChar:FindFirstChild("HumanoidRootPart") or hit
-                root.Velocity = Vector3.new(
-                    math.random(-500, 500),
-                    math.random(200, 800),
-                    math.random(-500, 500)
-                )
+                if unkillableConn then unkillableConn:Disconnect() unkillableConn = nil end
+                if unkillableSweepTask then task.cancel(unkillableSweepTask) unkillableSweepTask = nil end
             end
         end
+    })
 
-        local function bindTouches(part)
-            if part:IsA("BasePart") then
-                part.Touched:Connect(onTouched)
+    local autoRebirthTask = nil
+
+    independentSection:Toggle({
+        Title = "自动重生",
+        Value = false,
+        Description = "适配大部分重生",
+        Callback = function(val)
+            if val then
+                if autoRebirthTask then task.cancel(autoRebirthTask) end
+                autoRebirthTask = task.spawn(function()
+                    while true do
+                        pcall(function()
+                            local remotes = ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage
+                            for _, r in ipairs(remotes:GetDescendants()) do
+                                if r:IsA("RemoteEvent") and (r.Name:find("Rebirth") or r.Name:find("Prestige")) then
+                                    r:FireServer()
+                                end
+                            end
+                        end)
+                        task.wait(1)
+                    end
+                end)
+            else
+                if autoRebirthTask then task.cancel(autoRebirthTask) autoRebirthTask = nil end
             end
         end
-
-        for _, part in pairs(char:GetDescendants()) do
-            bindTouches(part)
-        end
-
-        if invisibleFlingConnections.touch then
-            invisibleFlingConnections.touch:Disconnect()
-        end
-        invisibleFlingConnections.touch = char.DescendantAdded:Connect(bindTouches)
-    end
-
-    local function startInvisibleFling()
-        local char = LocalPlayer.Character
-        if not char then
-            if invisibleFlingConnections.charAdded then
-                invisibleFlingConnections.charAdded:Disconnect()
-            end
-            invisibleFlingConnections.charAdded = LocalPlayer.CharacterAdded:Connect(function(newChar)
-                invisibleFlingConnections.charAdded:Disconnect()
-                invisibleFlingConnections.charAdded = nil
-                setupInvisibleFling(newChar)
-            end)
-            return
-        end
-        setupInvisibleFling(char)
-    end
-
-    local function stopInvisibleFling()
-        invisibleFlingActive = false
-        
-        if invisibleFlingConnections.touch then
-            invisibleFlingConnections.touch:Disconnect()
-            invisibleFlingConnections.touch = nil
-        end
-        if invisibleFlingConnections.noclip then
-            invisibleFlingConnections.noclip:Disconnect()
-            invisibleFlingConnections.noclip = nil
-        end
-        if invisibleFlingConnections.charAdded then
-            invisibleFlingConnections.charAdded:Disconnect()
-            invisibleFlingConnections.charAdded = nil
-        end
-
-        if invisibleFlingSeat then
-            invisibleFlingSeat:Destroy()
-            invisibleFlingSeat = nil
-        end
-
-        local char = LocalPlayer.Character
-        if char then
-            setInvisibleFlingTransparency(char, 0)
-            for _, child in pairs(char:GetDescendants()) do
-                if child:IsA("BasePart") then
-                    child.CanCollide = true
-                end
-            end
-        end
-        invisibleFlingChar = nil
-    end
-
-    independentSection:Toggle({Title = "隐身碰飞", Value = false, Callback = function(val)
-        invisibleFlingActive = val
-        if val then
-            startInvisibleFling()
-        else
-            stopInvisibleFling()
-        end
-    end})
+    })
 
     independentSection:Button({Title = "自杀", Callback = function()
         local char = LocalPlayer.Character
