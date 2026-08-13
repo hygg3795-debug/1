@@ -2,14 +2,30 @@ return function(Window, WindUI)
     local tab = Window:Tab({Title = "信息", Icon = "info"})
     local serverSection = tab:Section({Title = "支持的服务器列表", Collapsible = true, Box = true})
     local serverList = {
-        "画我", "鸡场", "极速传奇", "自然灾害", "潜水传奇",
-        "巴掌模拟器", "超高速跑者", "扔出一枚硬币", "合并一个核弹",
-        "每步+1速度", "+1魔法进化", "每点击+1年龄", "+1斧头挥动逃脱",
-        "+1键盘速度逃脱", "每次点击速度+1", "+1速度猴子逃脱",
-        "每一次背翻+1高度", "+1速度史莱姆键盘逃脱"
+        "画我",
+        "鸡场",
+        "极速传奇",
+        "自然灾害",
+        "潜水传奇",
+        "巴掌模拟器",
+        "超高速跑者",
+        "阿拉伯键盘",
+        "扔出一枚硬币",
+        "合并一个核弹",
+        "速度对比巨人",
+        "每步+1速度",
+        "+1魔法进化",
+        "每点击+1年龄",
+        "+1斧头挥动逃脱",
+        "+1键盘速度逃脱",
+        "每次点击速度+1",
+        "+1速度猴子逃脱",
+        "每一次背翻+1高度",
+        "+1速度键盘逃脱水下",
+        "+1速度史莱姆键盘逃脱"
     }
     for _, name in ipairs(serverList) do
-        serverSection:AddLabel({Title = name})
+        serverSection:Label({Title = name})
     end
     return tab
 end
