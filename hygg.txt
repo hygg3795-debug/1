@@ -4,7 +4,6 @@ local BRAND = {name = "hygg脚本", version = "v1.0", author = "hygg", folder = 
 local serverData = {
     ["80898524797320"] = { name = "画我", fileName = "画我.txt" },
     ["137233438285284"] = { name = "鸡场", fileName = "鸡场.txt" },
-    ["3101667897"] = { name = "极速传奇", fileName = "极速传奇.txt" },
     ["189707"] = { name = "自然灾害", fileName = "自然灾害.txt" },
     ["120922552721050"] = { name = "潜水传奇", fileName = "潜水传奇.txt" },
     ["6403373529"] = { name = "巴掌模拟器", fileName = "巴掌模拟器.txt" },
