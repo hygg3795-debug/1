@@ -957,7 +957,6 @@ return function(Window, WindUI)
         end
     end})
 
-    -- ===== 新增：伪VR =====
     local pseudoVrGui = nil
     local pseudoVrRenderConn = nil
     local pseudoVrSteppedConn = nil
@@ -970,7 +969,6 @@ return function(Window, WindUI)
             pseudoVrEnabled = val
             if val then
                 if pseudoVrGui then return end
-                -- 创建GUI（参考伪vr.txt）
                 local ParentGui
                 local success, coreGui = pcall(function() return game:GetService("CoreGui") end)
                 if gethui then
@@ -991,7 +989,6 @@ return function(Window, WindUI)
                 ScreenGui.Parent = ParentGui
                 pseudoVrGui = ScreenGui
 
-                -- 创建 Joystick 函数
                 local function crearJoystick(nombre, posicion, color)
                     local TouchPad = Instance.new("Frame")
                     local Thumb = Instance.new("ImageButton")
@@ -1108,7 +1105,6 @@ return function(Window, WindUI)
                     end)
                 end
 
-                -- Variables locales para los joysticks
                 local leftJoyMove = Vector2.new(0,0)
                 local rightJoyMove = Vector2.new(0,0)
                 local leftZMove = 0
@@ -1117,9 +1113,8 @@ return function(Window, WindUI)
                 local rightLargeDragging = false
                 local remote = ReplicatedStorage:FindFirstChild("NexusVRCharacterModel") and ReplicatedStorage.NexusVRCharacterModel:FindFirstChild("UpdateInputs")
                 if not remote then
-                    warn("NexusVR Remote no encontrado, el VR no funcionará")
+                    warn("NexusVR Remote not found")
                 end
-                -- Notificar ready
                 local readyRemote = ReplicatedStorage:FindFirstChild("NexusVRCharacterModel") and ReplicatedStorage.NexusVRCharacterModel:FindFirstChild("ReplicationReady")
                 if readyRemote then pcall(function() readyRemote:FireServer() end) end
 
@@ -1128,7 +1123,6 @@ return function(Window, WindUI)
                 crearJoystick("Derecho", UDim2.new(1, -165, 1, -170), Color3.fromRGB(60, 130, 255))
                 crearJoystickZ("Derecho", UDim2.new(1, -255, 1, -145), Color3.fromRGB(140, 190, 255))
 
-                -- Botón mostrar/ocultar
                 local ToggleBtn = Instance.new("TextButton")
                 ToggleBtn.Name = "ToggleVR_UI"
                 ToggleBtn.Size = UDim2.new(0, 120, 0, 35)
@@ -1155,7 +1149,6 @@ return function(Window, WindUI)
                     end
                 end)
 
-                -- Intro
                 local IntroFrame = Instance.new("Frame")
                 IntroFrame.Name = "IntroFrame"
                 IntroFrame.Size = UDim2.new(1, 0, 1, 0)
@@ -1207,7 +1200,6 @@ return function(Window, WindUI)
                     end
                 end)
 
-                -- Hilos de actualización
                 local headCF = CFrame.new()
                 local leftHandCF = CFrame.new()
                 local rightHandCF = CFrame.new()
@@ -1274,7 +1266,6 @@ return function(Window, WindUI)
                     end
                 end)
             else
-                -- 停止伪VR
                 if pseudoVrRenderConn then pseudoVrRenderConn:Disconnect() pseudoVrRenderConn = nil end
                 if pseudoVrSteppedConn then pseudoVrSteppedConn:Disconnect() pseudoVrSteppedConn = nil end
                 if pseudoVrGui then pseudoVrGui:Destroy() pseudoVrGui = nil end
@@ -1282,7 +1273,6 @@ return function(Window, WindUI)
         end
     })
 
-    -- ===== 新增：无敌 =====
     local unkillableConn = nil
     local unkillableSweepTask = nil
 
@@ -1299,7 +1289,6 @@ return function(Window, WindUI)
                 if ok then
                     for _, child in ipairs(children) do
                         if LocalPlayer.Character and child:IsDescendantOf(LocalPlayer.Character) then
-                            -- skip
                         else
                             local function isKillish(inst)
                                 local name = string.lower(inst.Name)
@@ -1425,11 +1414,281 @@ return function(Window, WindUI)
         end
     })
 
+    local autoGainRunning = false
+    local autoGainConnection = nil
+    local autoGainCharAddedCon = nil
+
+    local function startAutoGain()
+        local char = LocalPlayer.Character
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not root or not hum then return end
+
+        local parkSpot = root.Position
+        local angle = 0
+        local radius = 3
+        local pace = 0.01
+
+        autoGainRunning = true
+
+        autoGainConnection = RunService.Heartbeat:Connect(function(deltaTime)
+            if not autoGainRunning then
+                autoGainConnection:Disconnect()
+                autoGainConnection = nil
+                return
+            end
+
+            local char2 = LocalPlayer.Character
+            if not char2 then
+                autoGainRunning = false
+                return
+            end
+
+            root = char2:FindFirstChild("HumanoidRootPart")
+            hum = char2:FindFirstChildOfClass("Humanoid")
+            if not root or not hum then return end
+
+            angle = angle + (pace * deltaTime) / radius
+            if angle > 2 * math.pi then angle = angle - 2 * math.pi end
+
+            local px = parkSpot.X + radius * math.cos(angle)
+            local pz = parkSpot.Z + radius * math.sin(angle)
+
+            root.CFrame = CFrame.lookAt(
+                Vector3.new(px, parkSpot.Y, pz),
+                Vector3.new(px - math.sin(angle), parkSpot.Y, pz + math.cos(angle))
+            )
+            hum:Move(Vector3.new(-math.sin(angle), 0, math.cos(angle)))
+        end)
+    end
+
+    local function stopAutoGain()
+        autoGainRunning = false
+        if autoGainConnection then
+            autoGainConnection:Disconnect()
+            autoGainConnection = nil
+        end
+        if autoGainCharAddedCon then
+            autoGainCharAddedCon:Disconnect()
+            autoGainCharAddedCon = nil
+        end
+    end
+
+    independentSection:Toggle({
+        Title = "自动获取速度",
+        Value = false,
+        Callback = function(val)
+            if val then
+                startAutoGain()
+                if autoGainCharAddedCon then autoGainCharAddedCon:Disconnect() end
+                autoGainCharAddedCon = LocalPlayer.CharacterAdded:Connect(function()
+                    task.wait(0.5)
+                    if autoGainRunning then
+                        startAutoGain()
+                    end
+                end)
+            else
+                stopAutoGain()
+            end
+        end
+    })
+
     independentSection:Button({Title = "自杀", Callback = function()
         local char = LocalPlayer.Character
         if char then
             local hum = char:FindFirstChildOfClass("Humanoid")
             if hum then hum.Health = 0 end
+        end
+    end})
+
+    local lightSection = tab:Section({Title = "光影效果"})
+
+    local originalLighting2 = {}
+    local originalTerrain = {}
+    local createdEffects = {}
+    local runningConnections = {}
+
+    local function clearEffects()
+        for _, effect in ipairs(createdEffects) do pcall(function() effect:Destroy() end) end
+        createdEffects = {}
+        for _, conn in ipairs(runningConnections) do pcall(function() conn:Disconnect() end) end
+        runningConnections = {}
+    end
+
+    local function saveLighting()
+        originalLighting2 = {
+            Brightness = Lighting.Brightness,
+            Ambient = Lighting.Ambient,
+            OutdoorAmbient = Lighting.OutdoorAmbient,
+            GlobalShadows = Lighting.GlobalShadows,
+            ShadowSoftness = Lighting.ShadowSoftness,
+            FogColor = Lighting.FogColor,
+            FogEnd = Lighting.FogEnd,
+            FogStart = Lighting.FogStart,
+            ClockTime = Lighting.ClockTime,
+            GeographicLatitude = Lighting.GeographicLatitude,
+            ExposureCompensation = Lighting.ExposureCompensation,
+            EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale,
+            EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale
+        }
+        local terrain = Workspace:FindFirstChildOfClass("Terrain")
+        if terrain then
+            originalTerrain = {
+                WaterReflectance = terrain.WaterReflectance,
+                WaterTransparency = terrain.WaterTransparency,
+                WaterWaveSize = terrain.WaterWaveSize,
+                WaterWaveSpeed = terrain.WaterWaveSpeed,
+                WaterColor = terrain.WaterColor
+            }
+        end
+    end
+
+    local function restoreLighting()
+        for key, value in pairs(originalLighting2) do pcall(function() Lighting[key] = value end) end
+        local terrain = Workspace:FindFirstChildOfClass("Terrain")
+        if terrain then
+            for key, value in pairs(originalTerrain) do pcall(function() terrain[key] = value end) end
+        end
+    end
+
+    local function createEffect(effectType, properties)
+        local effect = Instance.new(effectType)
+        for prop, value in pairs(properties) do
+            if effect[prop] ~= nil then effect[prop] = value end
+        end
+        effect.Parent = Lighting
+        table.insert(createdEffects, effect)
+        return effect
+    end
+
+    lightSection:Toggle({Title = "真实光影", Value = false, Callback = function(val)
+        if val then
+            saveLighting()
+            clearEffects()
+            Lighting.Brightness = 0.2
+            Lighting.Ambient = Color3.new(0, 0, 0)
+            Lighting.OutdoorAmbient = Color3.new(0, 0, 0)
+            Lighting.GlobalShadows = false
+            Lighting.EnvironmentDiffuseScale = 0
+            Lighting.EnvironmentSpecularScale = 0
+        else
+            clearEffects()
+            restoreLighting()
+        end
+    end})
+
+    lightSection:Toggle({Title = "明亮光影", Value = false, Callback = function(val)
+        if val then
+            saveLighting()
+            clearEffects()
+            Lighting.ClockTime = 12
+            Lighting.GeographicLatitude = 0
+            Lighting.GlobalShadows = true
+            Lighting.ShadowSoftness = 0.3
+            Lighting.Brightness = 3
+            Lighting.OutdoorAmbient = Color3.new(0.8, 0.8, 0.8)
+            Lighting.Ambient = Color3.new(0.6, 0.6, 0.6)
+            Lighting.Technology = Enum.Technology.ShadowMap
+            createEffect("SunRaysEffect", {Intensity = 0.2, Spread = 0.5})
+            createEffect("BloomEffect", {Intensity = 0.3, Size = 10})
+            createEffect("Atmosphere", {Density = 0.1, Offset = 0.5, Color = Color3.new(0.9, 0.9, 0.9), Decay = Color3.new(0.9, 0.9, 0.9), Glare = 0, Haze = 0})
+            createEffect("ColorCorrectionEffect", {Saturation = -0.1, Contrast = 0.1})
+            createEffect("BlurEffect", {Size = 1})
+        else
+            clearEffects()
+            restoreLighting()
+        end
+    end})
+
+    lightSection:Toggle({Title = "画质增强Pro Max", Value = false, Callback = function(val)
+        if val then
+            saveLighting()
+            clearEffects()
+            for _, child in ipairs(Lighting:GetChildren()) do
+                if child:IsA("PostEffect") or child:IsA("Sky") then child:Destroy() end
+            end
+            createEffect("ColorCorrectionEffect", {Contrast = 0.18, Brightness = 0.05, Saturation = 0.3, TintColor = Color3.fromRGB(255, 242, 230)})
+            createEffect("BloomEffect", {Intensity = 0.25, Size = 48, Threshold = 0.85})
+            createEffect("SunRaysEffect", {Intensity = 0.25, Spread = 1.0})
+            createEffect("Atmosphere", {Density = 0.4, Offset = 0.25, Color = Color3.fromRGB(220, 220, 255), Decay = Color3.fromRGB(20, 25, 45), Glare = 0.15, Haze = 0.25})
+            local sky = Instance.new("Sky")
+            sky.Parent = Lighting
+            sky.SkyboxBk = "rbxassetid://6444337006"
+            sky.SkyboxDn = "rbxassetid://6444336728"
+            sky.SkyboxFt = "rbxassetid://6444337006"
+            sky.SkyboxLf = "rbxassetid://6444337006"
+            sky.SkyboxRt = "rbxassetid://6444337006"
+            sky.SkyboxUp = "rbxassetid://6444336728"
+            sky.StarCount = 3000
+            table.insert(createdEffects, sky)
+            Lighting.GlobalShadows = true
+            Lighting.ShadowSoftness = 0.05
+            Lighting.Brightness = 2.8
+            Lighting.ExposureCompensation = 0.7
+            Lighting.FogColor = Color3.fromRGB(140, 158, 178)
+            Lighting.FogEnd = 3000
+            local terrain = Workspace:FindFirstChildOfClass("Terrain")
+            if terrain then
+                terrain.WaterReflectance = 0.35
+                terrain.WaterTransparency = 0.88
+                terrain.WaterWaveSize = 0.15
+                terrain.WaterWaveSpeed = 25
+                terrain.WaterColor = Color3.fromRGB(72, 141, 202)
+            end
+        else
+            clearEffects()
+            restoreLighting()
+        end
+    end})
+
+    lightSection:Toggle({Title = "固定黄昏光影", Value = false, Callback = function(val)
+        if val then
+            saveLighting()
+            clearEffects()
+            for _, child in ipairs(Lighting:GetChildren()) do
+                if child:IsA("PostEffect") or child:IsA("Atmosphere") then child:Destroy() end
+            end
+            Lighting.GlobalShadows = true
+            Lighting.ShadowSoftness = 0.06
+            Lighting.Brightness = 3.5
+            Lighting.ExposureCompensation = 0.5
+            Lighting.EnvironmentSpecularScale = 1.2
+            Lighting.EnvironmentDiffuseScale = 0.5
+            Lighting.FogColor = Color3.fromRGB(130, 140, 160)
+            Lighting.FogEnd = 8000
+            Lighting.FogStart = 50
+            Lighting.OutdoorAmbient = Color3.fromRGB(120, 130, 150)
+            Lighting.GeographicLatitude = 40.0
+            Lighting.ClockTime = 16.5
+            createEffect("ColorCorrectionEffect", {Contrast = 0.15, Brightness = 0.04, Saturation = 0.25, TintColor = Color3.fromRGB(255, 245, 235)})
+            createEffect("BloomEffect", {Intensity = 0.08, Size = 40, Threshold = 0.95})
+            createEffect("SunRaysEffect", {Intensity = 0.22, Spread = 0.8})
+            createEffect("DepthOfFieldEffect", {FarIntensity = 0.1, FocusDistance = 35, InFocusRadius = 22, NearIntensity = 0.3})
+            createEffect("Atmosphere", {Density = 0.25, Offset = 0.25, Color = Color3.fromRGB(180, 190, 210), Decay = Color3.fromRGB(35, 40, 50), Haze = 0.12})
+            local terrain = Workspace:FindFirstChildOfClass("Terrain")
+            if terrain then
+                terrain.WaterReflectance = 0.2
+                terrain.WaterTransparency = 0.93
+                terrain.WaterWaveSize = 0.12
+                terrain.WaterWaveSpeed = 16
+                terrain.WaterColor = Color3.fromRGB(75, 135, 200)
+            end
+            local sky = Lighting:FindFirstChildOfClass("Sky") or Instance.new("Sky")
+            sky.Parent = Lighting
+            sky.CelestialBodiesShown = true
+            sky.StarCount = 3500
+            sky.SkyboxBk = "rbxassetid://2711140172"
+            sky.SkyboxDn = "rbxassetid://2711140372"
+            sky.SkyboxFt = "rbxassetid://2711140592"
+            sky.SkyboxLf = "rbxassetid://2711140792"
+            sky.SkyboxRt = "rbxassetid://2711141042"
+            sky.SkyboxUp = "rbxassetid://2711141282"
+            table.insert(createdEffects, sky)
+            Workspace.CurrentCamera.FieldOfView = 70
+        else
+            clearEffects()
+            restoreLighting()
         end
     end})
 
