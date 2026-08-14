@@ -163,7 +163,6 @@ safeLoadModule("https://hygg3795-debug.github.io/1/玩家.txt", "玩家")
 safeLoadModule("https://hygg3795-debug.github.io/1/黑洞.txt", "黑洞")
 safeLoadModule("https://hygg3795-debug.github.io/1/超人.txt", "超人")
 safeLoadModule("https://hygg3795-debug.github.io/1/动作.txt", "动作")
-safeLoadModule("https://hygg3795-debug.github.io/1/光影.txt", "光影")
 
 if currentServerInfo then
     local serverModuleUrl = "https://hygg3795-debug.github.io/1/" .. currentServerInfo.fileName
