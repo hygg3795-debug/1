@@ -28,6 +28,7 @@ return function(Window, WindUI)
     local headlessActive = false
     local hiddenState = {}
     local equippedHats = {}
+    local hatToggles = {}
 
     local function clik()
         local s = Instance.new("Sound")
@@ -414,7 +415,7 @@ return function(Window, WindUI)
     section1:Button({Title = "飞机", Callback = function() clik() playAnimationPublic(119746055344304, 1, 0) end})
     section1:Button({Title = "停止当前动作", Desc = "打断并停止所有正在播放的动作", Callback = function() stopAnimation() end})
 
-    section2:Toggle({
+    local headlessToggle = section2:Toggle({
         Title = "无头",
         Value = false,
         Callback = function(val)
@@ -425,19 +426,18 @@ return function(Window, WindUI)
     })
 
     for _, hat in ipairs(HAT_LIST) do
-        local btn = section2:Button({
+        local toggle = section2:Toggle({
             Title = hat.name,
-            Desc = "点击切换装备/卸载",
-            Callback = function()
+            Value = false,
+            Callback = function(val)
                 clik()
                 local equipped = toggleHat(hat.id)
-                if equipped then
-                    btn:SetTitle(hat.name .. " (已装备)")
-                else
-                    btn:SetTitle(hat.name)
+                if equipped ~= val then
+                    toggle:SetValue(equipped)
                 end
             end
         })
+        hatToggles[hat.id] = toggle
     end
 
     section2:Button({
@@ -448,11 +448,16 @@ return function(Window, WindUI)
             if headlessActive then
                 headlessActive = false
                 setHeadless(false)
+                headlessToggle:SetValue(false)
             end
             for _, hat in ipairs(HAT_LIST) do
                 if equippedHats[hat.id] then
                     removeAccessory(hat.id)
                     equippedHats[hat.id] = false
+                    local toggle = hatToggles[hat.id]
+                    if toggle then
+                        toggle:SetValue(false)
+                    end
                 end
             end
         end
