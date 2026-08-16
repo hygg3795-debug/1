@@ -10,28 +10,9 @@ return function(Window, WindUI)
 
     teleportSection:Input({
         Title = "输入坐标",
-        Placeholder = "",
+        Placeholder = "例如: 100, 200, 300",
         Callback = function(text)
             inputValue = text
-        end
-    })
-
-    teleportSection:Button({
-        Title = "复制当前坐标",
-        Callback = function()
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local pos = char.HumanoidRootPart.Position
-                local coordText = string.format("%.2f,%.2f,%.2f", pos.X, pos.Y, pos.Z)
-                if setclipboard then
-                    setclipboard(coordText)
-                    WindUI:Notify({Title = "复制成功", Content = coordText, Duration = 2, Icon = "check"})
-                else
-                    WindUI:Notify({Title = "复制失败", Content = "当前环境不支持复制", Duration = 2, Icon = "x"})
-                end
-            else
-                WindUI:Notify({Title = "错误", Content = "未找到角色", Duration = 2, Icon = "alert"})
-            end
         end
     })
 
@@ -55,6 +36,43 @@ return function(Window, WindUI)
                 end
             else
                 WindUI:Notify({Title = "格式错误", Content = "请输入如: 100,200,300", Duration = 2, Icon = "alert"})
+            end
+        end
+    })
+
+    teleportSection:Divider()
+
+    local coordDisplay = teleportSection:Paragraph({
+        Title = "当前位置",
+        Desc = "X: 0.00  Y: 0.00  Z: 0.00",
+        Image = "crosshair",
+        ImageSize = 18,
+    })
+
+    local function updateCoordDisplay()
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local pos = char.HumanoidRootPart.Position
+            coordDisplay:SetDesc(string.format("X: %.2f  Y: %.2f  Z: %.2f", pos.X, pos.Y, pos.Z))
+        end
+    end
+    RunService.RenderStepped:Connect(updateCoordDisplay)
+
+    teleportSection:Button({
+        Title = "复制当前坐标",
+        Callback = function()
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local pos = char.HumanoidRootPart.Position
+                local coordText = string.format("%.2f,%.2f,%.2f", pos.X, pos.Y, pos.Z)
+                if setclipboard then
+                    setclipboard(coordText)
+                    WindUI:Notify({Title = "复制成功", Content = coordText, Duration = 2, Icon = "check"})
+                else
+                    WindUI:Notify({Title = "复制失败", Content = "当前环境不支持复制", Duration = 2, Icon = "x"})
+                end
+            else
+                WindUI:Notify({Title = "错误", Content = "未找到角色", Duration = 2, Icon = "alert"})
             end
         end
     })
