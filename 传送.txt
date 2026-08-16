@@ -17,13 +17,13 @@ return function(Window, WindUI)
     })
 
     local coordDisplay = teleportSection:Label({Title = "当前坐标: 获取中..."})
-    local displayConnection = RunService.Heartbeat:Connect(function()
+    RunService.Heartbeat:Connect(function()
         local char = LocalPlayer.Character
         if char and char:FindFirstChild("HumanoidRootPart") then
             local pos = char.HumanoidRootPart.Position
-            coordDisplay:Set(string.format("当前坐标: X: %.2f  Y: %.2f  Z: %.2f", pos.X, pos.Y, pos.Z))
+            coordDisplay.Text = string.format("当前坐标: X: %.2f  Y: %.2f  Z: %.2f", pos.X, pos.Y, pos.Z)
         else
-            coordDisplay:Set("当前坐标: 未找到角色")
+            coordDisplay.Text = "当前坐标: 未找到角色"
         end
     end)
 
