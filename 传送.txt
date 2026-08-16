@@ -42,16 +42,16 @@ return function(Window, WindUI)
 
     teleportSection:Divider()
 
-    local coordDisplay = teleportSection:Paragraph({
-        Title = "",
-        Desc = "X: 0.00  Y: 0.00  Z: 0.00",
+    local coordDisplay = teleportSection:Label({
+        Title = "X: 0.00  Y: 0.00  Z: 0.00",
+        Centered = true,
     })
 
     local function updateCoordDisplay()
         local char = LocalPlayer.Character
         if char and char:FindFirstChild("HumanoidRootPart") then
             local pos = char.HumanoidRootPart.Position
-            coordDisplay:SetDesc(string.format("X: %.2f  Y: %.2f  Z: %.2f", pos.X, pos.Y, pos.Z))
+            coordDisplay:SetTitle(string.format("X: %.2f  Y: %.2f  Z: %.2f", pos.X, pos.Y, pos.Z))
         end
     end
     RunService.RenderStepped:Connect(updateCoordDisplay)
