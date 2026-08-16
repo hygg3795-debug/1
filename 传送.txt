@@ -43,7 +43,7 @@ return function(Window, WindUI)
     teleportSection:Divider()
 
     local coordDisplay = teleportSection:Paragraph({
-        Title = "坐标",
+        Title = "",
         Desc = "X: 0.00  Y: 0.00  Z: 0.00",
     })
 
