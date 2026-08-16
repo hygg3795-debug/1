@@ -1,35 +1,23 @@
 return function(Window, WindUI)
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
+    local RunService = game:GetService("RunService")
     local tab = Window:Tab({Title = "传送", Icon = "map-pin"})
 
     local teleportSection = tab:Section({Title = "坐标传送", Box = true})
     local inputValue = ""
-    
+    local loopConnection = nil
+
     teleportSection:Input({
         Title = "输入坐标",
-        Placeholder = "例如: 100, 200, 300",
+        Placeholder = "",
         Callback = function(text)
             inputValue = text
         end
     })
-    
+
     teleportSection:Button({
-        Title = "获取当前坐标",
-        Callback = function()
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local pos = char.HumanoidRootPart.Position
-                local coordText = string.format("X: %.2f  Y: %.2f  Z: %.2f", pos.X, pos.Y, pos.Z)
-                WindUI:Notify({Title = "当前坐标", Content = coordText, Duration = 3, Icon = "info"})
-            else
-                WindUI:Notify({Title = "错误", Content = "未找到角色", Duration = 2, Icon = "alert"})
-            end
-        end
-    })
-    
-    teleportSection:Button({
-        Title = "复制坐标",
+        Title = "复制当前坐标",
         Callback = function()
             local char = LocalPlayer.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
@@ -41,10 +29,12 @@ return function(Window, WindUI)
                 else
                     WindUI:Notify({Title = "复制失败", Content = "当前环境不支持复制", Duration = 2, Icon = "x"})
                 end
+            else
+                WindUI:Notify({Title = "错误", Content = "未找到角色", Duration = 2, Icon = "alert"})
             end
         end
     })
-    
+
     teleportSection:Button({
         Title = "传送",
         Callback = function()
@@ -65,6 +55,34 @@ return function(Window, WindUI)
                 end
             else
                 WindUI:Notify({Title = "格式错误", Content = "请输入如: 100,200,300", Duration = 2, Icon = "alert"})
+            end
+        end
+    })
+
+    teleportSection:Toggle({
+        Title = "循环传送",
+        Callback = function(val)
+            if val then
+                if loopConnection then return end
+                loopConnection = RunService.Heartbeat:Connect(function()
+                    if inputValue == "" then return end
+                    local parts = {}
+                    for part in inputValue:gmatch("[^,，%s]+") do
+                        local num = tonumber(part)
+                        if num then table.insert(parts, num) end
+                    end
+                    if #parts >= 3 then
+                        local char = LocalPlayer.Character
+                        if char and char:FindFirstChild("HumanoidRootPart") then
+                            char.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(parts[1], parts[2], parts[3]))
+                        end
+                    end
+                end)
+            else
+                if loopConnection then
+                    loopConnection:Disconnect()
+                    loopConnection = nil
+                end
             end
         end
     })
