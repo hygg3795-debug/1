@@ -957,322 +957,6 @@ return function(Window, WindUI)
         end
     end})
 
-    local pseudoVrGui = nil
-    local pseudoVrRenderConn = nil
-    local pseudoVrSteppedConn = nil
-    local pseudoVrEnabled = false
-
-    independentSection:Toggle({
-        Title = "伪vr",
-        Value = false,
-        Callback = function(val)
-            pseudoVrEnabled = val
-            if val then
-                if pseudoVrGui then return end
-                local ParentGui
-                local success, coreGui = pcall(function() return game:GetService("CoreGui") end)
-                if gethui then
-                    ParentGui = gethui()
-                elseif success and coreGui and coreGui:FindFirstChild("RobloxGui") then
-                    ParentGui = coreGui:FindFirstChild("RobloxGui")
-                else
-                    ParentGui = LocalPlayer:WaitForChild("PlayerGui")
-                end
-                if ParentGui:FindFirstChild("NexusVR_Mobile_Joysticks") then
-                    ParentGui["NexusVR_Mobile_Joysticks"]:Destroy()
-                end
-                local ScreenGui = Instance.new("ScreenGui")
-                ScreenGui.Name = "NexusVR_Mobile_Joysticks"
-                ScreenGui.ResetOnSpawn = false
-                ScreenGui.DisplayOrder = 99999
-                ScreenGui.IgnoreGuiInset = true
-                ScreenGui.Parent = ParentGui
-                pseudoVrGui = ScreenGui
-
-                local function crearJoystick(nombre, posicion, color)
-                    local TouchPad = Instance.new("Frame")
-                    local Thumb = Instance.new("ImageButton")
-                    TouchPad.Name = nombre.."_Pad"
-                    TouchPad.Size = UDim2.new(0, 125, 0, 125)
-                    TouchPad.Position = posicion
-                    TouchPad.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-                    TouchPad.BackgroundTransparency = 0.6
-                    TouchPad.BorderSizePixel = 0
-                    TouchPad.Active = true
-                    TouchPad.Visible = false
-                    TouchPad.Parent = ScreenGui
-                    local uiCorner = Instance.new("UICorner")
-                    uiCorner.CornerRadius = UDim.new(1, 0)
-                    uiCorner.Parent = TouchPad
-                    Thumb.Name = "Thumb"
-                    Thumb.Size = UDim2.new(0, 50, 0, 50)
-                    Thumb.Position = UDim2.new(0.5, -25, 0.5, -25)
-                    Thumb.BackgroundColor3 = color
-                    Thumb.BackgroundTransparency = 0.2
-                    Thumb.BorderSizePixel = 0
-                    Thumb.Parent = TouchPad
-                    local thumbCorner = Instance.new("UICorner")
-                    thumbCorner.CornerRadius = UDim.new(1, 0)
-                    thumbCorner.Parent = Thumb
-                    local dragging = false
-                    local startPos = Vector2.new()
-                    local currentInput = nil
-                    Thumb.InputBegan:Connect(function(input)
-                        if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1) and not dragging then
-                            dragging = true
-                            startPos = input.Position
-                            currentInput = input
-                            if nombre == "Derecho" then rightLargeDragging = true else leftLargeDragging = true end
-                        end
-                    end)
-                    UserInputService.InputChanged:Connect(function(input)
-                        if dragging and input == currentInput then
-                            local delta = input.Position - startPos
-                            local distance = math.clamp(delta.Magnitude, 0, 45)
-                            local direction = delta.Magnitude > 0 and delta.Unit or Vector2.new(0, 0)
-                            Thumb.Position = UDim2.new(0.5, -25 + (direction.X * distance), 0.5, -25 + (direction.Y * distance))
-                            local intensidad = distance / 45
-                            if nombre == "Derecho" then
-                                rightJoyMove = Vector2.new(direction.X * intensidad, -direction.Y * intensidad)
-                            else
-                                leftJoyMove = Vector2.new(direction.X * intensidad, -direction.Y * intensidad)
-                            end
-                        end
-                    end)
-                    local function endDrag(input)
-                        if dragging and input == currentInput then
-                            dragging = false
-                            currentInput = nil
-                            if nombre == "Derecho" then rightLargeDragging = false else leftLargeDragging = false end
-                        end
-                    end
-                    UserInputService.InputEnded:Connect(endDrag)
-                end
-
-                local function crearJoystickZ(nombre, posicion, color)
-                    local TouchPad = Instance.new("Frame")
-                    local Thumb = Instance.new("ImageButton")
-                    TouchPad.Name = nombre.."_Z_Pad"
-                    TouchPad.Size = UDim2.new(0, 75, 0, 75)
-                    TouchPad.Position = posicion
-                    TouchPad.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-                    TouchPad.BackgroundTransparency = 0.6
-                    TouchPad.BorderSizePixel = 0
-                    TouchPad.Active = true
-                    TouchPad.Visible = false
-                    TouchPad.Parent = ScreenGui
-                    local uiCorner = Instance.new("UICorner")
-                    uiCorner.CornerRadius = UDim.new(1, 0)
-                    uiCorner.Parent = TouchPad
-                    Thumb.Name = "Thumb"
-                    Thumb.Size = UDim2.new(0, 30, 0, 30)
-                    Thumb.Position = UDim2.new(0.5, -15, 0.5, -15)
-                    Thumb.BackgroundColor3 = color
-                    Thumb.BackgroundTransparency = 0.2
-                    Thumb.BorderSizePixel = 0
-                    Thumb.Parent = TouchPad
-                    local thumbCorner = Instance.new("UICorner")
-                    thumbCorner.CornerRadius = UDim.new(1, 0)
-                    thumbCorner.Parent = Thumb
-                    local dragging = false
-                    local currentInput = nil
-                    local maxDistance = 25
-                    local function actualizarExtensionZ(input)
-                        local padCenterY = TouchPad.AbsolutePosition.Y + (TouchPad.AbsoluteSize.Y / 2)
-                        local relativeY = input.Position.Y - padCenterY
-                        local clampedY = math.clamp(relativeY, -maxDistance, maxDistance)
-                        Thumb.Position = UDim2.new(0.5, -15, 0.5, -15 + clampedY)
-                        local intensidad = -clampedY / maxDistance
-                        if nombre == "Derecho" then rightZMove = intensidad else leftZMove = intensidad end
-                    end
-                    Thumb.InputBegan:Connect(function(input)
-                        if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1) and not dragging then
-                            dragging = true
-                            currentInput = input
-                            actualizarExtensionZ(input)
-                        end
-                    end)
-                    UserInputService.InputChanged:Connect(function(input)
-                        if dragging and input == currentInput then
-                            actualizarExtensionZ(input)
-                        end
-                    end)
-                    UserInputService.InputEnded:Connect(function(input)
-                        if dragging and input == currentInput then
-                            dragging = false
-                            currentInput = nil
-                        end
-                    end)
-                end
-
-                local leftJoyMove = Vector2.new(0,0)
-                local rightJoyMove = Vector2.new(0,0)
-                local leftZMove = 0
-                local rightZMove = 0
-                local leftLargeDragging = false
-                local rightLargeDragging = false
-                local remote = ReplicatedStorage:FindFirstChild("NexusVRCharacterModel") and ReplicatedStorage.NexusVRCharacterModel:FindFirstChild("UpdateInputs")
-                if not remote then
-                    warn("NexusVR Remote not found")
-                end
-                local readyRemote = ReplicatedStorage:FindFirstChild("NexusVRCharacterModel") and ReplicatedStorage.NexusVRCharacterModel:FindFirstChild("ReplicationReady")
-                if readyRemote then pcall(function() readyRemote:FireServer() end) end
-
-                crearJoystick("Izquierdo", UDim2.new(0, 40, 1, -170), Color3.fromRGB(255, 60, 60))
-                crearJoystickZ("Izquierdo", UDim2.new(0, 180, 1, -145), Color3.fromRGB(255, 140, 140))
-                crearJoystick("Derecho", UDim2.new(1, -165, 1, -170), Color3.fromRGB(60, 130, 255))
-                crearJoystickZ("Derecho", UDim2.new(1, -255, 1, -145), Color3.fromRGB(140, 190, 255))
-
-                local ToggleBtn = Instance.new("TextButton")
-                ToggleBtn.Name = "ToggleVR_UI"
-                ToggleBtn.Size = UDim2.new(0, 120, 0, 35)
-                ToggleBtn.Position = UDim2.new(0.5, -60, 0, 40)
-                ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-                ToggleBtn.BackgroundTransparency = 0.4
-                ToggleBtn.Text = "Ocultar Controles"
-                ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-                ToggleBtn.TextSize = 13
-                ToggleBtn.Font = Enum.Font.SourceSansBold
-                ToggleBtn.Visible = false
-                ToggleBtn.Parent = ScreenGui
-                local btnCorner = Instance.new("UICorner")
-                btnCorner.CornerRadius = UDim.new(0, 8)
-                btnCorner.Parent = ToggleBtn
-                local uiVisible = true
-                ToggleBtn.MouseButton1Click:Connect(function()
-                    uiVisible = not uiVisible
-                    ToggleBtn.Text = uiVisible and "Ocultar Controles" or "Mostrar Controles"
-                    local pads = {"Izquierdo_Pad", "Izquierdo_Z_Pad", "Derecho_Pad", "Derecho_Z_Pad"}
-                    for _, padName in ipairs(pads) do
-                        local pad = ScreenGui:FindFirstChild(padName)
-                        if pad then pad.Visible = uiVisible end
-                    end
-                end)
-
-                local IntroFrame = Instance.new("Frame")
-                IntroFrame.Name = "IntroFrame"
-                IntroFrame.Size = UDim2.new(1, 0, 1, 0)
-                IntroFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-                IntroFrame.BackgroundTransparency = 0
-                IntroFrame.BorderSizePixel = 0
-                IntroFrame.Parent = ScreenGui
-                local IntroText = Instance.new("TextLabel")
-                IntroText.Name = "IntroText"
-                IntroText.Size = UDim2.new(0, 400, 0, 100)
-                IntroText.Position = UDim2.new(0.5, -200, 0.5, -50)
-                IntroText.BackgroundTransparency = 1
-                IntroText.Text = "SCRIPT BY IKER"
-                IntroText.TextColor3 = Color3.fromRGB(255, 255, 255)
-                IntroText.TextSize = 34
-                IntroText.Font = Enum.Font.FredokaOne
-                IntroText.TextTransparency = 1
-                IntroText.Parent = IntroFrame
-                local UIStroke = Instance.new("UIStroke")
-                UIStroke.Color = Color3.fromRGB(0, 180, 255)
-                UIStroke.Thickness = 3
-                UIStroke.Transparency = 1
-                UIStroke.Parent = IntroText
-                task.spawn(function()
-                    task.wait(0.5)
-                    IntroText.Size = UDim2.new(0, 360, 0, 90)
-                    IntroText.Position = UDim2.new(0.5, -180, 0.5, -45)
-                    local fadeInInfo = TweenInfo.new(1.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-                    local textFadeIn = TweenService:Create(IntroText, fadeInInfo, {TextTransparency = 0, Size = UDim2.new(0, 420, 0, 110), Position = UDim2.new(0.5, -210, 0.5, -55)})
-                    local strokeFadeIn = TweenService:Create(UIStroke, fadeInInfo, {Transparency = 0.2})
-                    textFadeIn:Play()
-                    strokeFadeIn:Play()
-                    textFadeIn.Completed:Wait()
-                    task.wait(1.5)
-                    local fadeOutInfo = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
-                    local textFadeOut = TweenService:Create(IntroText, fadeOutInfo, {TextTransparency = 1})
-                    local strokeFadeOut = TweenService:Create(UIStroke, fadeOutInfo, {Transparency = 1})
-                    local frameFadeOut = TweenService:Create(IntroFrame, fadeOutInfo, {BackgroundTransparency = 1})
-                    textFadeOut:Play()
-                    strokeFadeOut:Play()
-                    frameFadeOut:Play()
-                    frameFadeOut.Completed:Wait()
-                    IntroFrame:Destroy()
-                    ToggleBtn.Visible = true
-                    local pads = {"Izquierdo_Pad", "Izquierdo_Z_Pad", "Derecho_Pad", "Derecho_Z_Pad"}
-                    for _, padName in ipairs(pads) do
-                        local pad = ScreenGui:FindFirstChild(padName)
-                        if pad then pad.Visible = true end
-                    end
-                end)
-
-                local headCF = CFrame.new()
-                local leftHandCF = CFrame.new()
-                local rightHandCF = CFrame.new()
-                local tAnterior = 0
-                local TASA_ENVIO = 1/25
-                local cam = workspace.CurrentCamera
-
-                pseudoVrRenderConn = RunService.RenderStepped:Connect(function()
-                    if not pseudoVrEnabled then return end
-                    if not leftLargeDragging then
-                        leftJoyMove = leftJoyMove:Lerp(Vector2.new(0,0), 0.07)
-                        local pad = ScreenGui:FindFirstChild("Izquierdo_Pad")
-                        local thumb = pad and pad:FindFirstChild("Thumb")
-                        if thumb then thumb.Position = thumb.Position:Lerp(UDim2.new(0.5,-25,0.5,-25), 0.07) end
-                    end
-                    if not rightLargeDragging then
-                        rightJoyMove = rightJoyMove:Lerp(Vector2.new(0,0), 0.07)
-                        local pad = ScreenGui:FindFirstChild("Derecho_Pad")
-                        local thumb = pad and pad:FindFirstChild("Thumb")
-                        if thumb then thumb.Position = thumb.Position:Lerp(UDim2.new(0.5,-25,0.5,-25), 0.07) end
-                    end
-                    local char = LocalPlayer.Character
-                    if char and char:FindFirstChild("HumanoidRootPart") then
-                        local rootCF = char.HumanoidRootPart.CFrame
-                        local lookX, lookY, lookZ = cam.CFrame:ToEulerAnglesXYZ()
-                        headCF = CFrame.new(rootCF.Position + Vector3.new(0,2,0)) * CFrame.Angles(lookX, lookY, lookZ)
-                        local currentZ_Left = math.clamp(-1.2 - (leftZMove * 1.2), -2.2, -0.5)
-                        local currentZ_Right = math.clamp(-1.2 - (rightZMove * 1.2), -2.2, -0.5)
-                        leftHandCF = rootCF * CFrame.new(-1.2 + math.clamp(leftJoyMove.X * 1.4, -1.4, 1.4), 0.5 + math.clamp(leftJoyMove.Y * 1.4, -1.4, 1.4), currentZ_Left) * CFrame.Angles(math.rad(leftJoyMove.Y * 45), math.rad(-leftJoyMove.X * 30), math.rad(-leftJoyMove.X * 20))
-                        rightHandCF = rootCF * CFrame.new(1.2 + math.clamp(rightJoyMove.X * 1.4, -1.4, 1.4), 0.5 + math.clamp(rightJoyMove.Y * 1.4, -1.4, 1.4), currentZ_Right) * CFrame.Angles(math.rad(rightJoyMove.Y * 45), math.rad(-rightJoyMove.X * 30), math.rad(rightJoyMove.X * 20))
-                        local tActual = os.clock()
-                        if tActual - tAnterior >= TASA_ENVIO and remote then
-                            pcall(function() remote:FireServer(headCF, leftHandCF, rightHandCF) end)
-                            tAnterior = tActual
-                        end
-                    end
-                end)
-
-                pseudoVrSteppedConn = RunService.Stepped:Connect(function()
-                    if not pseudoVrEnabled then return end
-                    for _, otroPlr in ipairs(Players:GetPlayers()) do
-                        if otroPlr ~= LocalPlayer and otroPlr.Character then
-                            for _, parte in ipairs(otroPlr.Character:GetChildren()) do
-                                if parte:IsA("BasePart") then
-                                    parte.CanCollide = false
-                                end
-                            end
-                        end
-                    end
-                    local char = LocalPlayer.Character
-                    if char then
-                        local neck = char:FindFirstChild("Neck", true)
-                        local leftShoulder = char:FindFirstChild("Left Shoulder", true) or char:FindFirstChild("LeftShoulder", true)
-                        local rightShoulder = char:FindFirstChild("Right Shoulder", true) or char:FindFirstChild("RightShoulder", true)
-                        if neck and neck.Part0 then
-                            neck.Transform = neck.C0:Inverse() * neck.Part0.CFrame:Inverse() * headCF * neck.C1
-                        end
-                        if leftShoulder and leftShoulder.Part0 then
-                            leftShoulder.Transform = leftShoulder.C0:Inverse() * leftShoulder.Part0.CFrame:Inverse() * leftHandCF * leftShoulder.C1
-                        end
-                        if rightShoulder and rightShoulder.Part0 then
-                            rightShoulder.Transform = rightShoulder.C0:Inverse() * rightShoulder.Part0.CFrame:Inverse() * rightHandCF * rightShoulder.C1
-                        end
-                    end
-                end)
-            else
-                if pseudoVrRenderConn then pseudoVrRenderConn:Disconnect() pseudoVrRenderConn = nil end
-                if pseudoVrSteppedConn then pseudoVrSteppedConn:Disconnect() pseudoVrSteppedConn = nil end
-                if pseudoVrGui then pseudoVrGui:Destroy() pseudoVrGui = nil end
-            end
-        end
-    })
-
     local unkillableConn = nil
     local unkillableSweepTask = nil
 
@@ -1382,6 +1066,159 @@ return function(Window, WindUI)
             else
                 if unkillableConn then unkillableConn:Disconnect() unkillableConn = nil end
                 if unkillableSweepTask then task.cancel(unkillableSweepTask) unkillableSweepTask = nil end
+            end
+        end
+    })
+
+    local removeNPCConn = nil
+    local removeNPCSweepTask = nil
+
+    local function isRemovableNPC(inst)
+        if not inst:IsA("Model") then return false end
+        if Players:GetPlayerFromCharacter(inst) then return false end
+        if not inst:FindFirstChildOfClass("Humanoid") then return false end
+        return true
+    end
+
+    local function wipeTarget(inst)
+        pcall(function() inst:Destroy() end)
+    end
+
+    local function sweepNPCs()
+        if not _G.RemoveAllNPC then return end
+        local queue = { Workspace }
+        local idx = 1
+        while idx <= #queue do
+            if not _G.RemoveAllNPC then break end
+            local node = queue[idx]
+            idx = idx + 1
+            if node and node.Parent then
+                local ok, children = pcall(function() return node:GetChildren() end)
+                if ok then
+                    for _, child in ipairs(children) do
+                        if LocalPlayer.Character and child:IsDescendantOf(LocalPlayer.Character) then
+                        elseif isRemovableNPC(child) then
+                            wipeTarget(child)
+                        else
+                            table.insert(queue, child)
+                        end
+                    end
+                end
+            end
+            if idx % 150 == 0 then RunService.Heartbeat:Wait() end
+        end
+    end
+
+    independentSection:Toggle({
+        Title = "去除所有NPC",
+        Value = false,
+        Description = "清除场景中所有非玩家角色",
+        Callback = function(val)
+            _G.RemoveAllNPC = val
+            if val then
+                if removeNPCConn then removeNPCConn:Disconnect() end
+                removeNPCConn = Workspace.DescendantAdded:Connect(function(inst)
+                    if not _G.RemoveAllNPC then return end
+                    if LocalPlayer.Character and inst:IsDescendantOf(LocalPlayer.Character) then return end
+                    if isRemovableNPC(inst) then
+                        wipeTarget(inst)
+                    end
+                end)
+                if removeNPCSweepTask then task.cancel(removeNPCSweepTask) end
+                removeNPCSweepTask = task.spawn(function()
+                    while _G.RemoveAllNPC do
+                        sweepNPCs()
+                        task.wait(0.5)
+                    end
+                end)
+            else
+                if removeNPCConn then removeNPCConn:Disconnect() removeNPCConn = nil end
+                if removeNPCSweepTask then task.cancel(removeNPCSweepTask) removeNPCSweepTask = nil end
+            end
+        end
+    })
+
+    local dojoToolEnabled = false
+    local dojoToolConnection = nil
+    local dojoTool = nil
+    local dojoAnimation = nil
+    local dojoHumanoid = nil
+
+    local function createDojoTool()
+        if dojoTool then return end
+        local Tool = Instance.new("Tool")
+        Tool.Name = "道馆"
+        Tool.RequiresHandle = false
+        Tool.Equipped:Connect(function()
+            local char = LocalPlayer.Character
+            if not char then return end
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if not hum then return end
+            dojoHumanoid = hum
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://5918726674"
+            dojoAnimation = hum:LoadAnimation(anim)
+            dojoAnimation.Looped = false
+            dojoAnimation:Play()
+            dojoAnimation.TimePosition = 0.58
+            dojoAnimation:AdjustSpeed(0.6)
+            task.spawn(function()
+                while dojoToolEnabled and dojoAnimation and dojoAnimation.IsPlaying do
+                    if dojoAnimation.TimePosition >= 0.63 then
+                        dojoAnimation.TimePosition = 0.58
+                    end
+                    task.wait()
+                end
+            end)
+        end)
+        Tool.Unequipped:Connect(function()
+            if dojoAnimation then
+                dojoAnimation:Stop()
+                dojoAnimation = nil
+            end
+        end)
+        dojoTool = Tool
+        local function equipTool()
+            if dojoToolEnabled and dojoTool then
+                local backpack = LocalPlayer:FindFirstChild("Backpack")
+                if backpack and dojoTool.Parent ~= backpack then
+                    dojoTool.Parent = backpack
+                end
+            end
+        end
+        equipTool()
+        if dojoToolConnection then dojoToolConnection:Disconnect() end
+        dojoToolConnection = LocalPlayer.CharacterAdded:Connect(function()
+            task.wait(0.5)
+            equipTool()
+        end)
+    end
+
+    local function destroyDojoTool()
+        if dojoToolConnection then
+            dojoToolConnection:Disconnect()
+            dojoToolConnection = nil
+        end
+        if dojoAnimation then
+            dojoAnimation:Stop()
+            dojoAnimation = nil
+        end
+        if dojoTool then
+            dojoTool:Destroy()
+            dojoTool = nil
+        end
+    end
+
+    independentSection:Toggle({
+        Title = "道馆",
+        Value = false,
+        Description = "获得道馆工具",
+        Callback = function(val)
+            dojoToolEnabled = val
+            if val then
+                pcall(createDojoTool)
+            else
+                destroyDojoTool()
             end
         end
     })
