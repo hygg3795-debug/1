@@ -141,36 +141,53 @@ return function(Window, WindUI)
 
     local function stopAnimation()
         clik()
-        if currentEmoteTrack and currentEmoteTrack.IsPlaying then
-            currentEmoteTrack:Stop()
+        
+        if currentEmoteTrack then
+            pcall(function()
+                if currentEmoteTrack.IsPlaying then
+                    currentEmoteTrack:Stop()
+                end
+            end)
+            currentEmoteTrack = nil
         end
-        for _, track in pairs(active) do
-            if track and track.IsPlaying then
-                track:Stop()
-            end
+        
+        for animId, track in pairs(active) do
+            pcall(function()
+                if track and track.IsPlaying then
+                    track:Stop()
+                end
+            end)
         end
         active = {}
-        currentEmoteTrack = nil
         
         local player = game.Players.LocalPlayer
         if player and player.Character then
             local character = player.Character
             local humanoid = character:FindFirstChildOfClass("Humanoid")
+            
             if humanoid then
-                local description = humanoid:FindFirstChild("HumanoidDescription")
-                if description then
-                    description:SetEmotes({})
-                    description:SetEquippedEmotes({})
-                end
-
                 local animator = humanoid:FindFirstChildOfClass("Animator")
                 if animator then
-                    for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
-                        track:Stop()
-                    end
+                    pcall(function()
+                        for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+                            track:Stop()
+                        end
+                    end)
                 end
+                
+                local description = humanoid:FindFirstChild("HumanoidDescription")
+                if description then
+                    pcall(function()
+                        description:SetEmotes({})
+                        description:SetEquippedEmotes({})
+                    end)
+                end
+                
+                pcall(function()
+                    humanoid:StopAllAnimations()
+                end)
             end
-
+            
             local animate = character:FindFirstChild("Animate")
             if animate then
                 animate.Disabled = true
@@ -178,6 +195,8 @@ return function(Window, WindUI)
                 animate.Disabled = false
             end
         end
+        
+        getgenv().LastPlayedAnimation = nil
     end
 
     local function rememberVisual(instance)
@@ -412,7 +431,6 @@ return function(Window, WindUI)
     section1:Button({Title = "直升机", Callback = function() clik() playAnimationPublic(95301257497525, 1, 0) end})
     section1:Button({Title = "俄罗斯舞蹈", Callback = function() clik() playAnimationPublic(97148848007002, 1, 0) end})
     section1:Button({Title = "俯卧撑", Callback = function() clik() playAnimationPublic(108313130500811, 1, 0) end})
-    section1:Button({Title = "飞机", Callback = function() clik() playAnimationPublic(119746055344304, 1, 0) end})
     section1:Button({Title = "停止当前动作", Desc = "打断并停止所有正在播放的动作", Callback = function() stopAnimation() end})
 
     local headlessToggle = section2:Toggle({
