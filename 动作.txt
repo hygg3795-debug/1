@@ -48,6 +48,36 @@ return function(Window, WindUI)
         local humanoid = character:FindFirstChildOfClass("Humanoid")
         if not humanoid then return end
         
+        for _, track in pairs(active) do
+            pcall(function()
+                if track and track.IsPlaying then
+                    track:Stop()
+                end
+            end)
+        end
+        active = {}
+        
+        if currentEmoteTrack then
+            pcall(function()
+                if currentEmoteTrack.IsPlaying then
+                    currentEmoteTrack:Stop()
+                end
+            end)
+            currentEmoteTrack = nil
+        end
+        
+        local animator = humanoid:FindFirstChildOfClass("Animator")
+        if not animator then
+            animator = Instance.new("Animator")
+            animator.Parent = humanoid
+        end
+        
+        pcall(function()
+            for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+                track:Stop()
+            end
+        end)
+        
         local description = humanoid:FindFirstChild("HumanoidDescription")
         if not description then
             description = Instance.new("HumanoidDescription")
@@ -77,47 +107,11 @@ return function(Window, WindUI)
         end)
         
         if ok and track and typeof(track) == "Instance" and track:IsA("AnimationTrack") then
-            if currentEmoteTrack and currentEmoteTrack.IsPlaying then
-                currentEmoteTrack:Stop()
-            end
             currentEmoteTrack = track
             track.Looped = true
             track:Play()
             if speed then track:AdjustSpeed(speed) end
             if timePos then track.TimePosition = timePos end
-        end
-        
-        local animate = character:FindFirstChild("Animate")
-        if animate then
-            local idleFolder = animate:FindFirstChild("idle")
-            if not idleFolder then
-                idleFolder = Instance.new("Folder")
-                idleFolder.Name = "idle"
-                idleFolder.Parent = animate
-            end
-            
-            local animObj = idleFolder:FindFirstChild("Animation1")
-            if not animObj then
-                animObj = Instance.new("Animation")
-                animObj.Name = "Animation1"
-                animObj.Parent = idleFolder
-            end
-            
-            animObj.AnimationId = "rbxassetid://" .. tostring(animId)
-            
-            animate.Disabled = true
-            task.wait(0.05)
-            animate.Disabled = false
-        end
-        
-        local animator = humanoid:FindFirstChildOfClass("Animator")
-        if not animator then
-            animator = Instance.new("Animator")
-            animator.Parent = humanoid
-        end
-        
-        if active[animId] and active[animId].IsPlaying then
-            active[animId]:Stop()
         end
         
         local animation = Instance.new("Animation")
@@ -172,14 +166,6 @@ return function(Window, WindUI)
                         for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
                             track:Stop()
                         end
-                    end)
-                end
-                
-                local description = humanoid:FindFirstChild("HumanoidDescription")
-                if description then
-                    pcall(function()
-                        description:SetEmotes({})
-                        description:SetEquippedEmotes({})
                     end)
                 end
                 
@@ -431,6 +417,9 @@ return function(Window, WindUI)
     section1:Button({Title = "直升机", Callback = function() clik() playAnimationPublic(95301257497525, 1, 0) end})
     section1:Button({Title = "俄罗斯舞蹈", Callback = function() clik() playAnimationPublic(97148848007002, 1, 0) end})
     section1:Button({Title = "俯卧撑", Callback = function() clik() playAnimationPublic(108313130500811, 1, 0) end})
+    section1:Button({Title = "你好臭", Callback = function() clik() playAnimationPublic(70919402339484, 1, 0) end})
+    section1:Button({Title = "私人飞行", Callback = function() clik() playAnimationPublic(120904242187887, 1, 0) end})
+    section1:Button({Title = "科目三", Callback = function() clik() playAnimationPublic(125328720114284, 1, 0) end})
     section1:Button({Title = "停止当前动作", Desc = "打断并停止所有正在播放的动作", Callback = function() stopAnimation() end})
 
     local headlessToggle = section2:Toggle({
