@@ -159,6 +159,35 @@ return function(Window, WindUI)
         end
     end})
 
+    local teleportAllConnection = nil
+    local teleportAllRunning = false
+    teleportSection:Toggle({Title = "传送所有人 (0.45s间隔)", Value = false, Callback = function(val)
+        teleportAllRunning = val
+        if val then
+            local players = Players:GetPlayers()
+            local count = 0
+            for _, p in ipairs(players) do
+                if not teleportAllRunning then break end
+                if p ~= LocalPlayer then
+                    local char = p.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        local myChar = LocalPlayer.Character
+                        if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+                            myChar.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame + Vector3.new(0, 0, 3)
+                            count = count + 1
+                            task.wait(0.45)
+                        end
+                    end
+                end
+            end
+            if count > 0 then
+                WindUI:Notify({Title = "传送所有人", Content = "已传送至 " .. count .. " 名玩家", Duration = 2, Icon = "check"})
+            else
+                WindUI:Notify({Title = "传送所有人", Content = "没有可传送的玩家", Duration = 2, Icon = "alert"})
+            end
+        end
+    end})
+
     playerSection:Divider()
 
     local trollingSection = playerSection:Section({Title = "恶搞", Collapsible = true, Box = true})
@@ -340,6 +369,53 @@ return function(Window, WindUI)
         end
     end})
 
+    local cameraFollowConnection = nil
+    local isCameraFollowing = false
+    trollingSection:Toggle({Title = "镜头跟随", Value = false, Callback = function(val)
+        isCameraFollowing = val
+        if val then
+            if not targetPlayer then
+                WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+                return
+            end
+            local target = targetPlayer
+            local targetChar = target.Character
+            if not targetChar then
+                WindUI:Notify({Title = "提示", Content = "目标玩家没有角色", Duration = 2, Icon = "alert"})
+                return
+            end
+            local targetHumanoid = targetChar:FindFirstChildOfClass("Humanoid")
+            if not targetHumanoid then
+                WindUI:Notify({Title = "提示", Content = "目标玩家没有Humanoid", Duration = 2, Icon = "alert"})
+                return
+            end
+            workspace.CurrentCamera.CameraSubject = targetHumanoid
+            cameraFollowConnection = RunService.Heartbeat:Connect(function()
+                if not isCameraFollowing then return end
+                local currentTarget = targetPlayer
+                if not currentTarget or not currentTarget.Character then return end
+                local currentHumanoid = currentTarget.Character:FindFirstChildOfClass("Humanoid")
+                if currentHumanoid then
+                    workspace.CurrentCamera.CameraSubject = currentHumanoid
+                end
+            end)
+            WindUI:Notify({Title = "镜头跟随", Content = "已锁定 " .. target.DisplayName, Duration = 2, Icon = "check"})
+        else
+            if cameraFollowConnection then
+                cameraFollowConnection:Disconnect()
+                cameraFollowConnection = nil
+            end
+            local myChar = LocalPlayer.Character
+            if myChar then
+                local myHumanoid = myChar:FindFirstChildOfClass("Humanoid")
+                if myHumanoid then
+                    workspace.CurrentCamera.CameraSubject = myHumanoid
+                end
+            end
+            WindUI:Notify({Title = "镜头跟随", Content = "已关闭", Duration = 2, Icon = "check"})
+        end
+    end})
+
     playerSection:Divider()
 
     local flingSection = playerSection:Section({Title = "甩飞", Collapsible = true, Box = true})
@@ -364,10 +440,11 @@ return function(Window, WindUI)
         local oldVel = myRoot.AssemblyLinearVelocity
         local oldRotVel = myRoot.AssemblyAngularVelocity
 
-        local cam = Workspace.CurrentCamera
-        local oldCamType = cam.CameraType
-        local oldCamCF = cam.CFrame
-        cam.CameraType = Enum.CameraType.Scriptable
+        local myHumanoidObject = myChar:FindFirstChildOfClass("Humanoid")
+        local originalSubject = workspace.CurrentCamera.CameraSubject
+        if myHumanoidObject then
+            workspace.CurrentCamera.CameraSubject = myHumanoidObject
+        end
 
         local function forceMove(basePart, posOffset, angOffset)
             if not basePart or not basePart.Parent then return end
@@ -462,8 +539,11 @@ return function(Window, WindUI)
         myRoot.AssemblyLinearVelocity = oldVel
         myRoot.AssemblyAngularVelocity = oldRotVel
 
-        cam.CameraType = oldCamType
-        cam.CFrame = oldCamCF
+        if originalSubject then
+            workspace.CurrentCamera.CameraSubject = originalSubject
+        elseif myHumanoidObject then
+            workspace.CurrentCamera.CameraSubject = myHumanoidObject
+        end
 
         task.wait(0.05)
         myHumanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
@@ -582,72 +662,6 @@ return function(Window, WindUI)
             WindUI:Notify({Title = "循环甩飞所有玩家", Content = "已关闭", Duration = 1.5, Icon = "check"})
         end
     end})
-
-    playerSection:Divider()
-
-    local healthSection = playerSection:Section({Title = "血量", Collapsible = true, Box = true})
-
-    healthSection:Button({Title = "回血", Callback = function()
-        local p = LocalPlayer
-        local c = p.Character
-        if c then
-            local h = c:FindFirstChild("Humanoid")
-            if h and h.Health > 0 then
-                h.Health = math.min(h.Health + 10000, h.MaxHealth)
-                WindUI:Notify({Title = "回血成功", Content = "已恢复血量", Duration = 1.5, Icon = "check"})
-            end
-        end
-    end})
-
-    healthSection:Toggle({Title = "循环回血", Value = false, Callback = function(val)
-        if val then
-            _G.loopHealCon = RunService.Heartbeat:Connect(function()
-                local p = LocalPlayer
-                local c = p.Character
-                if c then
-                    local h = c:FindFirstChild("Humanoid")
-                    if h and h.Health > 0 then
-                        h.Health = math.min(h.Health + 10000, h.MaxHealth)
-                    end
-                end
-            end)
-        else
-            if _G.loopHealCon then
-                _G.loopHealCon:Disconnect()
-                _G.loopHealCon = nil
-            end
-        end
-    end})
-
-    healthSection:Slider({
-        Title = "自定义血量上限",
-        Value = {Min = 5, Max = 10000, Default = 100},
-        Callback = function(maxHealth)
-            local p = LocalPlayer
-            local c = p.Character
-            if c then
-                local h = c:FindFirstChild("Humanoid")
-                if h then
-                    h.MaxHealth = maxHealth
-                end
-            end
-        end
-    })
-
-    healthSection:Slider({
-        Title = "自定义血量",
-        Value = {Min = 5, Max = 10000, Default = 100},
-        Callback = function(health)
-            local p = LocalPlayer
-            local c = p.Character
-            if c then
-                local h = c:FindFirstChild("Humanoid")
-                if h and h.Health > 0 then
-                    h.Health = health
-                end
-            end
-        end
-    })
 
     return tab
 end
