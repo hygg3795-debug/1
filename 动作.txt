@@ -26,6 +26,7 @@ local headlessActive = false
 local hiddenState = {}
 local equippedHats = {}
 local hatToggles = {}
+local currentAnimationPack = nil
 
 local function clik()
 local s = Instance.new("Sound")
@@ -35,60 +36,6 @@ s.Volume = 1.2
 s.TimePosition = 0.1
 s:Play()
 game:GetService("Debris"):AddItem(s, 3)
-end
-
-local function applyAnimationPack(idTable, packName)
-local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hum = char:WaitForChild("Humanoid", 15)
-if not hum then return end
-if hum.RigType ~= Enum.HumanoidRigType.R15 then
-return
-end
-local animate = char:WaitForChild("Animate", 15)
-if not animate then return end
-local function setupFolder(name, id)
-local folder = animate:FindFirstChild(name)
-if folder then
-for _, oldAnim in ipairs(folder:GetChildren()) do
-if oldAnim:IsA("Animation") then oldAnim:Destroy() end
-end
-local newAnim = Instance.new("Animation")
-newAnim.Name = name .. "Anim"
-newAnim.AnimationId = id
-newAnim.Parent = folder
-end
-end
-for folderName, id in pairs(idTable) do
-setupFolder(folderName, id)
-end
-local moveConn
-moveConn = hum.Running:Connect(function(speed)
-if speed > 0.1 then
-local isPlaying = false
-for _, track in ipairs(hum:GetPlayingAnimationTracks()) do
-if track.Animation and track.Animation.AnimationId == idTable.walk then
-isPlaying = true
-break
-end
-end
-if not isPlaying then
-local walkFolder = animate:FindFirstChild("walk")
-local animObj = walkFolder and walkFolder:FindFirstChildOfClass("Animation")
-if animObj then
-local newTrack = hum:LoadAnimation(animObj)
-newTrack:Play()
-end
-end
-end
-end)
-hum.Died:Connect(function()
-if moveConn then moveConn:Disconnect() end
-end)
-animate.Disabled = true
-task.wait(0.2)
-if animate and animate.Parent then animate.Disabled = false end
-for _, t in ipairs(hum:GetPlayingAnimationTracks()) do t:Stop(0) end
 end
 
 local ADIDAS_PACK = {
@@ -111,16 +58,59 @@ climb = "rbxassetid://619535091",
 swim = "rbxassetid://619537096"
 }
 
-local function resetAnimations(char)
-local hum = char:WaitForChild("Humanoid", 15)
+local function applyAnimationPack(idTable, packName)
+currentAnimationPack = idTable
+local player = game.Players.LocalPlayer
+local char = player.Character
+if not char then return end
+local hum = char:FindFirstChildOfClass("Humanoid")
 if not hum then return end
+if hum.RigType ~= Enum.HumanoidRigType.R15 then
+return
+end
+local animate = char:FindFirstChild("Animate")
+if not animate then return end
+local function setupFolder(name, id)
+local folder = animate:FindFirstChild(name)
+if folder then
+for _, oldAnim in ipairs(folder:GetChildren()) do
+if oldAnim:IsA("Animation") then oldAnim:Destroy() end
+end
+local newAnim = Instance.new("Animation")
+newAnim.Name = name .. "Anim"
+newAnim.AnimationId = id
+newAnim.Parent = folder
+end
+end
+for folderName, id in pairs(idTable) do
+setupFolder(folderName, id)
+end
+animate.Disabled = true
+task.wait(0.1)
+if animate and animate.Parent then 
+animate.Disabled = false 
+end
+end
+
+local function resetAnimations()
+currentAnimationPack = nil
+local player = game.Players.LocalPlayer
+local char = player.Character
+if not char then return end
 local animate = char:FindFirstChild("Animate")
 if animate then
 animate:Destroy()
-task.wait(0.5)
-char:WaitForChild("Animate", 5)
 end
 end
+
+local function onCharacterAdded(char)
+task.wait(1)
+if currentAnimationPack then
+applyAnimationPack(currentAnimationPack, "Current")
+end
+end
+
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
 
 local function playAnimationPublic(animId, speed, timePos)
 local player = game.Players.LocalPlayer
@@ -200,6 +190,7 @@ speed = speed or 1,
 timePos = timePos or 0
 }
 end
+
 local function stopAnimation()
 clik()
 if currentEmoteTrack then
@@ -244,6 +235,7 @@ end
 end
 getgenv().LastPlayedAnimation = nil
 end
+
 local function rememberVisual(instance)
 if hiddenState[instance] then
 return
@@ -259,6 +251,7 @@ Transparency = instance.Transparency,
 }
 end
 end
+
 local function hideVisual(instance)
 rememberVisual(instance)
 if instance:IsA("BasePart") then
@@ -267,6 +260,7 @@ elseif instance:IsA("Decal") or instance:IsA("Texture") then
 instance.Transparency = 1
 end
 end
+
 local function restoreVisual(instance)
 local state = hiddenState[instance]
 if not state then
@@ -280,13 +274,16 @@ instance.Transparency = state.Transparency
 end
 hiddenState[instance] = nil
 end
+
 local function getCharacter()
 return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 end
+
 local function getHumanoid()
 local character = getCharacter()
 return character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid", 8)
 end
+
 local function setHeadless(enabled)
 local character = getCharacter()
 local head = character:FindFirstChild("Head")
@@ -308,6 +305,7 @@ end
 end
 return true
 end
+
 local function loadAsset(assetId)
 local ok, objects = pcall(function()
 return game:GetObjects("rbxassetid://" .. tostring(assetId))
@@ -317,6 +315,7 @@ return nil
 end
 return objects
 end
+
 local function findFirstDescendant(root, predicate)
 if predicate(root) then
 return root
@@ -328,6 +327,7 @@ end
 end
 return nil
 end
+
 local function findHandleAttachment(handle)
 for _, child in ipairs(handle:GetChildren()) do
 if child:IsA("Attachment") then
@@ -336,6 +336,7 @@ end
 end
 return nil
 end
+
 local function findCharacterAttachment(character, attachmentName)
 for _, descendant in ipairs(character:GetDescendants()) do
 if descendant:IsA("Attachment") and descendant.Name == attachmentName and descendant.Parent:IsA("BasePart") then
@@ -344,6 +345,7 @@ end
 end
 return nil
 end
+
 local function manualAttachAccessory(accessory)
 local character = getCharacter()
 local handle = accessory:FindFirstChild("Handle")
@@ -377,6 +379,7 @@ weld.C1 = characterAttachment.CFrame
 weld.Parent = handle
 return true
 end
+
 local function addAccessory(assetId)
 local humanoid = getHumanoid()
 if not humanoid then
@@ -417,6 +420,7 @@ return true
 end
 return false
 end
+
 local function removeAccessory(assetId)
 local character = getCharacter()
 local removed = 0
@@ -428,6 +432,7 @@ end
 end
 return removed > 0
 end
+
 local function toggleHat(assetId)
 if equippedHats[assetId] then
 removeAccessory(assetId)
@@ -455,7 +460,7 @@ section1:Button({Title = "停止当前动作", Callback = function() stopAnimati
 
 section_anim:Button({Title = "阿迪达斯动画包", Callback = function() clik() applyAnimationPack(ADIDAS_PACK, "Adidas") end})
 section_anim:Button({Title = "僵尸动画包", Callback = function() clik() applyAnimationPack(ZOMBIE_PACK, "Zombie") end})
-section_anim:Button({Title = "恢复动画包", Callback = function() clik() local char = getCharacter() if char then resetAnimations(char) end end})
+section_anim:Button({Title = "恢复动画包", Callback = function() clik() resetAnimations() end})
 
 local headlessToggle = section2:Toggle({
 Title = "无头",
@@ -466,6 +471,7 @@ headlessActive = val
 setHeadless(val)
 end
 })
+
 for _, hat in ipairs(HAT_LIST) do
 local toggle = section2:Toggle({
 Title = hat.name,
@@ -480,6 +486,7 @@ end
 })
 hatToggles[hat.id] = toggle
 end
+
 section2:Button({
 Title = "重置所有外观",
 Callback = function()
@@ -501,17 +508,10 @@ end
 end
 end
 })
-LocalPlayer.CharacterAdded:Connect(function()
-task.wait(1)
-if headlessActive then
-setHeadless(true)
+
+if LocalPlayer.Character then
+task.spawn(onCharacterAdded, LocalPlayer.Character)
 end
-for _, hat in ipairs(HAT_LIST) do
-if equippedHats[hat.id] then
-task.wait(0.2)
-addAccessory(hat.id)
-end
-end
-end)
+
 return tab
 end
