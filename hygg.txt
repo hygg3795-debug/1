@@ -26,7 +26,6 @@ local serverData = {
 
 local placeId = tostring(game.PlaceId)
 local currentServerInfo = serverData[placeId]
-
 local windowTitle = BRAND.name
 
 local Window = WindUI:CreateWindow({
@@ -47,16 +46,47 @@ local Window = WindUI:CreateWindow({
 })
 
 Window:EditOpenButton({
-    Title = "hygg脚本",
-    Icon = BRAND.icon,
+    Title = "hygg",
+    Icon = "",
     CornerRadius = UDim.new(0, 26),
-    StrokeThickness = 4,
+    StrokeThickness = 1.5,
     Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromHex("00BFFF")),
-        ColorSequenceKeypoint.new(1, Color3.fromHex("8A2BE2")),
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+        ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
+        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
     }),
     Draggable = true,
 })
+
+task.spawn(function()
+    task.wait(0.6)
+    pcall(function()
+        local openBtn = Window.OpenButton
+        if not openBtn and Window.Instance then
+            openBtn = Window.Instance:FindFirstChild("OpenButton", true) or Window.Instance:FindFirstChildWhichIsA("TextButton", true)
+        end
+        if openBtn then
+            local stroke = openBtn:FindFirstChildOfClass("UIStroke")
+            local gradient = openBtn:FindFirstChildOfClass("UIGradient")
+            if stroke and gradient then
+                local currentAngle = 0
+                local connection
+                connection = game:GetService("RunService").RenderStepped:Connect(function(dt)
+                    if stroke and stroke.Parent then
+                        currentAngle = (currentAngle + dt * 150) % 360
+                        gradient.Rotation = currentAngle
+                    else
+                        connection:Disconnect()
+                    end
+                end)
+            end
+        end
+    end)
+end)
 
 task.spawn(function()
     task.wait(0.5)
@@ -92,10 +122,13 @@ task.spawn(function()
                 Corner.Parent = mainFrame
             end
             local currentAngle = 0
-            game:GetService("RunService").RenderStepped:Connect(function(dt)
+            local mainConnection
+            mainConnection = game:GetService("RunService").RenderStepped:Connect(function(dt)
                 if Stroke and Stroke.Parent then
                     currentAngle = (currentAngle + dt * 150) % 360
                     Gradient.Rotation = currentAngle
+                else
+                    mainConnection:Disconnect()
                 end
             end)
             local topbar = mainFrame:FindFirstChild("Topbar") or mainFrame:FindFirstChild("Header") or mainFrame
