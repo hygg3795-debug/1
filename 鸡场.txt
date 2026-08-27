@@ -1,7 +1,8 @@
 return function(Window, WindUI)
-    local player = game.Players.LocalPlayer
-    local ReplicatedStorage = game.ReplicatedStorage
-    local Workspace = game.Workspace
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Workspace = game:GetService("Workspace")
+    local player = Players.LocalPlayer
 
     local config = {
         eggEnabled = false,
