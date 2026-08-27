@@ -179,7 +179,8 @@ local serverModules = {
     {name = "扔出一枚硬币", url = "https://hygg3795-debug.github.io/1/扔出一枚硬币.txt"},
     {name = "自然灾害", url = "https://hygg3795-debug.github.io/1/自然灾害.txt"},
     {name = "+1键盘速度逃脱", url = "https://hygg3795-debug.github.io/1/+1键盘速度逃脱.txt"},
-    {name = "+1魔法进化", url = "https://hygg3795-debug.github.io/1/+1魔法进化.txt"}
+    {name = "+1魔法进化", url = "https://hygg3795-debug.github.io/1/+1魔法进化.txt"},
+    {name = "+1割草冒险", url = "https://hygg3795-debug.github.io/1/+1割草冒险.txt"}
 }
 
 for _, module in ipairs(serverModules) do
