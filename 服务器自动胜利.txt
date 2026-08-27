@@ -7,11 +7,13 @@ return function(Window, WindUI)
 
     local gameConfigs = {
         ["+1速度猴子逃脱"] = {
-            type = "monkey",
+            type = "generic",
             pos1 = Vector3.new(-9460.94, 389.29, -256.31),
             pos2 = Vector3.new(-3604.62, 154.21, -9378.90),
-            floatSpeed = 10,
-            floatAmplitude = 2
+            baseY = 389.29,
+            minOffset = -3,
+            maxOffset = 4,
+            speed = 0.5
         },
         ["阿拉伯键盘"] = {
             type = "generic",
@@ -44,6 +46,14 @@ return function(Window, WindUI)
             minOffset = -3,
             maxOffset = 4,
             speed = 0.5
+        },
+        ["+1速度键盘逃脱水下"] = {
+            type = "underwater",
+            pos = Vector3.new(-14024.0, 752.7, 3576.2),
+            baseY = 0,
+            minOffset = -2,
+            maxOffset = 2,
+            speed = 5
         }
     }
 
@@ -71,21 +81,6 @@ return function(Window, WindUI)
         end
         activeStates[key] = false
         timers[key] = 0
-    end
-
-    local function startMonkey(gameName, config, pos, subKey)
-        local key = gameName .. "_" .. subKey
-        if connections[key] then return end
-        activeStates[key] = true
-        timers[key] = 0
-        connections[key] = RunService.Heartbeat:Connect(function(dt)
-            if not activeStates[key] then return end
-            local char = LocalPlayer.Character
-            if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-            timers[key] = timers[key] + dt * config.floatSpeed
-            local yOffset = math.sin(timers[key]) * config.floatAmplitude
-            char.HumanoidRootPart.CFrame = CFrame.new(pos.X, pos.Y + yOffset, pos.Z)
-        end)
     end
 
     local function startGeneric(gameName, config, subKey)
@@ -118,6 +113,36 @@ return function(Window, WindUI)
         end)
     end
 
+    local function startUnderwater(gameName, config, subKey)
+        local key = gameName .. "_" .. subKey
+        if connections[key] then return end
+        activeStates[key] = true
+        if yPositions[key] == nil then
+            yPositions[key] = config.baseY
+        end
+        if dirs[key] == nil then
+            dirs[key] = 1
+        end
+        connections[key] = RunService.Heartbeat:Connect(function()
+            if not activeStates[key] then return end
+            local char = LocalPlayer.Character
+            if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                yPositions[key] = yPositions[key] + config.speed * dirs[key]
+                if yPositions[key] <= config.baseY + config.minOffset then
+                    dirs[key] = 1
+                    yPositions[key] = config.baseY + config.minOffset
+                end
+                if yPositions[key] >= config.baseY + config.maxOffset then
+                    dirs[key] = -1
+                    yPositions[key] = config.baseY + config.maxOffset
+                end
+                hrp.CFrame = CFrame.new(config.pos) + Vector3.new(0, yPositions[key], 0)
+            end
+        end)
+    end
+
     local function createGameToggle(gameName)
         local config = gameConfigs[gameName]
         if not config then return end
@@ -144,6 +169,18 @@ return function(Window, WindUI)
                         startMonkey(gameName, config, config.pos2, "pos2")
                     else
                         stopGame(gameName, "pos2")
+                    end
+                end
+            })
+        elseif config.type == "underwater" then
+            section:Toggle({
+                Title = "自动胜利",
+                Value = false,
+                Callback = function(val)
+                    if val then
+                        startUnderwater(gameName, config, "default")
+                    else
+                        stopGame(gameName, "default")
                     end
                 end
             })
