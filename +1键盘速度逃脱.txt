@@ -3,7 +3,7 @@ return function(Window, WindUI)
     local MarketplaceService = game:GetService("MarketplaceService")
     local LocalPlayer = Players.LocalPlayer
 
-    local tab = Window:Tab({Title = "+1键盘速度逃脱", Icon = " "})
+    local tab = Window:Tab({Title = "+1键盘速度逃脱", Icon = ""})
 
     
     tab:Button({
