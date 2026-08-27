@@ -3,7 +3,7 @@ return function(Window, WindUI)
     local Workspace = game:GetService("Workspace")
     local player = Players.LocalPlayer
 
-    local tab = Window:Tab({Title = "潜水传奇", Icon = " "})
+    local tab = Window:Tab({Title = "潜水传奇", Icon = ""})
 
     local running = false
     local collectThread = nil
