@@ -4,11 +4,12 @@ return function(Window, WindUI)
     local MarketplaceService = game:GetService("MarketplaceService")
     local LocalPlayer = Players.LocalPlayer
 
-    local tab = Window:Tab({Title = "+1速度史莱姆键盘逃脱", Icon = " "})
+    local tab = Window:Tab({Title = "+1速度史莱姆键盘逃脱", Icon = ""})
     local mainSection = tab:Section({Title = "自动胜利"})
 
-    local targetPosition1 = Vector3.new(-1340.25, 249.68, 6438.55)
-    local targetPosition2 = Vector3.new(1322, 199, -4761)
+    
+    local targetPosition1 = Vector3.new(1322, 199, -4761)  
+    local targetPosition2 = Vector3.new(-1340.25, 249.68, 6438.55)  
     local delayBetweenTeleports = 0.1
 
     local autoFarmActive1 = false
@@ -75,7 +76,8 @@ return function(Window, WindUI)
         end
     })
 
-    mainSection:Button({
+    
+    tab:Button({
         Title = "解锁音效",
         Callback = function()
             local ids = { 1836201958 }
