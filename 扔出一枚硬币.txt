@@ -1,5 +1,4 @@
 return function(Window, WindUI)
-    local GameName = "扔出一枚硬币"
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
@@ -18,6 +17,8 @@ return function(Window, WindUI)
     _G.SellArgs = {}
     _G.UpgradeRemote = nil
     _G.UpgradeArgs = {}
+
+    local tab = Window:Tab({Title = "扔出一枚硬币", Icon = ""})
 
     local function getCoinName()
         local pg = LocalPlayer:FindFirstChild("PlayerGui")
@@ -60,6 +61,7 @@ return function(Window, WindUI)
         "Developer Token", "Diamond Token"
     }
 
+    
     local function scanRemotes()
         for _, item in ipairs(ReplicatedStorage:GetDescendants()) do
             if item:IsA("RemoteEvent") or item:IsA("RemoteFunction") then
@@ -83,6 +85,7 @@ return function(Window, WindUI)
             end
         end
     end
+
     pcall(scanRemotes)
 
     local hookSuccess, hookError = pcall(function()
@@ -215,8 +218,6 @@ return function(Window, WindUI)
             end
         end
     end)
-
-    local tab = Window:Tab({Title = GameName, Icon = "coins"})
 
     tab:Toggle({
         Title = "自动投币",
