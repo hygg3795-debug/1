@@ -7,16 +7,18 @@ return function(Window, WindUI)
 
     local gameConfigs = {
         ["+1速度猴子逃脱"] = {
-            type = "generic",
-            pos1 = Vector3.new(-9460.94, 389.29, -256.31),
-            pos2 = Vector3.new(-3604.62, 154.21, -9378.90),
+            type = "multi",
+            positions = {
+                Vector3.new(-9460.94, 389.29, -256.31),
+                Vector3.new(-3604.62, 154.21, -9378.90)
+            },
             baseY = 389.29,
             minOffset = -3,
             maxOffset = 4,
             speed = 0.5
         },
         ["阿拉伯键盘"] = {
-            type = "generic",
+            type = "single",
             pos = Vector3.new(-7344.6, 1877.7, 1379.7),
             baseY = 1877.7,
             minOffset = -3,
@@ -24,7 +26,7 @@ return function(Window, WindUI)
             speed = 0.5
         },
         ["超高速跑者"] = {
-            type = "generic",
+            type = "single",
             pos = Vector3.new(0, 6.5, -9076),
             baseY = 1,
             minOffset = -3,
@@ -32,7 +34,7 @@ return function(Window, WindUI)
             speed = 0.5
         },
         ["每步+1速度"] = {
-            type = "generic",
+            type = "single",
             pos = Vector3.new(8294.85, 201.73, -7598.20),
             baseY = 1,
             minOffset = -3,
@@ -40,20 +42,82 @@ return function(Window, WindUI)
             speed = 10
         },
         ["+1斧头挥动逃脱"] = {
-            type = "generic",
+            type = "single",
             pos = Vector3.new(1769.53, 6.11, 1222.30),
             baseY = 1,
             minOffset = -3,
             maxOffset = 4,
             speed = 0.5
         },
-        ["+1速度键盘逃脱水下"] = {
-            type = "underwater",
-            pos = Vector3.new(-14024.0, 752.7, 3576.2),
-            baseY = 0,
+        ["+1速度键盘水下逃脱"] = {
+            type = "multi",
+            positions = {
+                Vector3.new(-4748.62, 21.67, 1521.73),
+                Vector3.new(434.57, -132.81, 6401.16)
+            },
+            baseY = 21.67,
             minOffset = -2,
             maxOffset = 2,
             speed = 5
+        },
+        ["+1速度忍者键盘逃脱"] = {
+            type = "multi",
+            positions = {
+                Vector3.new(392.24, 19.03, -8619.16),
+                Vector3.new(-4.00, 70, -9038.46),
+                Vector3.new(191.00, 475.00, -12475.71)
+            },
+            baseY = 19.03,
+            minOffset = -3,
+            maxOffset = 4,
+            speed = 0.5
+        },
+        ["+1速度银河键盘逃脱"] = {
+            type = "single",
+            pos = Vector3.new(3961.57, -4.96, -3721.73),
+            baseY = -4.96,
+            minOffset = -3,
+            maxOffset = 4,
+            speed = 0.5
+        },
+        ["每次点击增加+1热量"] = {
+            type = "single",
+            pos = Vector3.new(-1350.55, 19.98, 1756.15),
+            baseY = 19.98,
+            minOffset = -3,
+            maxOffset = 4,
+            speed = 0.5
+        },
+        ["+1后空翻键盘逃脱"] = {
+            type = "multi",
+            positions = {
+                Vector3.new(-6510.57, 276.12, -15755.79),
+                Vector3.new(-32655.05, -1754.57, 50199.60),
+                Vector3.new(-27238.17, 1662.17, 76625.84)
+            },
+            baseY = 276.12,
+            minOffset = -3,
+            maxOffset = 4,
+            speed = 0.5
+        },
+        ["+1 High Jump Power Escape"] = {
+            type = "multi",
+            positions = {
+                Vector3.new(907.21, 9028.27, -41.58),
+                Vector3.new(676.70, 32728.68, -114789.85)
+            },
+            baseY = 9028.27,
+            minOffset = -3,
+            maxOffset = 4,
+            speed = 0.5
+        },
+        ["+1瓶子翻转奥比逃脱"] = {
+            type = "single",
+            pos = Vector3.new(113.79, 13.92, 9502.78),
+            baseY = 13.92,
+            minOffset = -3,
+            maxOffset = 4,
+            speed = 0.5
         }
     }
 
@@ -69,22 +133,19 @@ return function(Window, WindUI)
 
     local connections = {}
     local activeStates = {}
-    local timers = {}
     local yPositions = {}
     local dirs = {}
 
-    local function stopGame(gameName, subKey)
-        local key = gameName .. "_" .. (subKey or "default")
-        if connections[key] then
-            connections[key]:Disconnect()
-            connections[key] = nil
+    local function stopGame(gameName)
+        if connections[gameName] then
+            connections[gameName]:Disconnect()
+            connections[gameName] = nil
         end
-        activeStates[key] = false
-        timers[key] = 0
+        activeStates[gameName] = false
     end
 
-    local function startGeneric(gameName, config, subKey)
-        local key = gameName .. "_" .. subKey
+    local function startSingle(gameName, config)
+        local key = gameName
         if connections[key] then return end
         activeStates[key] = true
         if yPositions[key] == nil then
@@ -113,10 +174,11 @@ return function(Window, WindUI)
         end)
     end
 
-    local function startUnderwater(gameName, config, subKey)
-        local key = gameName .. "_" .. subKey
+    local function startMulti(gameName, config, posIndex)
+        local key = gameName .. "_" .. tostring(posIndex)
         if connections[key] then return end
         activeStates[key] = true
+        local pos = config.positions[posIndex]
         if yPositions[key] == nil then
             yPositions[key] = config.baseY
         end
@@ -138,7 +200,7 @@ return function(Window, WindUI)
                     dirs[key] = -1
                     yPositions[key] = config.baseY + config.maxOffset
                 end
-                hrp.CFrame = CFrame.new(config.pos) + Vector3.new(0, yPositions[key], 0)
+                hrp.CFrame = CFrame.new(pos) + Vector3.new(0, yPositions[key] - config.baseY, 0)
             end
         end)
     end
@@ -149,50 +211,34 @@ return function(Window, WindUI)
 
         local section = createGameSection(gameName)
 
-        if config.type == "monkey" then
-            section:Toggle({
-                Title = "自动胜利世界1",
-                Value = false,
-                Callback = function(val)
-                    if val then
-                        startMonkey(gameName, config, config.pos1, "pos1")
-                    else
-                        stopGame(gameName, "pos1")
+        if config.type == "multi" then
+            for i = 1, #config.positions do
+                section:Toggle({
+                    Title = "自动胜利世界" .. i,
+                    Value = false,
+                    Callback = function(val)
+                        if val then
+                            startMulti(gameName, config, i)
+                        else
+                            local key = gameName .. "_" .. tostring(i)
+                            if connections[key] then
+                                connections[key]:Disconnect()
+                                connections[key] = nil
+                            end
+                            activeStates[key] = false
+                        end
                     end
-                end
-            })
-            section:Toggle({
-                Title = "自动胜利世界2",
-                Value = false,
-                Callback = function(val)
-                    if val then
-                        startMonkey(gameName, config, config.pos2, "pos2")
-                    else
-                        stopGame(gameName, "pos2")
-                    end
-                end
-            })
-        elseif config.type == "underwater" then
-            section:Toggle({
-                Title = "自动胜利",
-                Value = false,
-                Callback = function(val)
-                    if val then
-                        startUnderwater(gameName, config, "default")
-                    else
-                        stopGame(gameName, "default")
-                    end
-                end
-            })
+                })
+            end
         else
             section:Toggle({
                 Title = "自动胜利",
                 Value = false,
                 Callback = function(val)
                     if val then
-                        startGeneric(gameName, config, "default")
+                        startSingle(gameName, config)
                     else
-                        stopGame(gameName, "default")
+                        stopGame(gameName)
                     end
                 end
             })
