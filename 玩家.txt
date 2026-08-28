@@ -420,7 +420,7 @@ return function(Window, WindUI)
 
     local flingSection = playerSection:Section({Title = "甩飞", Collapsible = true, Box = true})
 
-    local function skidFling(targetPlayer)
+    local function silentFling(targetPlayer)
         if not targetPlayer then return end
         local targetChar = targetPlayer.Character
         if not targetChar then return end
@@ -434,94 +434,35 @@ return function(Window, WindUI)
 
         local targetHumanoid = targetChar:FindFirstChildOfClass("Humanoid")
         local targetRoot = targetHumanoid and targetHumanoid.RootPart
-        local targetHead = targetChar:FindFirstChild("Head")
+
+        if not targetRoot then
+            WindUI:Notify({Title = "甩飞失败", Content = "目标没有RootPart", Duration = 2, Icon = "alert"})
+            return
+        end
+
+        local originalSubject = workspace.CurrentCamera.CameraSubject
+        if myHumanoid then
+            workspace.CurrentCamera.CameraSubject = myHumanoid
+        end
 
         local oldPos = myRoot.CFrame
         local oldVel = myRoot.AssemblyLinearVelocity
         local oldRotVel = myRoot.AssemblyAngularVelocity
 
-        local myHumanoidObject = myChar:FindFirstChildOfClass("Humanoid")
-        local originalSubject = workspace.CurrentCamera.CameraSubject
-        if myHumanoidObject then
-            workspace.CurrentCamera.CameraSubject = myHumanoidObject
-        end
-
-        local function forceMove(basePart, posOffset, angOffset)
-            if not basePart or not basePart.Parent then return end
-            myRoot.CFrame = CFrame.new(basePart.Position) * posOffset * angOffset
-            myChar:SetPrimaryPartCFrame(CFrame.new(basePart.Position) * posOffset * angOffset)
-            myRoot.AssemblyLinearVelocity = Vector3.new(9e7, 9e7 * 10, 9e7)
-            myRoot.AssemblyAngularVelocity = Vector3.new(9e8, 9e8, 9e8)
-        end
-
-        local function flingLoop(basePart)
-            local timeLimit = 2
-            local startTime = tick()
-            local angle = 0
-
-            repeat
-                if not myRoot or not myRoot.Parent or not targetHumanoid then break end
-
-                if basePart.AssemblyLinearVelocity.Magnitude < 50 then
-                    angle = angle + 100
-                    forceMove(basePart, CFrame.new(0, 1.5, 0) + targetHumanoid.MoveDirection * basePart.AssemblyLinearVelocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
-                    task.wait()
-                    forceMove(basePart, CFrame.new(0, -1.5, 0) + targetHumanoid.MoveDirection * basePart.AssemblyLinearVelocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
-                    task.wait()
-                    forceMove(basePart, CFrame.new(2.25, 1.5, -2.25) + targetHumanoid.MoveDirection * basePart.AssemblyLinearVelocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
-                    task.wait()
-                    forceMove(basePart, CFrame.new(-2.25, -1.5, 2.25) + targetHumanoid.MoveDirection * basePart.AssemblyLinearVelocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
-                    task.wait()
-                    forceMove(basePart, CFrame.new(0, 1.5, 0) + targetHumanoid.MoveDirection, CFrame.Angles(math.rad(angle), 0, 0))
-                    task.wait()
-                    forceMove(basePart, CFrame.new(0, -1.5, 0) + targetHumanoid.MoveDirection, CFrame.Angles(math.rad(angle), 0, 0))
-                    task.wait()
-                else
-                    forceMove(basePart, CFrame.new(0, 1.5, targetHumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
-                    task.wait()
-                    forceMove(basePart, CFrame.new(0, -1.5, -targetHumanoid.WalkSpeed), CFrame.Angles(0, 0, 0))
-                    task.wait()
-                    forceMove(basePart, CFrame.new(0, 1.5, targetHumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
-                    task.wait()
-                    forceMove(basePart, CFrame.new(0, 1.5, targetRoot.AssemblyLinearVelocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
-                    task.wait()
-                    forceMove(basePart, CFrame.new(0, -1.5, -targetRoot.AssemblyLinearVelocity.Magnitude / 1.25), CFrame.Angles(0, 0, 0))
-                    task.wait()
-                    forceMove(basePart, CFrame.new(0, 1.5, targetRoot.AssemblyLinearVelocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
-                    task.wait()
-                    forceMove(basePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
-                    task.wait()
-                    forceMove(basePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
-                    task.wait()
-                    forceMove(basePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(-90), 0, 0))
-                    task.wait()
-                    forceMove(basePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
-                    task.wait()
-                end
-            until basePart.AssemblyLinearVelocity.Magnitude > 500
-                or not targetChar.Parent
-                or targetHumanoid.Sit
-                or myHumanoid.Health <= 0
-                or tick() > startTime + timeLimit
-        end
-
-        local targetPart = nil
-        if targetRoot and targetHead then
-            if (targetRoot.Position - targetHead.Position).Magnitude > 5 then
-                targetPart = targetHead
-            else
-                targetPart = targetRoot
-            end
-        elseif targetRoot then
-            targetPart = targetRoot
-        elseif targetHead then
-            targetPart = targetHead
-        else
-            WindUI:Notify({Title = "甩飞失败", Content = "目标没有可撞击的身体部件", Duration = 2, Icon = "alert"})
-            return
-        end
-
         myHumanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+
+        for _, otherPlayer in pairs(Players:GetPlayers()) do
+            if otherPlayer ~= LocalPlayer then
+                local otherChar = otherPlayer.Character
+                if otherChar then
+                    for _, part in pairs(otherChar:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            pcall(function() part.CanCollide = false end)
+                        end
+                    end
+                end
+            end
+        end
 
         local bv = Instance.new("BodyVelocity")
         bv.Name = "FlingVelocity"
@@ -529,24 +470,56 @@ return function(Window, WindUI)
         bv.Velocity = Vector3.new(9e8, 9e8, 9e8)
         bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
 
-        flingLoop(targetPart)
+        local startTime = tick()
+        local direction = 1
+        local lastSwitch = tick()
+        local detected = false
+
+        while tick() - startTime < 2.5 do
+            if not targetPlayer.Character then break end
+            local currentTargetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if not currentTargetRoot then break end
+
+            if tick() - lastSwitch > 0.1 then
+                direction = direction * -1
+                lastSwitch = tick()
+            end
+
+            local myChar2 = LocalPlayer.Character
+            local myRoot2 = myChar2 and myChar2:FindFirstChild("HumanoidRootPart")
+            if myRoot2 then
+                local offset = direction * 2
+                local targetPos = currentTargetRoot.Position + currentTargetRoot.CFrame.LookVector * offset
+                myRoot2.CFrame = CFrame.new(targetPos)
+                myRoot2.AssemblyAngularVelocity = Vector3.new(50000, 50000, 50000)
+                myRoot2.AssemblyLinearVelocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+            end
+
+            task.wait(0.05)
+        end
 
         bv:Destroy()
 
         myHumanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
 
-        myRoot.CFrame = oldPos
-        myRoot.AssemblyLinearVelocity = oldVel
-        myRoot.AssemblyAngularVelocity = oldRotVel
+        local myChar3 = LocalPlayer.Character
+        local myRoot3 = myChar3 and myChar3:FindFirstChild("HumanoidRootPart")
+        if myRoot3 then
+            myRoot3.CFrame = oldPos
+            myRoot3.AssemblyLinearVelocity = oldVel
+            myRoot3.AssemblyAngularVelocity = oldRotVel
+        end
 
         if originalSubject then
             workspace.CurrentCamera.CameraSubject = originalSubject
-        elseif myHumanoidObject then
-            workspace.CurrentCamera.CameraSubject = myHumanoidObject
+        elseif myHumanoid then
+            workspace.CurrentCamera.CameraSubject = myHumanoid
         end
 
         task.wait(0.05)
-        myHumanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+        if myHumanoid then
+            myHumanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
     end
 
     flingSection:Button({Title = "甩飞当前选中", Callback = function()
@@ -564,7 +537,7 @@ return function(Window, WindUI)
             WindUI:Notify({Title = "提示", Content = "目标已死亡", Duration = 2, Icon = "alert"})
             return
         end
-        skidFling(target)
+        silentFling(target)
         WindUI:Notify({Title = "甩飞成功", Content = "已弹飞 " .. target.DisplayName, Duration = 1.5, Icon = "check"})
     end})
 
@@ -593,7 +566,7 @@ return function(Window, WindUI)
                 if not targetHum or targetHum.Health <= 0 then
                     return
                 end
-                skidFling(targetPlayer)
+                silentFling(targetPlayer)
                 task.wait(0.3)
             end)
         else
@@ -614,7 +587,7 @@ return function(Window, WindUI)
                 if char then
                     local hum = char:FindFirstChildOfClass("Humanoid")
                     if hum and hum.Health > 0 then
-                        skidFling(p)
+                        silentFling(p)
                         count = count + 1
                         task.wait(0.2)
                     end
@@ -645,7 +618,7 @@ return function(Window, WindUI)
                         if char then
                             local hum = char:FindFirstChildOfClass("Humanoid")
                             if hum and hum.Health > 0 then
-                                skidFling(p)
+                                silentFling(p)
                                 task.wait(0.2)
                             end
                         end
@@ -658,224 +631,6 @@ return function(Window, WindUI)
             if loopAllFlingConnection then
                 loopAllFlingConnection:Disconnect()
                 loopAllFlingConnection = nil
-            end
-            WindUI:Notify({Title = "循环甩飞所有玩家", Content = "已关闭", Duration = 1.5, Icon = "check"})
-        end
-    end})
-
-    playerSection:Divider()
-
-    local fling2Section = playerSection:Section({Title = "甩飞2.0", Collapsible = true, Box = true})
-
-    local function protectSelf()
-        local char = LocalPlayer.Character
-        if not char then return end
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hum and hrp then
-            pcall(function()
-                hum.PlatformStand = false
-                hum.Sit = false
-                hum.AutoRotate = true
-                local state = hum:GetState()
-                if state == Enum.HumanoidStateType.Physics or
-                   state == Enum.HumanoidStateType.FallingDown or
-                   state == Enum.HumanoidStateType.Ragdoll then
-                    hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-                end
-                local vel = hrp.AssemblyLinearVelocity
-                local safeY = vel.Y
-                if safeY > 40 then safeY = 40 end
-                if safeY < -40 then safeY = -40 end
-                hrp.AssemblyLinearVelocity = Vector3.new(vel.X * 0.5, safeY, vel.Z * 0.5)
-                hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-            end)
-        end
-    end
-
-    local function teleportFling(targetPlayer)
-        if not targetPlayer then return end
-        local targetChar = targetPlayer.Character
-        if not targetChar then return end
-        local targetHrp = targetChar:FindFirstChild("HumanoidRootPart")
-        if not targetHrp then return end
-        
-        local myChar = LocalPlayer.Character
-        if not myChar then return end
-        local myHrp = myChar:FindFirstChild("HumanoidRootPart")
-        if not myHrp then return end
-        
-        local originalPos = myHrp.Position
-        local startTime = tick()
-        local direction = 1
-        local lastSwitch = tick()
-        
-        while tick() - startTime < 3 do
-            local currentTargetChar = targetPlayer.Character
-            if not currentTargetChar then break end
-            local currentTargetHrp = currentTargetChar:FindFirstChild("HumanoidRootPart")
-            if not currentTargetHrp then break end
-            
-            if tick() - lastSwitch > 0.15 then
-                direction = direction * -1
-                lastSwitch = tick()
-            end
-            
-            local myChar2 = LocalPlayer.Character
-            local myHrp2 = myChar2 and myChar2:FindFirstChild("HumanoidRootPart")
-            if myHrp2 then
-                local offset = direction * 2
-                local targetPos = currentTargetHrp.Position + currentTargetHrp.CFrame.LookVector * offset
-                myHrp2.CFrame = CFrame.new(targetPos)
-                myHrp2.AssemblyAngularVelocity = Vector3.new(50000, 50000, 50000)
-                myHrp2.AssemblyLinearVelocity = Vector3.new(9e7, 9e7, 9e7)
-            end
-            
-            protectSelf()
-            task.wait(0.05)
-        end
-        
-        local myChar3 = LocalPlayer.Character
-        local myHrp3 = myChar3 and myChar3:FindFirstChild("HumanoidRootPart")
-        if myHrp3 and originalPos then
-            myHrp3.Position = originalPos
-            myHrp3.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-            myHrp3.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-        end
-    end
-
-    fling2Section:Button({Title = "甩飞当前选中", Callback = function()
-        if not targetPlayer then
-            WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
-            return
-        end
-        local target = targetPlayer
-        if not target or not target.Character then
-            WindUI:Notify({Title = "提示", Content = "目标玩家不在游戏中", Duration = 2, Icon = "alert"})
-            return
-        end
-        local targetHum = target.Character:FindFirstChildOfClass("Humanoid")
-        if not targetHum or targetHum.Health <= 0 then
-            WindUI:Notify({Title = "提示", Content = "目标已死亡", Duration = 2, Icon = "alert"})
-            return
-        end
-        teleportFling(target)
-        WindUI:Notify({Title = "甩飞成功", Content = "已弹飞 " .. target.DisplayName, Duration = 1.5, Icon = "check"})
-    end})
-
-    local loopFling2Running = false
-    local loopFling2Connection = nil
-    local loopFling2Target = nil
-    fling2Section:Toggle({Title = "循环甩飞当前选中", Value = false, Callback = function(val)
-        if val then
-            if not targetPlayer then
-                WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
-                return
-            end
-            loopFling2Running = true
-            loopFling2Target = targetPlayer
-            WindUI:Notify({Title = "循环甩飞", Content = "已开启，目标: " .. loopFling2Target.DisplayName, Duration = 2, Icon = "check"})
-
-            loopFling2Connection = RunService.Heartbeat:Connect(function()
-                if not loopFling2Running then
-                    loopFling2Connection:Disconnect()
-                    loopFling2Connection = nil
-                    return
-                end
-                if not loopFling2Target or not loopFling2Target.Character then
-                    return
-                end
-                local targetHum = loopFling2Target.Character:FindFirstChildOfClass("Humanoid")
-                if not targetHum or targetHum.Health <= 0 then
-                    return
-                end
-                local targetChar = loopFling2Target.Character
-                local targetHrp = targetChar:FindFirstChild("HumanoidRootPart")
-                if not targetHrp then return end
-                
-                local myChar = LocalPlayer.Character
-                if not myChar then return end
-                local myHrp = myChar:FindFirstChild("HumanoidRootPart")
-                if not myHrp then return end
-                
-                local direction = math.sin(tick() * 6)
-                local offset = direction * 2.5
-                local targetPos = targetHrp.Position + targetHrp.CFrame.LookVector * offset
-                myHrp.CFrame = CFrame.new(targetPos)
-                myHrp.AssemblyAngularVelocity = Vector3.new(50000, 50000, 50000)
-                myHrp.AssemblyLinearVelocity = Vector3.new(9e7, 9e7, 9e7)
-                
-                protectSelf()
-            end)
-        else
-            loopFling2Running = false
-            if loopFling2Connection then
-                loopFling2Connection:Disconnect()
-                loopFling2Connection = nil
-            end
-            local myChar = LocalPlayer.Character
-            local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
-            if myHrp then
-                myHrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                myHrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            end
-            loopFling2Target = nil
-            WindUI:Notify({Title = "循环甩飞", Content = "已关闭", Duration = 1.5, Icon = "check"})
-        end
-    end})
-
-    fling2Section:Button({Title = "甩飞所有玩家", Callback = function()
-        local count = 0
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer then
-                local char = p.Character
-                if char then
-                    local hum = char:FindFirstChildOfClass("Humanoid")
-                    if hum and hum.Health > 0 then
-                        teleportFling(p)
-                        count = count + 1
-                        task.wait(0.2)
-                    end
-                end
-            end
-        end
-        WindUI:Notify({Title = "甩飞所有玩家", Content = "已甩飞 " .. count .. " 名玩家", Duration = 2, Icon = "check"})
-    end})
-
-    local loopAllFling2Running = false
-    local loopAllFling2Connection = nil
-    fling2Section:Toggle({Title = "循环甩飞所有玩家", Value = false, Callback = function(val)
-        if val then
-            loopAllFling2Running = true
-            WindUI:Notify({Title = "循环甩飞所有玩家", Content = "已开启", Duration = 2, Icon = "check"})
-
-            loopAllFling2Connection = RunService.Heartbeat:Connect(function()
-                if not loopAllFling2Running then
-                    loopAllFling2Connection:Disconnect()
-                    loopAllFling2Connection = nil
-                    return
-                end
-                local players = Players:GetPlayers()
-                for _, p in ipairs(players) do
-                    if not loopAllFling2Running then break end
-                    if p ~= LocalPlayer then
-                        local char = p.Character
-                        if char then
-                            local hum = char:FindFirstChildOfClass("Humanoid")
-                            if hum and hum.Health > 0 then
-                                teleportFling(p)
-                                task.wait(0.2)
-                            end
-                        end
-                    end
-                end
-                task.wait(0.3)
-            end)
-        else
-            loopAllFling2Running = false
-            if loopAllFling2Connection then
-                loopAllFling2Connection:Disconnect()
-                loopAllFling2Connection = nil
             end
             WindUI:Notify({Title = "循环甩飞所有玩家", Content = "已关闭", Duration = 1.5, Icon = "check"})
         end
