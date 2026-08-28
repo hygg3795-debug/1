@@ -5,6 +5,24 @@ local LocalPlayer = Players.LocalPlayer
 local tab = Window:Tab({Title = "动作", Icon = "sparkles"})
 local section1 = tab:Section({Title = "动作列表", Box = true, Collapsible = true, DefaultOpen = true})
 tab:Divider()
+
+
+local sectionAnimPack = tab:Section({Title = "动画包", Box = true, Collapsible = true, DefaultOpen = true})
+sectionAnimPack:Button({
+    Title = "阿迪达斯动画包",
+    Callback = function()
+        clik()
+        local success, err = pcall(function()
+            applyAdidasAnimationPack()
+        end)
+        if not success then
+            warn("阿迪达斯动画包加载失败: ", err)
+        end
+    end
+})
+tab:Divider()
+
+
 local section2 = tab:Section({Title = "本地玩家外观", Box = true, Collapsible = true, DefaultOpen = false})
 local active = {}
 local currentEmoteTrack = nil
@@ -21,6 +39,98 @@ local headlessActive = false
 local hiddenState = {}
 local equippedHats = {}
 local hatToggles = {}
+
+
+local function applyAdidasAnimationPack()
+    local char = LocalPlayer.Character
+    if not char then
+        LocalPlayer.CharacterAdded:Wait()
+        char = LocalPlayer.Character
+    end
+    
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then
+        hum = char:WaitForChild("Humanoid", 15)
+    end
+    
+    
+    if hum.RigType ~= Enum.HumanoidRigType.R15 then
+        warn("阿迪达斯动画包仅支持 R15 角色")
+        return
+    end
+
+    local animate = char:FindFirstChild("Animate")
+    if not animate then
+        animate = Instance.new("AnimationController")
+        animate.Name = "Animate"
+        animate.Parent = hum
+    end
+
+    
+    local ID_TABLE = {
+        idle = "rbxassetid://126354114956642",
+        walk = "rbxassetid://616013216",
+        run  = "rbxassetid://82598234841035",
+        jump = "rbxassetid://75290611992385",
+        fall = "rbxassetid://98600215928904",
+        climb = "rbxassetid://126354115004448",
+        swim = "rbxassetid://133308483266208"
+    }
+
+    local function setupFolder(folderName, id)
+        local folder = animate:FindFirstChild(folderName)
+        if not folder then
+            folder = Instance.new("Folder")
+            folder.Name = folderName
+            folder.Parent = animate
+        end
+        
+        
+        for _, oldAnim in ipairs(folder:GetChildren()) do
+            if oldAnim:IsA("Animation") then
+                oldAnim:Destroy()
+            end
+        end
+        
+        local newAnim = Instance.new("Animation")
+        newAnim.Name = folderName .. "Anim"
+        newAnim.AnimationId = id
+        newAnim.Parent = folder
+    end
+
+    
+    for folderName, id in pairs(ID_TABLE) do
+        setupFolder(folderName, id)
+    end
+
+    
+    animate.Disabled = true
+    task.wait(0.15)
+    if animate and animate.Parent then
+        animate.Disabled = false
+    end
+    
+    
+    for _, track in ipairs(hum:GetPlayingAnimationTracks()) do
+        track:Stop(0)
+    end
+    
+    
+    local idleFolder = animate:FindFirstChild("idle")
+    if idleFolder then
+        local idleAnim = idleFolder:FindFirstChildOfClass("Animation")
+        if idleAnim then
+            local track = hum:LoadAnimation(idleAnim)
+            if track then
+                track:Play()
+            end
+        end
+    end
+    
+    print("阿迪达斯动画包已应用！")
+end
+
+
 local function clik()
 local s = Instance.new("Sound")
 s.SoundId = "rbxassetid://87152549167464"
@@ -304,7 +414,7 @@ break
 end
 end
 if not accessory then
-for _, object in ipairs(objects) do
+for _, object in pairs(objects) do
 object:Destroy()
 end
 return false
@@ -360,6 +470,7 @@ section1:Button({Title = "私人飞行", Callback = function() clik() playAnimat
 section1:Button({Title = "科目三", Callback = function() clik() playAnimationPublic(125328720114284, 1, 0) end})
 section1:Button({Title = "拳击", Callback = function() clik() playAnimationPublic(76710893141393, 1, 0) end})
 section1:Button({Title = "停止当前动作", Callback = function() stopAnimation() end})
+
 local headlessToggle = section2:Toggle({
 Title = "无头",
 Value = false,
