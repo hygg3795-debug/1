@@ -332,90 +332,152 @@ return function(Window, WindUI)
 
     local independentSection = tab:Section({Title = "独立功能"})
 
+    local speedEnabled = false
     local speedSliderValue = 16
-    local speedLockConnection = nil
-    local function stopSpeedLock()
-        if speedLockConnection then
-            speedLockConnection:Disconnect()
-            speedLockConnection = nil
-        end
-    end
-    local function startSpeedLock(value)
-        stopSpeedLock()
-        speedLockConnection = RunService.Heartbeat:Connect(function()
-            local char = LocalPlayer.Character
-            if char then
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum and hum.WalkSpeed ~= value then
-                    hum.WalkSpeed = value
+    local speedCFrameConn = nil
+
+    independentSection:Toggle({
+        Title = "奔跑速度开关",
+        Value = false,
+        Callback = function(val)
+            speedEnabled = val
+            if val then
+                if speedCFrameConn then speedCFrameConn:Disconnect() end
+                speedCFrameConn = RunService.RenderStepped:Connect(function()
+                    local char = LocalPlayer.Character
+                    if not char then return end
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    local root = char:FindFirstChild("HumanoidRootPart")
+                    if not hum or not root then return end
+                    local moveDir = hum.MoveDirection
+                    if moveDir.Magnitude > 0 then
+                        local actualSpeed = speedSliderValue * 50
+                        root.CFrame = root.CFrame + moveDir * (actualSpeed * 0.05)
+                    end
+                end)
+            else
+                if speedCFrameConn then
+                    speedCFrameConn:Disconnect()
+                    speedCFrameConn = nil
                 end
             end
-        end)
-    end
-    independentSection:Slider({
-        Title = "奔跑速度",
-        Value = {Min = 16, Max = 2000, Default = 16},
-        Callback = function(value)
-            speedSliderValue = math.floor(value)
-            startSpeedLock(speedSliderValue)
         end
     })
 
+    independentSection:Slider({
+        Title = "奔跑速度",
+        Value = {Min = 1, Max = 40, Default = 16},
+        Callback = function(value)
+            speedSliderValue = math.floor(value)
+        end
+    })
+
+    local jumpEnabled = false
     local jumpSliderValue = 50
     local jumpLockConnection = nil
+
     local function stopJumpLock()
         if jumpLockConnection then
             jumpLockConnection:Disconnect()
             jumpLockConnection = nil
         end
     end
+
     local function startJumpLock(value)
         stopJumpLock()
+        if not jumpEnabled then return end
+        local actualJumpPower = value * 25
         jumpLockConnection = RunService.Heartbeat:Connect(function()
             local char = LocalPlayer.Character
             if char then
                 local hum = char:FindFirstChildOfClass("Humanoid")
                 if hum then
                     hum.UseJumpPower = true
-                    if hum.JumpPower ~= value then
-                        hum.JumpPower = value
+                    if hum.JumpPower ~= actualJumpPower then
+                        hum.JumpPower = actualJumpPower
                     end
                 end
             end
         end)
     end
-    independentSection:Slider({
-        Title = "跳跃高度",
-        Value = {Min = 50, Max = 1200, Default = 50},
-        Callback = function(value)
-            jumpSliderValue = math.floor(value)
-            startJumpLock(jumpSliderValue)
+
+    independentSection:Toggle({
+        Title = "跳跃高度开关",
+        Value = false,
+        Callback = function(val)
+            jumpEnabled = val
+            if val then
+                startJumpLock(jumpSliderValue)
+            else
+                stopJumpLock()
+                local char = LocalPlayer.Character
+                if char then
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum then hum.JumpPower = 50 end
+                end
+            end
         end
     })
 
+    independentSection:Slider({
+        Title = "跳跃高度",
+        Value = {Min = 1, Max = 60, Default = 50},
+        Callback = function(value)
+            jumpSliderValue = math.floor(value)
+            if jumpEnabled then
+                startJumpLock(jumpSliderValue)
+            end
+        end
+    })
+
+    local gravityEnabled = false
     local gravitySliderValue = 20
     local gravityHeartbeat = nil
     local DEFAULT_GRAVITY = 196.2
     local DEFAULT_RATIO = 20
+
     local function ratioToGravity(ratio)
         return (ratio / DEFAULT_RATIO) * DEFAULT_GRAVITY
     end
+
     local function startGravityLock(ratio)
         if gravityHeartbeat then
             gravityHeartbeat:Disconnect()
             gravityHeartbeat = nil
         end
-        local targetGravity = ratioToGravity(ratio)
+        if not gravityEnabled then return end
+        local actualRatio = ratio * 250
+        local targetGravity = ratioToGravity(actualRatio)
         gravityHeartbeat = RunService.Heartbeat:Connect(function()
             workspace.Gravity = targetGravity
         end)
     end
+
+    independentSection:Toggle({
+        Title = "重力开关",
+        Value = false,
+        Callback = function(val)
+            gravityEnabled = val
+            if val then
+                startGravityLock(gravitySliderValue)
+            else
+                if gravityHeartbeat then
+                    gravityHeartbeat:Disconnect()
+                    gravityHeartbeat = nil
+                end
+                workspace.Gravity = DEFAULT_GRAVITY
+            end
+        end
+    })
+
     independentSection:Slider({
         Title = "重力",
-        Value = {Min = 0, Max = 1000, Default = 20},
+        Value = {Min = 1, Max = 40, Default = 20},
         Callback = function(value)
             gravitySliderValue = math.floor(value)
-            startGravityLock(gravitySliderValue)
+            if gravityEnabled then
+                startGravityLock(gravitySliderValue)
+            end
         end
     })
 
@@ -465,7 +527,7 @@ return function(Window, WindUI)
                     if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
                         local hum = char.Humanoid
                         if hum.MoveDirection.Magnitude > 0 then
-                            char.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame + hum.MoveDirection * (tpWalkSpeed * delta * 35)
+                            char.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame + hum.MoveDirection * (tpWalkSpeed * delta * 40)
                         end
                     end
                 end)
@@ -1354,19 +1416,24 @@ return function(Window, WindUI)
         Callback = function(val)
             clickerActive = val
             if val then
-                if clickerConnection then clickerConnection:Disconnect() end
-                local interval = 1 / clickerCPS
-                clickerConnection = RunService.Heartbeat:Connect(function()
-                    pcall(function()
-                        VirtualInput:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                        task.wait(0.01)
-                        VirtualInput:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                    end)
-                    task.wait(interval)
+                if clickerConnection then
+                    task.cancel(clickerConnection)
+                    clickerConnection = nil
+                end
+                local interval = 1000 / clickerCPS
+                clickerConnection = task.spawn(function()
+                    while clickerActive do
+                        pcall(function()
+                            VirtualInput:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                            task.wait(0.01)
+                            VirtualInput:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                        end)
+                        task.wait(interval / 1000)
+                    end
                 end)
             else
                 if clickerConnection then
-                    clickerConnection:Disconnect()
+                    task.cancel(clickerConnection)
                     clickerConnection = nil
                 end
             end
@@ -1381,15 +1448,20 @@ return function(Window, WindUI)
             if num and num > 0 then
                 clickerCPS = num
                 if clickerActive then
-                    if clickerConnection then clickerConnection:Disconnect() end
-                    local interval = 1 / clickerCPS
-                    clickerConnection = RunService.Heartbeat:Connect(function()
-                        pcall(function()
-                            VirtualInput:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                            task.wait(0.01)
-                            VirtualInput:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                        end)
-                        task.wait(interval)
+                    if clickerConnection then
+                        task.cancel(clickerConnection)
+                        clickerConnection = nil
+                    end
+                    local interval = 1000 / clickerCPS
+                    clickerConnection = task.spawn(function()
+                        while clickerActive do
+                            pcall(function()
+                                VirtualInput:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                                task.wait(0.01)
+                                VirtualInput:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                            end)
+                            task.wait(interval / 1000)
+                        end
                     end)
                 end
             end
