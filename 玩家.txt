@@ -549,7 +549,7 @@ return function(Window, WindUI)
         myHumanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
     end
 
-    flingSection:Button({Title = "甩飞（当前选中）", Callback = function()
+    flingSection:Button({Title = "甩飞当前选中", Callback = function()
         if not targetPlayer then
             WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
             return
@@ -570,7 +570,7 @@ return function(Window, WindUI)
 
     local loopFlingRunning = false
     local loopFlingConnection = nil
-    flingSection:Toggle({Title = "循环甩飞（当前选中）", Value = false, Callback = function(val)
+    flingSection:Toggle({Title = "循环甩飞当前选中", Value = false, Callback = function(val)
         if val then
             if not targetPlayer then
                 WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
@@ -658,6 +658,194 @@ return function(Window, WindUI)
             if loopAllFlingConnection then
                 loopAllFlingConnection:Disconnect()
                 loopAllFlingConnection = nil
+            end
+            WindUI:Notify({Title = "循环甩飞所有玩家", Content = "已关闭", Duration = 1.5, Icon = "check"})
+        end
+    end})
+
+    playerSection:Divider()
+
+    local fling2Section = playerSection:Section({Title = "甩飞2.0", Collapsible = true, Box = true})
+
+    local function teleportFling(targetPlayer)
+        if not targetPlayer then return end
+        local targetChar = targetPlayer.Character
+        if not targetChar then return end
+        local targetHrp = targetChar:FindFirstChild("HumanoidRootPart")
+        if not targetHrp then return end
+        
+        local myChar = LocalPlayer.Character
+        if not myChar then return end
+        local myHrp = myChar:FindFirstChild("HumanoidRootPart")
+        if not myHrp then return end
+        
+        local originalPos = myHrp.Position
+        local startTime = tick()
+        local direction = 1
+        local lastSwitch = tick()
+        
+        while tick() - startTime < 3 do
+            local currentTargetChar = targetPlayer.Character
+            if not currentTargetChar then break end
+            local currentTargetHrp = currentTargetChar:FindFirstChild("HumanoidRootPart")
+            if not currentTargetHrp then break end
+            
+            if tick() - lastSwitch > 0.15 then
+                direction = direction * -1
+                lastSwitch = tick()
+            end
+            
+            local myChar2 = LocalPlayer.Character
+            local myHrp2 = myChar2 and myChar2:FindFirstChild("HumanoidRootPart")
+            if myHrp2 then
+                local offset = direction * 2
+                local targetPos = currentTargetHrp.Position + currentTargetHrp.CFrame.LookVector * offset
+                myHrp2.CFrame = CFrame.new(targetPos)
+                myHrp2.AssemblyAngularVelocity = Vector3.new(50000, 50000, 50000)
+                myHrp2.AssemblyLinearVelocity = Vector3.new(9e7, 9e7, 9e7)
+            end
+            task.wait(0.05)
+        end
+        
+        local myChar3 = LocalPlayer.Character
+        local myHrp3 = myChar3 and myChar3:FindFirstChild("HumanoidRootPart")
+        if myHrp3 and originalPos then
+            myHrp3.Position = originalPos
+            myHrp3.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            myHrp3.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        end
+    end
+
+    fling2Section:Button({Title = "甩飞当前选中", Callback = function()
+        if not targetPlayer then
+            WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+            return
+        end
+        local target = targetPlayer
+        if not target or not target.Character then
+            WindUI:Notify({Title = "提示", Content = "目标玩家不在游戏中", Duration = 2, Icon = "alert"})
+            return
+        end
+        local targetHum = target.Character:FindFirstChildOfClass("Humanoid")
+        if not targetHum or targetHum.Health <= 0 then
+            WindUI:Notify({Title = "提示", Content = "目标已死亡", Duration = 2, Icon = "alert"})
+            return
+        end
+        teleportFling(target)
+        WindUI:Notify({Title = "甩飞成功", Content = "已弹飞 " .. target.DisplayName, Duration = 1.5, Icon = "check"})
+    end})
+
+    local loopFling2Running = false
+    local loopFling2Connection = nil
+    local loopFling2Target = nil
+    fling2Section:Toggle({Title = "循环甩飞当前选中", Value = false, Callback = function(val)
+        if val then
+            if not targetPlayer then
+                WindUI:Notify({Title = "提示", Content = "请先选择目标玩家", Duration = 2, Icon = "alert"})
+                return
+            end
+            loopFling2Running = true
+            loopFling2Target = targetPlayer
+            WindUI:Notify({Title = "循环甩飞", Content = "已开启，目标: " .. loopFling2Target.DisplayName, Duration = 2, Icon = "check"})
+
+            loopFling2Connection = RunService.Heartbeat:Connect(function()
+                if not loopFling2Running then
+                    loopFling2Connection:Disconnect()
+                    loopFling2Connection = nil
+                    return
+                end
+                if not loopFling2Target or not loopFling2Target.Character then
+                    return
+                end
+                local targetHum = loopFling2Target.Character:FindFirstChildOfClass("Humanoid")
+                if not targetHum or targetHum.Health <= 0 then
+                    return
+                end
+                local targetChar = loopFling2Target.Character
+                local targetHrp = targetChar:FindFirstChild("HumanoidRootPart")
+                if not targetHrp then return end
+                
+                local myChar = LocalPlayer.Character
+                if not myChar then return end
+                local myHrp = myChar:FindFirstChild("HumanoidRootPart")
+                if not myHrp then return end
+                
+                local direction = math.sin(tick() * 6)
+                local offset = direction * 2.5
+                local targetPos = targetHrp.Position + targetHrp.CFrame.LookVector * offset
+                myHrp.CFrame = CFrame.new(targetPos)
+                myHrp.AssemblyAngularVelocity = Vector3.new(50000, 50000, 50000)
+                myHrp.AssemblyLinearVelocity = Vector3.new(9e7, 9e7, 9e7)
+            end)
+        else
+            loopFling2Running = false
+            if loopFling2Connection then
+                loopFling2Connection:Disconnect()
+                loopFling2Connection = nil
+            end
+            local myChar = LocalPlayer.Character
+            local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+            if myHrp then
+                myHrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                myHrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            end
+            loopFling2Target = nil
+            WindUI:Notify({Title = "循环甩飞", Content = "已关闭", Duration = 1.5, Icon = "check"})
+        end
+    end})
+
+    fling2Section:Button({Title = "甩飞所有玩家", Callback = function()
+        local count = 0
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer then
+                local char = p.Character
+                if char then
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.Health > 0 then
+                        teleportFling(p)
+                        count = count + 1
+                        task.wait(0.2)
+                    end
+                end
+            end
+        end
+        WindUI:Notify({Title = "甩飞所有玩家", Content = "已甩飞 " .. count .. " 名玩家", Duration = 2, Icon = "check"})
+    end})
+
+    local loopAllFling2Running = false
+    local loopAllFling2Connection = nil
+    fling2Section:Toggle({Title = "循环甩飞所有玩家", Value = false, Callback = function(val)
+        if val then
+            loopAllFling2Running = true
+            WindUI:Notify({Title = "循环甩飞所有玩家", Content = "已开启", Duration = 2, Icon = "check"})
+
+            loopAllFling2Connection = RunService.Heartbeat:Connect(function()
+                if not loopAllFling2Running then
+                    loopAllFling2Connection:Disconnect()
+                    loopAllFling2Connection = nil
+                    return
+                end
+                local players = Players:GetPlayers()
+                for _, p in ipairs(players) do
+                    if not loopAllFling2Running then break end
+                    if p ~= LocalPlayer then
+                        local char = p.Character
+                        if char then
+                            local hum = char:FindFirstChildOfClass("Humanoid")
+                            if hum and hum.Health > 0 then
+                                teleportFling(p)
+                                task.wait(0.2)
+                            end
+                        end
+                    end
+                end
+                task.wait(0.3)
+            end)
+        else
+            loopAllFling2Running = false
+            if loopAllFling2Connection then
+                loopAllFling2Connection:Disconnect()
+                loopAllFling2Connection = nil
             end
             WindUI:Notify({Title = "循环甩飞所有玩家", Content = "已关闭", Duration = 1.5, Icon = "check"})
         end
