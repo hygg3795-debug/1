@@ -3,6 +3,7 @@ return function(Window, WindUI)
     local RunService = game:GetService("RunService")
     local UserInputService = game:GetService("UserInputService")
     local VirtualUser = game:GetService("VirtualUser")
+    local VirtualInput = game:GetService("VirtualInputManager")
     local Lighting = game:GetService("Lighting")
     local Workspace = game:GetService("Workspace")
     local TweenService = game:GetService("TweenService")
@@ -324,99 +325,6 @@ return function(Window, WindUI)
             if PlayerGui and PlayerGui:FindFirstChild("FullUIToggle") then
                 PlayerGui.FullUIToggle:Destroy()
             end
-        end
-    end)
-
-    local blockGui = nil
-    local function placeOneBlock()
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if not char or not root then return end
-        local pos = root.Position + Vector3.new(0, -3, 0)
-        local block = Instance.new("Part")
-        block.Name = "LocalBlock"
-        block.Size = Vector3.new(6, 1, 6)
-        block.Position = pos
-        block.Anchored = true
-        block.CanCollide = true
-        block.BrickColor = BrickColor.new("White")
-        block.Parent = workspace
-    end
-    createSuggestToggle("放置方块", function(val)
-        if val then
-            if blockGui then blockGui:Destroy() end
-            local sg = Instance.new("ScreenGui")
-            sg.Name = "BlockPlaceGui"
-            sg.Parent = LocalPlayer.PlayerGui
-            sg.ResetOnSpawn = false
-            _G.BlockGui = sg
-            local mainFrame = Instance.new("Frame")
-            mainFrame.Parent = sg
-            mainFrame.Size = UDim2.new(0, 160, 0, 100)
-            mainFrame.Position = UDim2.new(0.1, 0, 0.18, 0)
-            mainFrame.BackgroundTransparency = 1
-            mainFrame.ZIndex = 9999
-            local btnClear = Instance.new("TextButton")
-            btnClear.Parent = mainFrame
-            btnClear.Size = UDim2.new(0, 50, 0, 50)
-            btnClear.Position = UDim2.new(0, 0, 0, 0)
-            btnClear.BackgroundColor3 = Color3.new(1, 0, 0)
-            btnClear.TextColor3 = Color3.new(1, 1, 1)
-            btnClear.Text = "清除"
-            btnClear.Font = Enum.Font.GothamBold
-            btnClear.TextSize = 14
-            btnClear.AutoButtonColor = false
-            btnClear.ZIndex = 10000
-            Instance.new("UICorner", btnClear).CornerRadius = UDim.new(0, 12)
-            btnClear.MouseButton1Click:Connect(function()
-                for _, v in pairs(workspace:GetChildren()) do
-                    if v.Name == "LocalBlock" then v:Destroy() end
-                end
-            end)
-            local closeBtn = Instance.new("TextButton")
-            closeBtn.Parent = mainFrame
-            closeBtn.Size = UDim2.new(0, 50, 0, 50)
-            closeBtn.Position = UDim2.new(0, 55, 0, 0)
-            closeBtn.BackgroundColor3 = Color3.new(0, 0, 0)
-            closeBtn.Text = "X"
-            closeBtn.TextColor3 = Color3.new(1, 1, 1)
-            closeBtn.TextSize = 18
-            closeBtn.ZIndex = 10002
-            Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 8)
-            closeBtn.MouseButton1Click:Connect(function()
-                _G.AutoPlace = false
-                if _G.BlockGui then _G.BlockGui:Destroy() _G.BlockGui = nil end
-            end)
-            local autoBtn = Instance.new("TextButton")
-            autoBtn.Parent = mainFrame
-            autoBtn.Size = UDim2.new(0, 160, 0, 40)
-            autoBtn.Position = UDim2.new(0, 0, 0, 55)
-            autoBtn.BackgroundColor3 = Color3.new(0, 0, 0)
-            autoBtn.Text = "自动放置"
-            autoBtn.TextColor3 = Color3.new(1, 1, 1)
-            autoBtn.Font = Enum.Font.GothamBold
-            autoBtn.TextSize = 14
-            autoBtn.AutoButtonColor = false
-            autoBtn.ZIndex = 10000
-            Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 12)
-            autoBtn.MouseButton1Click:Connect(function()
-                _G.AutoPlace = not _G.AutoPlace
-                if _G.AutoPlace then
-                    autoBtn.BackgroundColor3 = Color3.new(0.2, 0.8, 0.2)
-                    task.spawn(function()
-                        while _G.AutoPlace do
-                            placeOneBlock()
-                            task.wait(0.1)
-                        end
-                    end)
-                else
-                    autoBtn.BackgroundColor3 = Color3.new(0, 0, 0)
-                end
-            end)
-            makeDraggable(mainFrame, mainFrame)
-        else
-            if _G.BlockGui then _G.BlockGui:Destroy() _G.BlockGui = nil end
-            _G.AutoPlace = false
         end
     end)
 
@@ -810,6 +718,99 @@ return function(Window, WindUI)
                     task.wait(1)
                 end
             end)
+        end
+    end})
+
+    local blockGui = nil
+    local function placeOneBlock()
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if not char or not root then return end
+        local pos = root.Position + Vector3.new(0, -3, 0)
+        local block = Instance.new("Part")
+        block.Name = "LocalBlock"
+        block.Size = Vector3.new(6, 1, 6)
+        block.Position = pos
+        block.Anchored = true
+        block.CanCollide = true
+        block.BrickColor = BrickColor.new("White")
+        block.Parent = workspace
+    end
+    independentSection:Toggle({Title = "放置方块", Value = false, Callback = function(val)
+        if val then
+            if blockGui then blockGui:Destroy() end
+            local sg = Instance.new("ScreenGui")
+            sg.Name = "BlockPlaceGui"
+            sg.Parent = LocalPlayer.PlayerGui
+            sg.ResetOnSpawn = false
+            _G.BlockGui = sg
+            local mainFrame = Instance.new("Frame")
+            mainFrame.Parent = sg
+            mainFrame.Size = UDim2.new(0, 160, 0, 100)
+            mainFrame.Position = UDim2.new(0.1, 0, 0.18, 0)
+            mainFrame.BackgroundTransparency = 1
+            mainFrame.ZIndex = 9999
+            local btnClear = Instance.new("TextButton")
+            btnClear.Parent = mainFrame
+            btnClear.Size = UDim2.new(0, 50, 0, 50)
+            btnClear.Position = UDim2.new(0, 0, 0, 0)
+            btnClear.BackgroundColor3 = Color3.new(1, 0, 0)
+            btnClear.TextColor3 = Color3.new(1, 1, 1)
+            btnClear.Text = "清除"
+            btnClear.Font = Enum.Font.GothamBold
+            btnClear.TextSize = 14
+            btnClear.AutoButtonColor = false
+            btnClear.ZIndex = 10000
+            Instance.new("UICorner", btnClear).CornerRadius = UDim.new(0, 12)
+            btnClear.MouseButton1Click:Connect(function()
+                for _, v in pairs(workspace:GetChildren()) do
+                    if v.Name == "LocalBlock" then v:Destroy() end
+                end
+            end)
+            local closeBtn = Instance.new("TextButton")
+            closeBtn.Parent = mainFrame
+            closeBtn.Size = UDim2.new(0, 50, 0, 50)
+            closeBtn.Position = UDim2.new(0, 55, 0, 0)
+            closeBtn.BackgroundColor3 = Color3.new(0, 0, 0)
+            closeBtn.Text = "X"
+            closeBtn.TextColor3 = Color3.new(1, 1, 1)
+            closeBtn.TextSize = 18
+            closeBtn.ZIndex = 10002
+            Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 8)
+            closeBtn.MouseButton1Click:Connect(function()
+                _G.AutoPlace = false
+                if _G.BlockGui then _G.BlockGui:Destroy() _G.BlockGui = nil end
+            end)
+            local autoBtn = Instance.new("TextButton")
+            autoBtn.Parent = mainFrame
+            autoBtn.Size = UDim2.new(0, 160, 0, 40)
+            autoBtn.Position = UDim2.new(0, 0, 0, 55)
+            autoBtn.BackgroundColor3 = Color3.new(0, 0, 0)
+            autoBtn.Text = "自动放置"
+            autoBtn.TextColor3 = Color3.new(1, 1, 1)
+            autoBtn.Font = Enum.Font.GothamBold
+            autoBtn.TextSize = 14
+            autoBtn.AutoButtonColor = false
+            autoBtn.ZIndex = 10000
+            Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 12)
+            autoBtn.MouseButton1Click:Connect(function()
+                _G.AutoPlace = not _G.AutoPlace
+                if _G.AutoPlace then
+                    autoBtn.BackgroundColor3 = Color3.new(0.2, 0.8, 0.2)
+                    task.spawn(function()
+                        while _G.AutoPlace do
+                            placeOneBlock()
+                            task.wait(0.1)
+                        end
+                    end)
+                else
+                    autoBtn.BackgroundColor3 = Color3.new(0, 0, 0)
+                end
+            end)
+            makeDraggable(mainFrame, mainFrame)
+        else
+            if _G.BlockGui then _G.BlockGui:Destroy() _G.BlockGui = nil end
+            _G.AutoPlace = false
         end
     end})
 
@@ -1338,6 +1339,64 @@ return function(Window, WindUI)
             if hum then hum.Health = 0 end
         end
     end})
+
+    tab:Divider()
+
+    local clickerSection = tab:Section({Title = "连点器"})
+
+    local clickerActive = false
+    local clickerConnection = nil
+    local clickerCPS = 20
+
+    clickerSection:Toggle({
+        Title = "连点器",
+        Value = false,
+        Callback = function(val)
+            clickerActive = val
+            if val then
+                if clickerConnection then clickerConnection:Disconnect() end
+                local interval = 1 / clickerCPS
+                clickerConnection = RunService.Heartbeat:Connect(function()
+                    pcall(function()
+                        VirtualInput:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                        task.wait(0.01)
+                        VirtualInput:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                    end)
+                    task.wait(interval)
+                end)
+            else
+                if clickerConnection then
+                    clickerConnection:Disconnect()
+                    clickerConnection = nil
+                end
+            end
+        end
+    })
+
+    clickerSection:Input({
+        Title = "每秒点击次数",
+        Placeholder = "默认: 20",
+        Callback = function(text)
+            local num = tonumber(text)
+            if num and num > 0 then
+                clickerCPS = num
+                if clickerActive then
+                    if clickerConnection then clickerConnection:Disconnect() end
+                    local interval = 1 / clickerCPS
+                    clickerConnection = RunService.Heartbeat:Connect(function()
+                        pcall(function()
+                            VirtualInput:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                            task.wait(0.01)
+                            VirtualInput:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                        end)
+                        task.wait(interval)
+                    end)
+                end
+            end
+        end
+    })
+
+    tab:Divider()
 
     local lightSection = tab:Section({Title = "光影效果"})
 
