@@ -4,7 +4,6 @@ return function(Window, WindUI)
     local serverList = {
         "鸡场",
         "自然灾害",
-        "潜水传奇",
         "阿拉伯键盘",
         "超高速跑者",
         "+1割草冒险",
