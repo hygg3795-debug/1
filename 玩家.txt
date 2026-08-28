@@ -667,6 +667,32 @@ return function(Window, WindUI)
 
     local fling2Section = playerSection:Section({Title = "甩飞2.0", Collapsible = true, Box = true})
 
+    local function protectSelf()
+        local char = LocalPlayer.Character
+        if not char then return end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hum and hrp then
+            pcall(function()
+                hum.PlatformStand = false
+                hum.Sit = false
+                hum.AutoRotate = true
+                local state = hum:GetState()
+                if state == Enum.HumanoidStateType.Physics or
+                   state == Enum.HumanoidStateType.FallingDown or
+                   state == Enum.HumanoidStateType.Ragdoll then
+                    hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+                end
+                local vel = hrp.AssemblyLinearVelocity
+                local safeY = vel.Y
+                if safeY > 40 then safeY = 40 end
+                if safeY < -40 then safeY = -40 end
+                hrp.AssemblyLinearVelocity = Vector3.new(vel.X * 0.5, safeY, vel.Z * 0.5)
+                hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            end)
+        end
+    end
+
     local function teleportFling(targetPlayer)
         if not targetPlayer then return end
         local targetChar = targetPlayer.Character
@@ -704,6 +730,8 @@ return function(Window, WindUI)
                 myHrp2.AssemblyAngularVelocity = Vector3.new(50000, 50000, 50000)
                 myHrp2.AssemblyLinearVelocity = Vector3.new(9e7, 9e7, 9e7)
             end
+            
+            protectSelf()
             task.wait(0.05)
         end
         
@@ -776,6 +804,8 @@ return function(Window, WindUI)
                 myHrp.CFrame = CFrame.new(targetPos)
                 myHrp.AssemblyAngularVelocity = Vector3.new(50000, 50000, 50000)
                 myHrp.AssemblyLinearVelocity = Vector3.new(9e7, 9e7, 9e7)
+                
+                protectSelf()
             end)
         else
             loopFling2Running = false
