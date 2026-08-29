@@ -1,7 +1,7 @@
 ## 这里没什么东西，都是垃圾
 将以下代码运行即可加载脚本
 
-```javascript
+```lua
 loadstring(game:HttpGet("https://hygg3795-debug.github.io/1/hygg.txt"))()
 ```
 
