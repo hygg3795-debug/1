@@ -169,15 +169,8 @@ safeLoadModule("https://hygg3795-debug.github.io/1/玩家.txt", "玩家")
 safeLoadModule("https://hygg3795-debug.github.io/1/黑洞.txt", "黑洞")
 safeLoadModule("https://hygg3795-debug.github.io/1/超人.txt", "超人")
 safeLoadModule("https://hygg3795-debug.github.io/1/动作.txt", "动作")
+safeLoadModule("https://raw.githubusercontent.com/hygg3795-debug/1/refs/heads/main/服务器功能.txt", "服务器功能")
 safeLoadModule("https://hygg3795-debug.github.io/1/服务器自动胜利.txt", "服务器自动胜利")
-safeLoadModule("https://hygg3795-debug.github.io/1/鸡场.txt", "鸡场")
-safeLoadModule("https://hygg3795-debug.github.io/1/自然灾害.txt", "自然灾害")
-safeLoadModule("https://hygg3795-debug.github.io/1/+1割草冒险.txt", "+1割草冒险")
-safeLoadModule("https://hygg3795-debug.github.io/1/+1魔法进化.txt", "+1魔法进化")
-safeLoadModule("https://hygg3795-debug.github.io/1/扔出一枚硬币.txt", "扔出一枚硬币")
-safeLoadModule("https://hygg3795-debug.github.io/1/每点击+1年龄.txt", "每点击+1年龄")
-safeLoadModule("https://hygg3795-debug.github.io/1/+1键盘速度逃脱.txt", "+1键盘速度逃脱")
-safeLoadModule("https://hygg3795-debug.github.io/1/+1速度史莱姆键盘逃脱.txt", "+1速度史莱姆键盘逃脱")
 
 _G._LCF_WindUI = WindUI
 _G._LCF_TmplWin = Window
