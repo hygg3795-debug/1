@@ -2,7 +2,7 @@
 将以下代码运行即可加载脚本
 
 ```lua
-loadstring(game:HttpGet("https://hygg3795-debug.github.io/1/hygg.txt"))()
+loadstring(game:HttpGet("https://hygg520.github.io/1/hygg.txt"))()
 ```
 
 > 如果需要缝合搬运，请给个Star
